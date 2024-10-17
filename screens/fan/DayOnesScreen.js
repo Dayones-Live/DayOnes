@@ -1,102 +1,79 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Alert, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from 'react-native';
 import { useSelector } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
-import { fetchInvites } from '../assets/services/apiService'; // Your regular invite fetching API
+import { useFocusEffect } from '@react-navigation/native';
+import axios from 'axios';
+import { BASEURL } from '../../assets/constants';
+import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 
-const DayOnesScreen = () => {
-  const [invites, setInvites] = useState([]);
+const DayOnesScreen = ({ navigation }) => {
+  const [posts, setPosts] = useState([]);
   const accessToken = useSelector((state) => state.accessToken);
-  const navigation = useNavigation();
 
-  useEffect(() => {
-    fetchInvitesFromAPI();
-  }, []);
-
-  const fetchInvitesFromAPI = async () => {
-    if (!accessToken) {
-      Alert.alert('Error', 'User is not authenticated');
-      return;
-    }
-
+  const fetchArtistPosts = async () => {
     try {
-      const response = await fetchInvites(accessToken); // Regular invite fetching API
-      const { data } = response;
-
-      if (data && data.length > 0) {
-        setInvites(data); // Store the invites
-        console.log('Invites fetched successfully:', data);
-      } else {
-        setInvites([]);
-        console.log('No invites found.');
-      }
-    } catch (err) {
-      console.error('Error fetching invites:', err.message);
-      Alert.alert('Error', 'Failed to fetch invites.');
-      setInvites([]);
+      const response = await axios.get(`${BASEURL}/api/v1/post/`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      setPosts(response.data?.data?.posts || []);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      Alert.alert('Error', 'An error occurred while fetching posts.');
     }
   };
 
-  const handleInvitePress = (inviteId) => {
-    // Navigate to a detailed view or perform any action based on the invite
-    navigation.navigate('ConversationThread', { inviteId });
-  };
-
-  const renderItem = ({ item }) => (
-    <TouchableOpacity onPress={() => handleInvitePress(item.id)}>
-      <View style={styles.item}>
-        {/* Profile Picture Placeholder */}
-        <Image
-          source={{ uri: 'https://via.placeholder.com/50' }} // Placeholder for profile picture
-          style={styles.profilePicture}
-        />
-        <Text style={styles.itemText}>
-          Artist {item.artist_post_id} has sent you a new message
-        </Text>
-      </View>
-    </TouchableOpacity>
+  // Refetch collection whenever page is focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchArtistPosts();
+    }, [])
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Day Ones</Text>
-      <FlatList
-        data={invites}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-      />
+      <ProfilePictureButton navigation={navigation} />
+      <Text style={styles.pageTitle}>Direct Messages</Text>
+      <ScrollView style={styles.scrollView}>
+        {posts.length === 0 ? (
+          <Text style={styles.noPostsText}>No messages yet</Text>
+        ) : (
+          posts.map((post, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.dmContainer}
+              onPress={() => navigation.navigate('DMDetailPage', { postId: post.id })}
+            >
+              <Text style={styles.dmText}>{post.user_id || 'User ID'} sent you a message</Text>
+              <Text style={styles.messagePreview}>Tap to view message</Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0c002b',
-    padding: 20,
-  },
-  text: {
-    fontSize: 24,
-    color: '#fff',
-    marginBottom: 20,
-  },
-  item: {
-    flexDirection: 'row',
+  container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
+  pageTitle: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 20 },
+  scrollView: { flex: 1, marginBottom: 20 },
+  noPostsText: { fontSize: 18, color: '#ffffff', textAlign: 'center', marginVertical: 20 },
+  dmContainer: {
+    backgroundColor: '#1b0248',
+    padding: 15,
+    marginVertical: 10,
+    borderRadius: 10,
     alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#444',
   },
-  profilePicture: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 15,
-  },
-  itemText: {
-    color: '#fff',
-    fontSize: 18,
-  },
+  dmText: { fontSize: 18, color: '#ffffff', fontWeight: 'bold' },
+  messagePreview: { fontSize: 14, color: '#888', marginTop: 5 },
 });
 
 export default DayOnesScreen;

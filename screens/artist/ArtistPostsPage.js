@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
+import ProfilePictureButton from '../../assets/components/ProfilePictureButton'; // Import ProfilePictureButton
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -31,6 +32,9 @@ const ArtistPostsPage = () => {
 
   return (
     <View style={styles.container}>
+      {/* Add Profile Picture Button in the top-left corner */}
+      <ProfilePictureButton />
+
       <Text style={styles.pageTitle}>Posts</Text>
       <ScrollView style={styles.scrollView}>
         {posts.map((post, index) => (
