@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,18 +11,18 @@ import {
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import LinearGradient from 'react-native-linear-gradient';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
-import {useSelector} from 'react-redux';
-import {useNavigation, useRoute} from '@react-navigation/native';
-import ProfilePictureButton from '../../assets/components/ProfilePictureButton'; // Import ProfilePictureButton
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { useSelector } from 'react-redux';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import NotificationsScreen from '../NotificationsScreen';
 import DMsScreen from '../DMsScreen';
 import ArtistPostsPage from './ArtistPostsPage';
-import {BASEURL} from '../../assets/constants';
-import {uploadImageToBucket} from '../../utils';
+import { BASEURL } from '../../assets/constants';
+import { uploadImageToBucket } from '../../utils';
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const Tab = createBottomTabNavigator();
 
 const HHomePage = () => {
@@ -44,9 +44,12 @@ const HHomePage = () => {
 
   useEffect(() => {
     if (route.params?.editedImage) {
-      setSelectedImage(route.params.editedImage);
+      console.log("Received editedImage:", route.params.editedImage);
+      setSelectedImage(route.params.editedImage); // Make sure this is set correctly
+      uploadImageToS3(route.params.editedImage.uri); // Check that the URI is valid here
     }
   }, [route.params?.editedImage]);
+
 
   const geolocationData = useSelector(state => state.geolocationData) || {
     latitude: 0.0,
@@ -56,7 +59,7 @@ const HHomePage = () => {
 
   const options = {
     mediaType: 'photo',
-    includeBase64: false, // Changed to false to use URI
+    includeBase64: false,
   };
 
   const takePicture = () => {
@@ -69,7 +72,7 @@ const HHomePage = () => {
         const capturedImage = response.assets[0];
         setSelectedImage(capturedImage);
 
-        navigation.navigate('EditScreen', {selectedImage: capturedImage});
+        navigation.navigate('EditScreen', { selectedImage: capturedImage });
       }
     });
   };
@@ -79,7 +82,7 @@ const HHomePage = () => {
     try {
       const s3Url = await uploadImageToBucket(imageUri, 'signatures', accessToken);
       setUploadedImageUrl(s3Url); // Set uploaded image URL for post
-      console.log('Image uploaded successfully:', s3Url);
+      console.log('Image uploaded successfully to S3:', s3Url);
     } catch (error) {
       console.error('Failed to upload image:', error);
       Alert.alert('Image upload failed. Please try again.');
@@ -104,10 +107,12 @@ const HHomePage = () => {
 
   const clearSelectedImage = () => {
     setSelectedImage(null);
+    setUploadedImageUrl(null); // Clear the uploaded image URL
   };
 
   const createPost = async () => {
     if (!uploadedImageUrl) {
+      console.log("Error: No image uploaded");
       alert('Please upload an image before creating a post.');
       return;
     }
@@ -121,7 +126,7 @@ const HHomePage = () => {
       locale: geolocationData.locale || 'US',
     };
 
-    console.log('Creating post with data:', postData);
+    console.log('Attempting to create post with data:', postData);
 
     try {
       const response = await fetch(`${BASEURL}/api/v1/post/`, {
@@ -135,16 +140,19 @@ const HHomePage = () => {
 
       const jsonResponse = await response.json();
 
+      console.log("Post creation response:", jsonResponse); // Log the entire response
+
       if (response.ok) {
+        console.log("Post created successfully");
         alert('Post created successfully!');
       } else {
-        console.error('Error response:', jsonResponse);
+        console.error("Error creating post:", jsonResponse);
         alert(
           `Failed to create post: ${jsonResponse.message || 'Unknown error'}`,
         );
       }
     } catch (error) {
-      console.error('Network or parsing error:', error);
+      console.error('Network or parsing error during post creation:', error);
       alert(
         'An error occurred while creating the post. Check console for details.',
       );
@@ -168,8 +176,8 @@ const HHomePage = () => {
   return (
     <Tab.Navigator
       initialRouteName="Main"
-      screenOptions={({route}) => ({
-        tabBarIcon: ({color, size}) => {
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
           let iconName;
 
           switch (route.name) {
@@ -192,15 +200,15 @@ const HHomePage = () => {
         tabBarActiveTintColor: '#FF0080',
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
-          backgroundColor: '#0c002b', // Navy blue background
+          backgroundColor: '#0c002b',
           borderTopWidth: 0,
         },
         headerShown: false,
-      })}>
-      <Tab.Screen name="Main" options={{tabBarLabel: 'Home'}}>
+      })}
+    >
+      <Tab.Screen name="Main" options={{ tabBarLabel: 'Home' }}>
         {() => (
           <View style={styles.container}>
-            {/* Add Profile Picture Button in the top-left corner */}
             <ProfilePictureButton />
 
             <View style={styles.header}>
@@ -210,17 +218,19 @@ const HHomePage = () => {
             <LinearGradient
               colors={['#FF00FF', '#001F3F']}
               style={styles.imageContainer}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}>
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
               {selectedImage ? (
                 <View style={styles.selectedImageContainer}>
                   <Image
-                    source={{uri: selectedImage.uri}}
+                    source={{ uri: selectedImage.uri }}
                     style={styles.selectedImage}
                   />
                   <TouchableOpacity
                     style={styles.clearButton}
-                    onPress={clearSelectedImage}>
+                    onPress={clearSelectedImage}
+                  >
                     <Icon name="times" size={20} color="#fff" />
                   </TouchableOpacity>
                 </View>
@@ -232,7 +242,8 @@ const HHomePage = () => {
             <View style={styles.pictureContainer}>
               <TouchableOpacity
                 style={styles.pictureButton}
-                onPress={takePicture}>
+                onPress={takePicture}
+              >
                 <Icon
                   name="camera"
                   size={30}
@@ -243,7 +254,8 @@ const HHomePage = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.pictureButton}
-                onPress={uploadFile}>
+                onPress={uploadFile}
+              >
                 <Icon
                   name="file"
                   size={30}
@@ -264,9 +276,9 @@ const HHomePage = () => {
               <MultiSlider
                 values={sliderValue}
                 sliderLength={width - 80}
-                min={Math.min(...defaultSliderValues)} // Minimum value is 10
-                max={Math.max(...defaultSliderValues)} // Maximum value is 500
-                step={1} // Small step for smooth sliding
+                min={Math.min(...defaultSliderValues)}
+                max={Math.max(...defaultSliderValues)}
+                step={1}
                 onValuesChange={handleSliderChange}
                 selectedStyle={styles.sliderSelectedStyle}
                 unselectedStyle={styles.sliderUnselectedStyle}
@@ -291,7 +303,7 @@ const HHomePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c002b', // Navy blue background
+    backgroundColor: '#0c002b',
     padding: 20,
     alignItems: 'center',
   },

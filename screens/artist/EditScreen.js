@@ -95,17 +95,23 @@ const EditScreen = ({ route, navigation }) => {
   const captureAndSaveImage = async () => {
     try {
       const uri = await viewShotRef.current.capture();
+      console.log("Captured image URI:", uri);
       const newFilePath = `${RNFS.DocumentDirectoryPath}/edited_image_${Date.now()}.jpg`;
 
       await RNFS.moveFile(uri, newFilePath);
+      console.log("File moved to:", newFilePath);
+
+      const base64Data = await RNFS.readFile(newFilePath, 'base64');
+      console.log("Base64 data generated.");
 
       Alert.alert('Success', 'Image saved successfully!');
-      navigation.navigate('HHomePage', { editedImage: { uri: `file://${newFilePath}`, base64: await RNFS.readFile(newFilePath, 'base64') } });
+      navigation.navigate('HHomePage', { editedImage: { uri: `file://${newFilePath}`, base64: base64Data } });
     } catch (error) {
       console.error('Error capturing and saving image:', error);
       Alert.alert('Error', 'Failed to save the image. Please try again.');
     }
-  };
+};
+
 
   const handleCancel = () => {
     navigation.goBack();
