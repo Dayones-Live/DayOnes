@@ -26,7 +26,7 @@ const {width} = Dimensions.get('window');
 const Tab = createBottomTabNavigator();
 
 const HHomePage = () => {
-  const [sliderValue, setSliderValue] = useState([100]);
+  const [sliderValue, setSliderValue] = useState([100]); // Initial value
   const [selectedImage, setSelectedImage] = useState(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState(null); // Store S3 URL
   const navigation = useNavigation();
@@ -155,6 +155,16 @@ const HHomePage = () => {
     return Math.round(feet * 0.3048);
   };
 
+  const defaultSliderValues = [10, 50, 100, 500];
+
+  const handleSliderChange = value => {
+    // Snap to nearest value in the predefined array
+    const closestValue = defaultSliderValues.reduce((prev, curr) =>
+      Math.abs(curr - value[0]) < Math.abs(prev - value[0]) ? curr : prev
+    );
+    setSliderValue([closestValue]);
+  };
+
   return (
     <Tab.Navigator
       initialRouteName="Main"
@@ -254,10 +264,10 @@ const HHomePage = () => {
               <MultiSlider
                 values={sliderValue}
                 sliderLength={width - 80}
-                onValuesChange={value => setSliderValue(value)}
-                min={10}
-                max={2000}
-                step={10}
+                min={Math.min(...defaultSliderValues)} // Minimum value is 10
+                max={Math.max(...defaultSliderValues)} // Maximum value is 500
+                step={1} // Small step for smooth sliding
+                onValuesChange={handleSliderChange}
                 selectedStyle={styles.sliderSelectedStyle}
                 unselectedStyle={styles.sliderUnselectedStyle}
                 trackStyle={styles.sliderTrackStyle}
