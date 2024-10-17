@@ -28,6 +28,7 @@ const Tab = createBottomTabNavigator();
 const HHomePage = () => {
   const [sliderValue, setSliderValue] = useState([100]);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(null); // Store S3 URL
   const navigation = useNavigation();
   const route = useRoute();
   const accessToken = useSelector(state => state.accessToken);
@@ -55,7 +56,7 @@ const HHomePage = () => {
 
   const options = {
     mediaType: 'photo',
-    includeBase64: true,
+    includeBase64: false, // Changed to false to use URI
   };
 
   const takePicture = () => {
@@ -73,6 +74,18 @@ const HHomePage = () => {
     });
   };
 
+  // Upload image to S3 bucket
+  const uploadImageToS3 = async (imageUri) => {
+    try {
+      const s3Url = await uploadImageToBucket(imageUri, 'signatures', accessToken);
+      setUploadedImageUrl(s3Url); // Set uploaded image URL for post
+      console.log('Image uploaded successfully:', s3Url);
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      Alert.alert('Image upload failed. Please try again.');
+    }
+  };
+
   const uploadFile = () => {
     launchImageLibrary(options, response => {
       if (response.didCancel) {
@@ -82,13 +95,9 @@ const HHomePage = () => {
       } else if (response.assets && response.assets.length > 0) {
         const uploadedImage = response.assets[0];
 
-        console.log('uploadedImage', uploadedImage.uri);
+        console.log('Selected image URI:', uploadedImage.uri);
         setSelectedImage(uploadedImage);
-
-        // Upload image to S3 bucket
-        uploadImageToBucket(uploadedImage.uri, 'signatures', accessToken);
-
-        navigation.navigate('EditScreen', {selectedImage: uploadedImage});
+        uploadImageToS3(uploadedImage.uri); // Upload image to S3 and store URL
       }
     });
   };
@@ -98,13 +107,13 @@ const HHomePage = () => {
   };
 
   const createPost = async () => {
-    if (!selectedImage) {
-      alert('Please take a picture or upload a file.');
+    if (!uploadedImageUrl) {
+      alert('Please upload an image before creating a post.');
       return;
     }
 
     const postData = {
-      imageUrl: 'https://picsum.photos/seed/picsum/200/300',
+      imageUrl: uploadedImageUrl, // Use the actual uploaded image URL
       range: sliderValue[0],
       type: 'INVITE_PHOTO',
       latitude: geolocationData.latitude.toString(),
@@ -112,7 +121,7 @@ const HHomePage = () => {
       locale: geolocationData.locale || 'US',
     };
 
-    console.log(postData);
+    console.log('Creating post with data:', postData);
 
     try {
       const response = await fetch(`${BASEURL}/api/v1/post/`, {
