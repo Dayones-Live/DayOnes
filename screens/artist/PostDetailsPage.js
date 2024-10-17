@@ -21,11 +21,15 @@ const PostDetailPage = () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
-        console.log("Full Response:", response.data); // Log the full response for troubleshooting
+        console.log("Full Response:", response.data);
 
-        const postData = response.data?.data?.post || {}; // Fallback to empty object if undefined
+        const postData = response.data?.data?.post || {};
         const reactionCount = response.data?.data?.reaction || 0;
         const comments = response.data?.data?.comments || [];
+
+        comments.forEach((comment, index) => {
+          console.log(`Comment ${index + 1}:`, comment);
+        });
 
         setPost({ ...postData, reactionCount, comments });
       } catch (error) {
@@ -79,7 +83,14 @@ const PostDetailPage = () => {
       {post.comments.length > 0 ? (
         post.comments.map((comment, index) => (
           <View key={index} style={styles.commentContainer}>
-            <Text style={styles.commentAuthor}>{comment.user_name || 'Anonymous'}</Text>
+            <View style={styles.commentHeader}>
+              {comment.user?.avatar_url ? (
+                <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
+              ) : (
+                <View style={styles.placeholderAvatar}><Text>👤</Text></View>
+              )}
+              <Text style={styles.commentAuthor}>{comment.user?.full_name || 'Anonymous'}</Text>
+            </View>
             <Text style={styles.commentText}>{comment.message}</Text>
           </View>
         ))
@@ -107,8 +118,20 @@ const styles = StyleSheet.create({
   interactionText: { fontSize: 16, color: '#FF0080' },
   commentsHeader: { fontSize: 18, color: '#FFFFFF', fontWeight: 'bold', marginTop: 20, marginBottom: 10 },
   commentContainer: { backgroundColor: '#222', padding: 10, borderRadius: 8, marginVertical: 5, width: '100%' },
+  commentHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
+  placeholderAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
   commentAuthor: { fontSize: 14, color: '#FF0080', fontWeight: 'bold' },
   commentText: { fontSize: 14, color: '#FFFFFF' },
+  commentDetail: { fontSize: 12, color: '#BBBBBB', marginTop: 5 },
   noCommentsText: { color: '#888', fontSize: 14, marginTop: 10 },
 });
 

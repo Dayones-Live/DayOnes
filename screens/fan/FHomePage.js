@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Switch, Alert, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Switch, Alert, FlatList, TouchableOpacity, Image } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
 import { useSelector, useDispatch } from 'react-redux';
@@ -155,29 +155,41 @@ const FHomePage = () => {
     }
   };
 
-  const renderInviteItem = ({ item }) => (
-    <View style={styles.inviteItem}>
-      <Text style={styles.inviteText}>Invite ID: {item.id}</Text>
-      <Text style={styles.inviteText}>Status: {item.status}</Text>
-      <Text style={styles.inviteText}>Created At: {new Date(item.created_at).toLocaleString()}</Text>
-      <Text style={styles.inviteText}>Valid Till: {new Date(item.valid_till).toLocaleString()}</Text>
+  const renderInviteItem = ({ item }) => {
+    console.log("Invite Data:", item); // Log out all data for each invite
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.inviteButton, styles.confirmButton]}
-          onPress={() => handleConfirmInvite(item.id)}
-        >
-          <Text style={styles.buttonText}>Confirm</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.inviteButton, styles.denyButton]}
-          onPress={() => handleDenyInvite(item.id)}
-        >
-          <Text style={styles.buttonText}>Deny</Text>
-        </TouchableOpacity>
+    // Format date to show time first before date
+    const validTillDate = new Date(item.valid_till);
+    const formattedDate = `${validTillDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ${validTillDate.toLocaleDateString()}`;
+
+    return (
+      <View style={styles.inviteItem}>
+        <View style={styles.userInfoContainer}>
+          <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
+          <Text style={styles.userName}>{item.user.full_name}</Text>
+        </View>
+
+        {/* Invite Validity */}
+        <Text style={styles.inviteText}>Invite valid until: {formattedDate}</Text>
+
+        {/* Confirm and Deny Buttons */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.inviteButton, styles.confirmButton]}
+            onPress={() => handleConfirmInvite(item.id)}
+          >
+            <Text style={styles.buttonText}>Confirm</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.inviteButton, styles.denyButton]}
+            onPress={() => handleDenyInvite(item.id)}
+          >
+            <Text style={styles.buttonText}>Deny</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -237,9 +249,26 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginHorizontal: 10,
   },
+  userInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  userName: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
   inviteText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 14,
+    marginBottom: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
