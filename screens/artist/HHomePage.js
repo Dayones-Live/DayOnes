@@ -1,19 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Image } from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  Alert,
+  Image,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import LinearGradient from 'react-native-linear-gradient';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import { useSelector } from 'react-redux';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+import {useSelector} from 'react-redux';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton'; // Import ProfilePictureButton
 import NotificationsScreen from '../NotificationsScreen';
 import DMsScreen from '../DMsScreen';
 import ArtistPostsPage from './ArtistPostsPage';
-import { BASEURL } from '../../assets/constants';
+import {BASEURL} from '../../assets/constants';
+import {uploadImageToBucket} from '../../utils';
 
-const { width } = Dimensions.get('window');
+const {width} = Dimensions.get('window');
 const Tab = createBottomTabNavigator();
 
 const HHomePage = () => {
@@ -29,7 +38,7 @@ const HHomePage = () => {
   };
 
   useEffect(() => {
-    console.log("UserProfile from Redux:", userProfile);
+    console.log('UserProfile from Redux:', userProfile);
   }, [userProfile]);
 
   useEffect(() => {
@@ -41,7 +50,7 @@ const HHomePage = () => {
   const geolocationData = useSelector(state => state.geolocationData) || {
     latitude: 0.0,
     longitude: 0.0,
-    geohash: 'abc123'
+    geohash: 'abc123',
   };
 
   const options = {
@@ -50,7 +59,7 @@ const HHomePage = () => {
   };
 
   const takePicture = () => {
-    launchCamera(options, (response) => {
+    launchCamera(options, response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorMessage) {
@@ -59,22 +68,27 @@ const HHomePage = () => {
         const capturedImage = response.assets[0];
         setSelectedImage(capturedImage);
 
-        navigation.navigate('EditScreen', { selectedImage: capturedImage });
+        navigation.navigate('EditScreen', {selectedImage: capturedImage});
       }
     });
   };
 
   const uploadFile = () => {
-    launchImageLibrary(options, (response) => {
+    launchImageLibrary(options, response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorMessage) {
         console.log('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         const uploadedImage = response.assets[0];
+
+        console.log('uploadedImage', uploadedImage.uri);
         setSelectedImage(uploadedImage);
 
-        navigation.navigate('EditScreen', { selectedImage: uploadedImage });
+        // Upload image to S3 bucket
+        uploadImageToBucket(uploadedImage.uri, 'signatures', accessToken);
+
+        navigation.navigate('EditScreen', {selectedImage: uploadedImage});
       }
     });
   };
@@ -85,20 +99,20 @@ const HHomePage = () => {
 
   const createPost = async () => {
     if (!selectedImage) {
-      alert("Please take a picture or upload a file.");
+      alert('Please take a picture or upload a file.');
       return;
     }
 
     const postData = {
       imageUrl: 'https://picsum.photos/seed/picsum/200/300',
       range: sliderValue[0],
-      type: "INVITE_PHOTO",
+      type: 'INVITE_PHOTO',
       latitude: geolocationData.latitude.toString(),
       longitude: geolocationData.longitude.toString(),
       locale: geolocationData.locale || 'US',
     };
 
-    console.log(postData)
+    console.log(postData);
 
     try {
       const response = await fetch(`${BASEURL}/api/v1/post/`, {
@@ -115,24 +129,28 @@ const HHomePage = () => {
       if (response.ok) {
         alert('Post created successfully!');
       } else {
-        console.error("Error response:", jsonResponse);
-        alert(`Failed to create post: ${jsonResponse.message || 'Unknown error'}`);
+        console.error('Error response:', jsonResponse);
+        alert(
+          `Failed to create post: ${jsonResponse.message || 'Unknown error'}`,
+        );
       }
     } catch (error) {
-      console.error("Network or parsing error:", error);
-      alert('An error occurred while creating the post. Check console for details.');
+      console.error('Network or parsing error:', error);
+      alert(
+        'An error occurred while creating the post. Check console for details.',
+      );
     }
   };
 
-  const feetToMeters = (feet) => {
+  const feetToMeters = feet => {
     return Math.round(feet * 0.3048);
   };
 
   return (
     <Tab.Navigator
       initialRouteName="Main"
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
+      screenOptions={({route}) => ({
+        tabBarIcon: ({color, size}) => {
           let iconName;
 
           switch (route.name) {
@@ -159,9 +177,8 @@ const HHomePage = () => {
           borderTopWidth: 0,
         },
         headerShown: false,
-      })}
-    >
-      <Tab.Screen name="Main" options={{ tabBarLabel: 'Home' }}>
+      })}>
+      <Tab.Screen name="Main" options={{tabBarLabel: 'Home'}}>
         {() => (
           <View style={styles.container}>
             {/* Add Profile Picture Button in the top-left corner */}
@@ -174,16 +191,17 @@ const HHomePage = () => {
             <LinearGradient
               colors={['#FF00FF', '#001F3F']}
               style={styles.imageContainer}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}>
               {selectedImage ? (
                 <View style={styles.selectedImageContainer}>
                   <Image
-                    source={{ uri: selectedImage.uri }}
+                    source={{uri: selectedImage.uri}}
                     style={styles.selectedImage}
                   />
-                  <TouchableOpacity style={styles.clearButton} onPress={clearSelectedImage}>
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={clearSelectedImage}>
                     <Icon name="times" size={20} color="#fff" />
                   </TouchableOpacity>
                 </View>
@@ -193,12 +211,26 @@ const HHomePage = () => {
             </LinearGradient>
 
             <View style={styles.pictureContainer}>
-              <TouchableOpacity style={styles.pictureButton} onPress={takePicture}>
-                <Icon name="camera" size={30} color="#00FFFF" style={styles.icon} />
+              <TouchableOpacity
+                style={styles.pictureButton}
+                onPress={takePicture}>
+                <Icon
+                  name="camera"
+                  size={30}
+                  color="#00FFFF"
+                  style={styles.icon}
+                />
                 <Text style={styles.buttonText}>Take Picture</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.pictureButton} onPress={uploadFile}>
-                <Icon name="file" size={30} color="#00FFFF" style={styles.icon} />
+              <TouchableOpacity
+                style={styles.pictureButton}
+                onPress={uploadFile}>
+                <Icon
+                  name="file"
+                  size={30}
+                  color="#00FFFF"
+                  style={styles.icon}
+                />
                 <Text style={styles.buttonText}>Upload File</Text>
               </TouchableOpacity>
             </View>
@@ -213,7 +245,7 @@ const HHomePage = () => {
               <MultiSlider
                 values={sliderValue}
                 sliderLength={width - 80}
-                onValuesChange={(value) => setSliderValue(value)}
+                onValuesChange={value => setSliderValue(value)}
                 min={10}
                 max={2000}
                 step={10}

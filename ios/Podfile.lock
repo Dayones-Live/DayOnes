@@ -1049,8 +1049,6 @@ PODS:
     - React-Core
   - react-native-splash-screen (3.3.0):
     - React-Core
-  - react-native-sqlite-storage (6.0.1):
-    - React-Core
   - react-native-video (6.6.4):
     - DoubleConversion
     - glog
@@ -1514,7 +1512,6 @@ DEPENDENCIES:
   - react-native-maps (from `../node_modules/react-native-maps`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - react-native-splash-screen (from `../node_modules/react-native-splash-screen`)
-  - react-native-sqlite-storage (from `../node_modules/react-native-sqlite-storage`)
   - react-native-video (from `../node_modules/react-native-video`)
   - react-native-view-shot (from `../node_modules/react-native-view-shot`)
   - React-nativeconfig (from `../node_modules/react-native/ReactCommon`)
@@ -1644,8 +1641,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-splash-screen:
     :path: "../node_modules/react-native-splash-screen"
-  react-native-sqlite-storage:
-    :path: "../node_modules/react-native-sqlite-storage"
   react-native-video:
     :path: "../node_modules/react-native-video"
   react-native-view-shot:
@@ -1768,7 +1763,6 @@ SPEC CHECKSUMS:
   react-native-maps: 2e6e9896195781327ee15b33e3e84bf73c08207a
   react-native-safe-area-context: 851c62c48dce80ccaa5637b6aa5991a1bc36eca9
   react-native-splash-screen: 4312f786b13a81b5169ef346d76d33bc0c6dc457
-  react-native-sqlite-storage: f6d515e1c446d1e6d026aa5352908a25d4de3261
   react-native-video: c9889e8b3449e88191c396aaff3b9a48868ce695
   react-native-view-shot: 6b7ed61d77d88580fed10954d45fad0eb2d47688
   React-nativeconfig: f326487bc61eba3f0e328da6efb2711533dcac46
