@@ -80,7 +80,7 @@ const HHomePage = () => {
   // Upload image to S3 bucket
   const uploadImageToS3 = async (imageUri) => {
     try {
-      const s3Url = await uploadImageToBucket(imageUri, 'signatures', accessToken);
+      const s3Url = await uploadImageToBucket(imageUri, 'posts', accessToken);
       setUploadedImageUrl(s3Url); // Set uploaded image URL for post
       console.log('Image uploaded successfully to S3:', s3Url);
     } catch (error) {
