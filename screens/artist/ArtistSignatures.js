@@ -12,6 +12,7 @@ const ArtistSignatures = () => {
   const { data: signatures, isLoading, isError, deleteSignature } = useSignatures();
 
   const handleDelete = (id) => {
+    console.log("Attempting to delete signature with id:", id);
     Alert.alert(
       "Confirm Delete",
       "Are you sure you want to delete this signature?",
@@ -23,24 +24,40 @@ const ArtistSignatures = () => {
   };
 
   const openZoomView = (image) => {
+    console.log("Opening zoom view for image:", image);
     setSelectedImage(image);
   };
 
   const closeZoomView = () => {
+    console.log("Closing zoom view");
     setSelectedImage(null);
   };
 
-  const renderSignature = ({ item }) => (
-    <TouchableOpacity onPress={() => openZoomView(item.url)} style={styles.signatureContainer}>
-      <Image source={{ uri: item.url }} style={styles.signatureImage} resizeMode="contain" />
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => handleDelete(item.id)}
-      >
-        <Icon name="times-circle" size={24} color="#FF3B30" />
+  const renderSignature = ({ item }) => {
+    let parsedUrl;
+
+    try {
+      // Parse the URL since it's a stringified JSON
+      parsedUrl = JSON.parse(item.url).url;
+    } catch (error) {
+      console.error("Error parsing URL:", error);
+      return null; // Handle error and prevent rendering broken signature
+    }
+
+    console.log("Rendering signature item with parsed URL:", parsedUrl);
+
+    return (
+      <TouchableOpacity onPress={() => openZoomView(parsedUrl)} style={styles.signatureContainer}>
+        <Image source={{ uri: parsedUrl }} style={styles.signatureImage} resizeMode="contain" />
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDelete(item.id)}
+        >
+          <Icon name="times-circle" size={24} color="#FF3B30" />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
