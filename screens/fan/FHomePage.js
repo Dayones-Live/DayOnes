@@ -6,6 +6,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
 import { setInvitesEnabled } from '../../assets/redux/actions';
 import { BASEURL } from '../../assets/constants';
+import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotificationsAndLocation';
 
 const FHomePage = () => {
   const dispatch = useDispatch();
@@ -18,6 +19,8 @@ const FHomePage = () => {
   useEffect(() => {
     setIsInviteEnabled(invitesFromRedux); // Sync local state with Redux state
   }, [invitesFromRedux]);
+
+  useSetupNotificationsAndLocation();
 
   // Refetch invites whenever the page is focused
   useFocusEffect(

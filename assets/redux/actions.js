@@ -1,5 +1,5 @@
 // redux/actions.js
-export const SET_GEOLOCATION_DATA = 'SET_GEOLOCATION_DATA';
+export const SET_LOCATION = 'SET_GEOLOCATION_DATA';
 export const SET_USER_PROFILE = 'SET_USER_PROFILE';
 export const SET_ACCESS_TOKEN = 'SET_ACCESS_TOKEN';
 export const SET_USER_ID = 'SET_USER_ID';
@@ -14,10 +14,11 @@ export const setInvitesEnabled = (isEnabled) => ({
   payload: isEnabled,
 });
 
-export const setGeolocationData = (geolocationData) => ({
-    type: SET_GEOLOCATION_DATA,
-    payload: geolocationData,
+export const setLocation = (latitude, longitude) => ({
+  type: 'SET_LOCATION',
+  payload: { latitude, longitude },
 });
+
 
 export const setUserProfile = (userProfile) => ({
     type: SET_USER_PROFILE,

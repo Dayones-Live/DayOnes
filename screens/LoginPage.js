@@ -9,14 +9,12 @@ import {
   Alert,
   StatusBar,
   Dimensions,
-  Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import LogoText from '../assets/components/LogoText';
-import { check, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import useLogin from '../assets/hooks/useLogin';
 
 const { width } = Dimensions.get('window');
@@ -29,24 +27,7 @@ const LoginScreen = () => {
   const userProfile = useSelector((state) => state.userProfile);
   const { mutate: loginUser } = useLogin();
 
-  // Login function
-  const checkPermissions = async () => {
-    try {
-      const camera = await check(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA);
-      const library = await check(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
-      const notifications = await check(Platform.OS === 'ios' ? PERMISSIONS.IOS.NOTIFICATIONS : PERMISSIONS.ANDROID.POST_NOTIFICATIONS);
-      const location = await check(Platform.OS === 'ios' ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
-
-      return camera === RESULTS.GRANTED &&
-             library === RESULTS.GRANTED &&
-             notifications === RESULTS.GRANTED &&
-             location === RESULTS.GRANTED;
-    } catch (error) {
-      console.log('Error checking permissions:', error);
-      return false;
-    }
-  };
-
+  // Navigation to the correct stack after login
   const navigateToAppropriateStack = (role) => {
     if (role === 'ARTIST') {
       navigation.navigate('ArtistStack');
@@ -67,25 +48,20 @@ const LoginScreen = () => {
     loginUser(
       { email: username, password },
       {
-        onSuccess: async (data) => {
+        onSuccess: (data) => {
           setIsLoading(false);
-          const { token, userID, fullName, role } = data;
+          const { role } = data;
 
           // Dispatch user profile data to the Redux store
           console.log('User Profile from Redux:', userProfile);
 
-          // Check permissions
-          const hasAllPermissions = await checkPermissions();
-          if (hasAllPermissions) {
-            navigateToAppropriateStack(role);
-          } else {
-            navigation.navigate('PermissionsScreen');
-          }
+          // Navigate to PermissionsScreen for permission checks
+          navigation.navigate('PermissionsScreen');
         },
         onError: (error) => {
           setIsLoading(false);
 
-          // Check if the error includes 'User is not confirmed'
+          // Handle specific login errors
           if (error.toString().includes('User is not confirmed')) {
             Alert.alert('Account Not Confirmed', 'Please confirm your account to proceed.');
             navigation.navigate('VerifyAccount', { email: username }); // Navigate to VerifyAccount with email
@@ -100,11 +76,6 @@ const LoginScreen = () => {
       }
     );
   };
-
-
-
-
-
 
   return (
     <SafeAreaView style={styles.container}>

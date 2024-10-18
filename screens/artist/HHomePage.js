@@ -21,6 +21,7 @@ import DMsScreen from '../DMsScreen';
 import ArtistPostsPage from './ArtistPostsPage';
 import { BASEURL } from '../../assets/constants';
 import { uploadImageToBucket } from '../../utils';
+import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotificationsAndLocation';
 
 const { width } = Dimensions.get('window');
 const Tab = createBottomTabNavigator();
@@ -41,6 +42,8 @@ const HHomePage = () => {
   useEffect(() => {
     console.log('UserProfile from Redux:', userProfile);
   }, [userProfile]);
+
+  useSetupNotificationsAndLocation();
 
   useEffect(() => {
     if (route.params?.editedImage) {

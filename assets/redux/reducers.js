@@ -7,7 +7,8 @@ import {
     SET_SIGNATURE_COLOR,
     SET_SIGNATURE_SIZE,
     SET_FCM_TOKEN,
-    SET_INVITES_ENABLED, // Import the invites enabled action type
+    SET_INVITES_ENABLED,
+    SET_LOCATION, // Import the invites enabled action type
 } from './actions';
 
 const initialState = {
@@ -30,7 +31,7 @@ const initialState = {
 // Geolocation Reducer
 const geoReducer = (state = initialState.geolocationData, action) => {
     switch (action.type) {
-        case SET_GEOLOCATION_DATA:
+        case SET_LOCATION:
             return { ...state, ...action.payload };
         default:
             return state;
