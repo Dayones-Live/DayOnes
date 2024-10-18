@@ -16,6 +16,7 @@ const DMDetailPage = ({ route }) => {
       const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+      console.log("Post details fetched:", response.data?.data?.post); // Print post details
       setPost(response.data?.data?.post || null);
     } catch (error) {
       console.error('Error fetching post details:', error);
@@ -48,14 +49,12 @@ const DMDetailPage = ({ route }) => {
     } catch (error) {
       if (error.response && error.response.status === 409) {
         console.log("Post was already liked or encountered a like conflict.");
-        // If there's a conflict, assume the post is already liked, and update the state
         setPost((prevPost) => ({ ...prevPost, liked: true }));
       } else {
         console.error("Error toggling like:", error);
       }
     }
   };
-
 
   const addComment = async () => {
     if (!commentText.trim()) {
@@ -87,8 +86,6 @@ const DMDetailPage = ({ route }) => {
     }
   };
 
-
-
   if (!post) {
     return (
       <View style={styles.container}>
@@ -99,11 +96,21 @@ const DMDetailPage = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.postUser}>{post.user_id || 'User ID'}</Text>
+      {/* Display the user's full name and profile picture */}
+      {post.user && (
+        <View style={styles.userInfoContainer}>
+          <Image
+            source={{ uri: post.user.avatar_url }}
+            style={styles.userAvatar}
+          />
+          <Text style={styles.userName}>{post.user.full_name}</Text>
+        </View>
+      )}
+
       {post.image_url && (
         <Image source={{ uri: post.image_url }} style={styles.postImage} />
       )}
-      <Text style={styles.postMessage}>{post.message}</Text>
+
       <View style={styles.interactionContainer}>
         <TouchableOpacity onPress={toggleLike}>
           <Icon name="heart" size={30} color={post.liked ? '#FF0000' : '#FFFFFF'} />
@@ -125,10 +132,10 @@ const DMDetailPage = ({ route }) => {
         <TouchableOpacity
           style={[
             styles.sendButton,
-            { backgroundColor: commentText.trim() ? '#FF0080' : '#555' }, // Toggle color based on input
+            { backgroundColor: commentText.trim() ? '#FF0080' : '#555' },
           ]}
           onPress={addComment}
-          disabled={!commentText.trim()} // Disable if input is empty
+          disabled={!commentText.trim()}
         >
           <Icon name="send" size={20} color="#FFFFFF" />
         </TouchableOpacity>
@@ -140,7 +147,9 @@ const DMDetailPage = ({ route }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
   loadingText: { fontSize: 20, color: '#ffffff' },
-  postUser: { fontSize: 18, color: '#ffffff', marginBottom: 10 },
+  userInfoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  userAvatar: { width: 50, height: 50, borderRadius: 25, marginRight: 10 },
+  userName: { fontSize: 18, color: '#ffffff' },
   postImage: { width: '100%', height: 300, borderRadius: 10, marginBottom: 10 },
   postMessage: { fontSize: 16, color: '#ffffff', textAlign: 'center', marginBottom: 10 },
   interactionContainer: { flexDirection: 'row', marginTop: 10, marginBottom: 20, justifyContent: 'center' },
@@ -151,7 +160,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: 1,
     borderColor: '#333',
-    backgroundColor: 'transparent', // Set to transparent to blend with background
+    backgroundColor: 'transparent',
     position: 'absolute',
     bottom: 0,
     width: '100%',
@@ -172,6 +181,5 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
 });
-
 
 export default DMDetailPage;

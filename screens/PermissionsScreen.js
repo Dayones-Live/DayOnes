@@ -1,10 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, TouchableOpacity, StyleSheet, Alert, Platform, Linking } from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {
+  SafeAreaView,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Platform,
+  Linking,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
-import { useSelector } from 'react-redux';
+import {
+  check,
+  request,
+  PERMISSIONS,
+  RESULTS,
+  checkNotifications,
+  requestNotifications,
+} from 'react-native-permissions';
+import {useSelector} from 'react-redux';
 
 const PermissionsScreen = () => {
   const [cameraPermission, setCameraPermission] = useState(false);
@@ -12,7 +28,7 @@ const PermissionsScreen = () => {
   const [notificationsPermission, setNotificationsPermission] = useState(false);
   const [locationPermission, setLocationPermission] = useState(false);
   const navigation = useNavigation();
-  const profile = useSelector((state) => state.userProfile);
+  const profile = useSelector(state => state.userProfile);
 
   useEffect(() => {
     checkAllPermissions();
@@ -20,17 +36,48 @@ const PermissionsScreen = () => {
 
   const checkAllPermissions = async () => {
     try {
-      const camera = await check(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA);
-      const library = await check(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE);
-      const notifications = await check(Platform.OS === 'ios' ? PERMISSIONS.IOS.NOTIFICATIONS : PERMISSIONS.ANDROID.POST_NOTIFICATIONS);
-      const location = await check(Platform.OS === 'ios' ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
+      const camera = await check(
+        Platform.select({
+          ios: PERMISSIONS.IOS.CAMERA,
+          android: PERMISSIONS.ANDROID.CAMERA,
+        }),
+      );
+      // const library = await request(
+      //   Platform.select({
+      //     ios: PERMISSIONS.IOS.PHOTO_LIBRARY,
+      //     android: PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+      //   }),
+      // );
+      const library = await check(
+        Platform.OS === 'ios'
+          ? PERMISSIONS.IOS.PHOTO_LIBRARY
+          : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+      );
+      const notifications = (await checkNotifications()).status;
+      const location = await check(
+        Platform.OS === 'ios'
+          ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
+          : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+      );
+
+      console.log('camera', camera);
+      console.log('library', library);
+      console.log('notifications', notifications);
+      console.log('location', location);
 
       setCameraPermission(camera === RESULTS.GRANTED);
-      setLibraryPermission(library === RESULTS.GRANTED);
+      setLibraryPermission(
+        library === RESULTS.GRANTED || library === RESULTS.LIMITED,
+      );
       setNotificationsPermission(notifications === RESULTS.GRANTED);
       setLocationPermission(location === RESULTS.GRANTED);
 
-      if (camera === RESULTS.GRANTED && library === RESULTS.GRANTED && notifications === RESULTS.GRANTED && location === RESULTS.GRANTED) {
+      if (
+        camera === RESULTS.GRANTED &&
+        library === RESULTS.GRANTED &&
+        notifications === RESULTS.GRANTED &&
+        location === RESULTS.GRANTED
+      ) {
         navigateToAppropriateStack(profile.data.role);
       }
     } catch (error) {
@@ -53,13 +100,17 @@ const PermissionsScreen = () => {
   };
 
   const openAppSettings = () => {
-    Alert.alert('Permission Required', 'The app needs this permission to function correctly. Please enable it in the app settings.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Open Settings', onPress: () => Linking.openSettings() },
-    ]);
+    Alert.alert(
+      'Permission Required',
+      'The app needs this permission to function correctly. Please enable it in the app settings.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {text: 'Open Settings', onPress: () => Linking.openSettings()},
+      ],
+    );
   };
 
-  const navigateToAppropriateStack = (role) => {
+  const navigateToAppropriateStack = role => {
     if (role === 'ARTIST') {
       navigation.navigate('ArtistStack');
     } else if (role === 'USER') {
@@ -76,29 +127,69 @@ const PermissionsScreen = () => {
           icon="camera"
           title="Camera"
           enabled={cameraPermission}
-          onPress={() => requestPermission(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA, setCameraPermission)}
+          onPress={() =>
+            requestPermission(
+              Platform.OS === 'ios'
+                ? PERMISSIONS.IOS.CAMERA
+                : PERMISSIONS.ANDROID.CAMERA,
+              setCameraPermission,
+            )
+          }
         />
         <PermissionItem
           icon="folder"
           title="Library"
           enabled={libraryPermission}
-          onPress={() => requestPermission(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE, setLibraryPermission)}
+          onPress={() =>
+            requestPermission(
+              Platform.OS === 'ios'
+                ? PERMISSIONS.IOS.PHOTO_LIBRARY
+                : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+              setLibraryPermission,
+            )
+          }
         />
         <PermissionItem
           icon="bell"
           title="Push Notifications"
           enabled={notificationsPermission}
-          onPress={() => requestPermission(Platform.OS === 'ios' ? PERMISSIONS.IOS.NOTIFICATIONS : PERMISSIONS.ANDROID.POST_NOTIFICATIONS, setNotificationsPermission)}
+          onPress={async () => {
+            const notificationResult = await requestNotifications([
+              'alert',
+              'sound',
+              'badge',
+            ]);
+            setNotificationsPermission(
+              notificationResult.status === RESULTS.GRANTED,
+            );
+            // requestPermission(
+            //   Platform.OS === 'ios'
+            //     ? PERMISSIONS.IOS.NOTIFICATIONS
+            //     : PERMISSIONS.ANDROID.POST_NOTIFICATIONS,
+            //   setNotificationsPermission,
+            // )
+          }}
         />
         <PermissionItem
           icon="map-marker"
           title="Location"
           enabled={locationPermission}
-          onPress={() => requestPermission(Platform.OS === 'ios' ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION, setLocationPermission)}
+          onPress={() =>
+            requestPermission(
+              Platform.OS === 'ios'
+                ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
+                : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+              setLocationPermission,
+            )
+          }
         />
 
-        <LinearGradient colors={['#ffcc00', '#ff8800']} style={styles.continueButton}>
-          <TouchableOpacity onPress={() => navigateToAppropriateStack(profile.data.role)} style={styles.fullWidth}>
+        <LinearGradient
+          colors={['#ffcc00', '#ff8800']}
+          style={styles.continueButton}>
+          <TouchableOpacity
+            onPress={() => navigateToAppropriateStack(profile.data.role)}
+            style={styles.fullWidth}>
             <Text style={styles.buttonText}>Continue</Text>
           </TouchableOpacity>
         </LinearGradient>
@@ -107,12 +198,19 @@ const PermissionsScreen = () => {
   );
 };
 
-const PermissionItem = ({ icon, title, enabled, onPress }) => (
+const PermissionItem = ({icon, title, enabled, onPress}) => (
   <View style={styles.permissionItem}>
     <Icon name={icon} size={24} color="#fff" />
     <Text style={styles.permissionText}>{title}</Text>
-    <TouchableOpacity style={[styles.permissionButton, enabled ? styles.enabled : styles.disabled]} onPress={onPress}>
-      <Text style={styles.permissionButtonText}>{enabled ? 'Enabled' : 'Allow'}</Text>
+    <TouchableOpacity
+      style={[
+        styles.permissionButton,
+        enabled ? styles.enabled : styles.disabled,
+      ]}
+      onPress={onPress}>
+      <Text style={styles.permissionButtonText}>
+        {enabled ? 'Enabled' : 'Allow'}
+      </Text>
     </TouchableOpacity>
   </View>
 );
