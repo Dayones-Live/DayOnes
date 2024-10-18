@@ -39,6 +39,24 @@ const DayOnesScreen = ({ navigation }) => {
     }, [])
   );
 
+  const renderPostItem = (post, index) => {
+    // Extracting the user's full name from the post like in the invite example
+    const artistName = post.user?.full_name || 'Unknown Artist';
+
+    return (
+      <TouchableOpacity
+        key={index}
+        style={styles.dmContainer}
+        onPress={() => navigation.navigate('DMDetailPage', { postId: post.id })}
+      >
+        <Text style={styles.dmText}>
+          {artistName} sent you a message
+        </Text>
+        <Text style={styles.messagePreview}>Tap to view message</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <ProfilePictureButton navigation={navigation} />
@@ -53,16 +71,7 @@ const DayOnesScreen = ({ navigation }) => {
               style={styles.dmContainer}
               onPress={() => navigation.navigate('DMDetailPage', { postId: post.id })}
             >
-              {/* Display the user's avatar and full name */}
-              <View style={styles.userInfo}>
-                <Image
-                  source={post.user?.avatar_url ? { uri: post.user.avatar_url } : require('../../assets/images/defaultProfileImage.png')}
-                  style={styles.avatar}
-                />
-                <Text style={styles.dmText}>Message from {post.user?.full_name || 'Unknown User'}</Text>
-              </View>
-
-              {/* Message preview */}
+              <Text style={styles.dmText}>{post.user_id || 'User ID'} sent you a message</Text>
               <Text style={styles.messagePreview}>Tap to view message</Text>
             </TouchableOpacity>
           ))
