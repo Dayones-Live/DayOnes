@@ -29,14 +29,13 @@ const EditScreen = ({ route, navigation }) => {
   const signatureSize = useSelector(state => state.signatureSize);
   const [activeTab, setActiveTab] = useState(0);
   const viewShotRef = useRef(null);
-  const username = useSelector(state => state.userProfile.username) || 'unknown';
   const dispatch = useDispatch();
 
   const { data: signatures, isLoading, isError } = useSignatures();
+
   useEffect(() => {
     console.log("Signatures loaded:", signatures);
   }, [signatures]);
-
 
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: () => true,
@@ -63,7 +62,6 @@ const EditScreen = ({ route, navigation }) => {
     setLastPosition({ x: startX, y: startY });
     setActiveTab(2);
   };
-
 
   const handleDoubleTap = () => {
     // Doubling the sizes
@@ -110,8 +108,7 @@ const EditScreen = ({ route, navigation }) => {
       console.error('Error capturing and saving image:', error);
       Alert.alert('Error', 'Failed to save the image. Please try again.');
     }
-};
-
+  };
 
   const handleCancel = () => {
     navigation.goBack();
@@ -133,7 +130,7 @@ const EditScreen = ({ route, navigation }) => {
             horizontal
             data={signatures}
             renderItem={renderSignature}
-            keyExtractor={item => item.Key}
+            keyExtractor={item => item.id}
             contentContainerStyle={styles.signaturesList}
             showsHorizontalScrollIndicator={false}
           />
@@ -187,17 +184,21 @@ const EditScreen = ({ route, navigation }) => {
     );
   };
 
-const renderSignature = ({ item }) => (
-  <TouchableOpacity onPress={() => handleSignatureSelect(item)}>
-    {item.url ? (
-      <Image source={{ uri: item.url }} style={styles.signatureThumbnail} />
-    ) : (
-      <Text style={styles.placeholderText}>No Image Available</Text>
-    )}
-  </TouchableOpacity>
-);
+  const renderSignature = ({ item }) => {
+    let parsedUrl;
+    try {
+      parsedUrl = JSON.parse(item.url).url;
+    } catch (error) {
+      console.error("Error parsing signature URL:", error);
+      return null; // Return null to avoid rendering if there's an error
+    }
 
-
+    return (
+      <TouchableOpacity onPress={() => handleSignatureSelect(item)}>
+        <Image source={{ uri: parsedUrl }} style={styles.signatureThumbnail} />
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>

@@ -11,6 +11,8 @@ import {
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import LinearGradient from 'react-native-linear-gradient';
+import Geolocation from '@react-native-community/geolocation';
+import Geocoder from 'react-native-geocoder-reborn'; // Ensure this is imported
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { useSelector } from 'react-redux';
@@ -113,6 +115,21 @@ const HHomePage = () => {
     setUploadedImageUrl(null); // Clear the uploaded image URL
   };
 
+  const getLocale = async (latitude, longitude) => {
+    try {
+      const res = await Geocoder.geocodePosition({ lat: latitude, lng: longitude });
+      if (res && res.length > 0) {
+        const locality = res[0].locality || '';
+        const adminArea = res[0].adminArea || '';
+        return `${locality}, ${adminArea}`;
+      }
+      return 'Unknown location';
+    } catch (error) {
+      console.error('Error getting locale', error);
+      return 'Error retrieving location';
+    }
+  };
+
   const createPost = async () => {
     if (!uploadedImageUrl) {
       console.log("Error: No image uploaded");
@@ -120,46 +137,60 @@ const HHomePage = () => {
       return;
     }
 
-    const postData = {
-      imageUrl: uploadedImageUrl, // Use the actual uploaded image URL
-      range: sliderValue[0],
-      type: 'INVITE_PHOTO',
-      latitude: geolocationData.latitude.toString(),
-      longitude: geolocationData.longitude.toString(),
-      locale: geolocationData.locale || 'US',
-    };
+    // Get the geolocation dynamically
+    Geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log("User's current location:", latitude, longitude);
 
-    console.log('Attempting to create post with data:', postData);
+        try {
+          // Get the locale using reverse geocoding
+          const locale = await getLocale(latitude, longitude);
 
-    try {
-      const response = await fetch(`${BASEURL}/api/v1/post/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(postData),
-      });
+          const postData = {
+            imageUrl: uploadedImageUrl, // Use the actual uploaded image URL
+            range: sliderValue[0],
+            type: 'INVITE_PHOTO',
+            latitude: latitude.toString(), // Use the dynamic latitude and longitude
+            longitude: longitude.toString(),
+            locale: locale, // Set the locale dynamically
+          };
 
-      const jsonResponse = await response.json();
+          console.log('Attempting to create post with data:', postData);
 
-      console.log("Post creation response:", jsonResponse); // Log the entire response
+          const response = await fetch(`${BASEURL}/api/v1/post/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(postData),
+          });
 
-      if (response.ok) {
-        console.log("Post created successfully");
-        alert('Post created successfully!');
-      } else {
-        console.error("Error creating post:", jsonResponse);
-        alert(
-          `Failed to create post: ${jsonResponse.message || 'Unknown error'}`,
-        );
-      }
-    } catch (error) {
-      console.error('Network or parsing error during post creation:', error);
-      alert(
-        'An error occurred while creating the post. Check console for details.',
-      );
-    }
+          const jsonResponse = await response.json();
+
+          console.log("Post creation response:", jsonResponse); // Log the entire response
+
+          if (response.ok) {
+            console.log("Post created successfully");
+            alert('Post created successfully!');
+          } else {
+            console.error("Error creating post:", jsonResponse);
+            alert(
+              `Failed to create post: ${jsonResponse.message || 'Unknown error'}`,
+            );
+          }
+        } catch (error) {
+          console.error('Error during post creation:', error);
+          alert('An error occurred while creating the post. Check console for details.');
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        Alert.alert('Error', 'Failed to get your location. Please enable location services.');
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
   };
 
   const feetToMeters = feet => {

@@ -89,7 +89,7 @@ const PostDetailPage = () => {
       ) : (
         <Text style={styles.errorText}>Image not available</Text>
       )}
-      <Text style={styles.postText}>{post.message || 'No content available'}</Text>
+      {/* The post message is removed here */}
       <View style={styles.interactionContainer}>
         <Text style={styles.interactionText}>❤️ {post.reactionCount}</Text>
         <Text style={styles.interactionText}>💬 {post.comments.length}</Text>
@@ -137,7 +137,6 @@ const styles = StyleSheet.create({
   },
   postTitle: { fontSize: 24, color: '#FFFFFF', fontWeight: 'bold', marginVertical: 10 },
   postImage: { width: '100%', height: 400, marginVertical: 20 },
-  postText: { fontSize: 16, color: '#FFFFFF', textAlign: 'center', marginVertical: 10 },
   interactionContainer: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 20 },
   interactionText: { fontSize: 16, color: '#FF0080' },
   commentsHeader: { fontSize: 18, color: '#FFFFFF', fontWeight: 'bold', marginTop: 20, marginBottom: 10 },
