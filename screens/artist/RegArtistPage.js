@@ -46,7 +46,7 @@ const RegArtistPage = () => {
       const response = await axios.post(`${BASEURL}/api/v1/auth/signup`, {
         email,
         password,
-        role: 'USER',
+        role: 'ARTIST',
         name,
         phoneNumber: phoneNumber,
       });
