@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux';
 import LinearGradient from 'react-native-linear-gradient';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
+import { uploadImageToBucket } from '../../utils'; // Assuming you have the S3 upload utility
 
 const SignaturePage = () => {
   const navigation = useNavigation();
@@ -15,7 +16,7 @@ const SignaturePage = () => {
 
   const options = {
     mediaType: 'photo',
-    includeBase64: true,
+    includeBase64: false,
   };
 
   const takePicture = () => {
@@ -23,9 +24,10 @@ const SignaturePage = () => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorMessage) {
-        console.log('ImagePicker Error: ', response.errorMessage);
+        console.error('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         setSelectedImage(response.assets[0]);
+        console.log('Selected image:', response.assets[0]);
       }
     });
   };
@@ -35,9 +37,10 @@ const SignaturePage = () => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorMessage) {
-        console.log('ImagePicker Error: ', response.errorMessage);
+        console.error('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         setSelectedImage(response.assets[0]);
+        console.log('Selected image:', response.assets[0]);
       }
     });
   };
@@ -48,21 +51,30 @@ const SignaturePage = () => {
       return;
     }
 
-    const imageUrl = 'https://picsum.photos/seed/picsum/200/300'; // Assuming the image URI is a URL
-
     try {
+      console.log('Uploading image to S3...');
+      const s3Url = await uploadImageToBucket(selectedImage.uri, 'signatures', accessToken);
+      console.log('Image successfully uploaded to S3. S3 URL:', s3Url);
+
+      const payload = new URLSearchParams({ url: s3Url }).toString();
+      console.log('Payload to be sent:', payload);
+
+      console.log('Attempting to create signature with payload:', payload);
+      const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Bearer ${accessToken}`,
+      };
+      console.log('Headers:', headers);
+
       const response = await axios.post(
-        `${BASEURL}/api/v1/signature/create`,
-        new URLSearchParams({ url: imageUrl }).toString(), // Use URL-encoded data
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        `${BASEURL}/api/v1/signature`,
+        payload, // Payload being sent
+        { headers }
       );
 
-      if (response.status === 200) {
+      console.log('Create signature response:', response.data);
+
+      if (response.status === 200 || response.status === 201) {
         Alert.alert('Success', 'Signature created successfully!');
       } else {
         console.error('Failed to create signature:', response.data);
@@ -70,11 +82,16 @@ const SignaturePage = () => {
       }
     } catch (error) {
       console.error('Error creating signature:', error);
-      Alert.alert('Error', 'Error creating signature.');
+      if (error.response) {
+        console.log('Response data:', error.response.data);
+        console.log('Response status:', error.response.status);
+        console.log('Response headers:', error.response.headers);
+      } else {
+        console.log('Error message:', error.message);
+      }
+      Alert.alert('Error', 'An error occurred while creating the signature.');
     }
   };
-
-
 
   return (
     <View style={styles.container}>
