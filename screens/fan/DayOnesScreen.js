@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,6 +23,8 @@ const DayOnesScreen = ({ navigation }) => {
       const response = await axios.get(`${BASEURL}/api/v1/post/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+
+      console.log('Posts data:', response.data?.data?.posts); // Log only the posts data
       setPosts(response.data?.data?.posts || []);
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -50,7 +53,16 @@ const DayOnesScreen = ({ navigation }) => {
               style={styles.dmContainer}
               onPress={() => navigation.navigate('DMDetailPage', { postId: post.id })}
             >
-              <Text style={styles.dmText}>{post.user_id || 'User ID'} sent you a message</Text>
+              {/* Display the user's avatar and full name */}
+              <View style={styles.userInfo}>
+                <Image
+                  source={post.user?.avatar_url ? { uri: post.user.avatar_url } : require('../../assets/images/defaultProfileImage.png')}
+                  style={styles.avatar}
+                />
+                <Text style={styles.dmText}>Message from {post.user?.full_name || 'Unknown User'}</Text>
+              </View>
+
+              {/* Message preview */}
               <Text style={styles.messagePreview}>Tap to view message</Text>
             </TouchableOpacity>
           ))
@@ -70,7 +82,17 @@ const styles = StyleSheet.create({
     padding: 15,
     marginVertical: 10,
     borderRadius: 10,
+  },
+  userInfo: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 10,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
   },
   dmText: { fontSize: 18, color: '#ffffff', fontWeight: 'bold' },
   messagePreview: { fontSize: 14, color: '#888', marginTop: 5 },
