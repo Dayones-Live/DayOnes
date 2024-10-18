@@ -40,8 +40,9 @@ const DayOnesScreen = ({ navigation }) => {
   );
 
   const renderPostItem = (post, index) => {
-    // Extracting the user's full name from the post like in the invite example
+    // Extracting the user's full name and avatar URL from the post
     const artistName = post.user?.full_name || 'Unknown Artist';
+    const avatarUrl = post.user?.avatar_url || 'https://example.com/default-avatar.png'; // Replace with a default avatar image if none exists
 
     return (
       <TouchableOpacity
@@ -49,10 +50,18 @@ const DayOnesScreen = ({ navigation }) => {
         style={styles.dmContainer}
         onPress={() => navigation.navigate('DMDetailPage', { postId: post.id })}
       >
-        <Text style={styles.dmText}>
-          {artistName} sent you a message
-        </Text>
-        <Text style={styles.messagePreview}>Tap to view message</Text>
+        <View style={styles.userInfo}>
+          <Image
+            source={{ uri: avatarUrl }}
+            style={styles.avatar}
+          />
+          <View>
+            <Text style={styles.dmText}>
+              {artistName} sent you a message
+            </Text>
+            <Text style={styles.messagePreview}>Tap to view message</Text>
+          </View>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -65,16 +74,7 @@ const DayOnesScreen = ({ navigation }) => {
         {posts.length === 0 ? (
           <Text style={styles.noPostsText}>No messages yet</Text>
         ) : (
-          posts.map((post, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.dmContainer}
-              onPress={() => navigation.navigate('DMDetailPage', { postId: post.id })}
-            >
-              <Text style={styles.dmText}>{post.user_id || 'User ID'} sent you a message</Text>
-              <Text style={styles.messagePreview}>Tap to view message</Text>
-            </TouchableOpacity>
-          ))
+          posts.map((post, index) => renderPostItem(post, index))
         )}
       </ScrollView>
     </View>
@@ -98,10 +98,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,
   },
   dmText: { fontSize: 18, color: '#ffffff', fontWeight: 'bold' },
   messagePreview: { fontSize: 14, color: '#888', marginTop: 5 },

@@ -114,11 +114,21 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleNavigateHome = () => {
+    if (profile.data?.role === 'ARTIST') {
+      navigation.navigate('HHomePage'); // Navigate to artist's home page
+    } else if (profile.data?.role === 'USER') {
+      navigation.navigate('FanStack'); // Navigate to user's home page
+    } else {
+      Alert.alert('Error', 'Unknown role. Cannot navigate to the home page.');
+    }
+  };
+
   return (
     <>
       <StatusBar backgroundColor="#0c002b" barStyle="light-content" />
       <View style={styles.container}>
-        <TouchableOpacity style={styles.homeButton} onPress={() => navigation.navigate('Home')}>
+        <TouchableOpacity style={styles.homeButton} onPress={handleNavigateHome}>
           <Icon name="home" size={24} color="#FFF" />
         </TouchableOpacity>
 
