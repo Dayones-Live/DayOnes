@@ -43,6 +43,23 @@ const PostDetailPage = () => {
     fetchPostDetails();
   }, [postId, accessToken]);
 
+  const handleCreateConversation = async (recieverId) => {
+    try {
+      const response = await axios.post(`${BASEURL}/api/v1/conversation`, {
+        recieverId: recieverId,
+        lastMessage: 'Hello',
+      }, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      Alert.alert('Success', 'Conversation created!');
+      console.log('Conversation response:', response.data);
+    } catch (error) {
+      console.error('Error creating conversation:', error.response || error.message);
+      Alert.alert('Error', 'Could not create a conversation.');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
@@ -90,6 +107,13 @@ const PostDetailPage = () => {
                 <View style={styles.placeholderAvatar}><Text>👤</Text></View>
               )}
               <Text style={styles.commentAuthor}>{comment.user?.full_name || 'Anonymous'}</Text>
+              {/* DM Badge */}
+              <TouchableOpacity
+                style={styles.dmBadge}
+                onPress={() => handleCreateConversation(comment.user?.id)}
+              >
+                <Icon name="envelope" size={20} color="#FFF" />
+              </TouchableOpacity>
             </View>
             <Text style={styles.commentText}>{comment.message}</Text>
           </View>
@@ -129,9 +153,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
+  dmBadge: {
+    marginLeft: 'auto',
+    padding: 5,
+    backgroundColor: '#FF0080',
+    borderRadius: 8,
+  },
   commentAuthor: { fontSize: 14, color: '#FF0080', fontWeight: 'bold' },
   commentText: { fontSize: 14, color: '#FFFFFF' },
-  commentDetail: { fontSize: 12, color: '#BBBBBB', marginTop: 5 },
   noCommentsText: { color: '#888', fontSize: 14, marginTop: 10 },
 });
 

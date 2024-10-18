@@ -36,6 +36,24 @@ const DayOnesScreen = ({ navigation }) => {
     }, [])
   );
 
+  const renderPostItem = (post, index) => {
+    // Extracting the user's full name from the post like in the invite example
+    const artistName = post.user?.full_name || 'Unknown Artist';
+
+    return (
+      <TouchableOpacity
+        key={index}
+        style={styles.dmContainer}
+        onPress={() => navigation.navigate('DMDetailPage', { postId: post.id })}
+      >
+        <Text style={styles.dmText}>
+          {artistName} sent you a message
+        </Text>
+        <Text style={styles.messagePreview}>Tap to view message</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <ProfilePictureButton navigation={navigation} />
@@ -44,16 +62,7 @@ const DayOnesScreen = ({ navigation }) => {
         {posts.length === 0 ? (
           <Text style={styles.noPostsText}>No messages yet</Text>
         ) : (
-          posts.map((post, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.dmContainer}
-              onPress={() => navigation.navigate('DMDetailPage', { postId: post.id })}
-            >
-              <Text style={styles.dmText}>{post.user_id || 'User ID'} sent you a message</Text>
-              <Text style={styles.messagePreview}>Tap to view message</Text>
-            </TouchableOpacity>
-          ))
+          posts.map(renderPostItem)
         )}
       </ScrollView>
     </View>
