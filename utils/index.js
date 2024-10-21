@@ -72,3 +72,37 @@ const uploadImageToS3 = async (signedUrl, imageType, file) => {
     console.log(error);
   }
 };
+
+export const uploadSignatureFile = async (accessToken, uri) => {
+  const formData = new FormData();
+  const fileName = new Date().getTime() + '.png';
+
+  const imageBody = await getBlob(uri);
+  const file = {
+    uri: uri,
+    name: fileName,
+    type: imageBody['type'],
+  };
+
+  formData.append('file', file);
+
+  try {
+    const response = await fetch(`${BASE_URL}/api/v1/signature/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const data = await response.json(); // Parse the JSON response
+
+    console.log('Signature file uploaded', data);
+    return data.data; // Return the parsed data
+  } catch (error) {
+    console.error('Error uploading file:', error); // Handle the error
+  }
+};

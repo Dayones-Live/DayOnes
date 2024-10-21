@@ -34,21 +34,13 @@ const ArtistSignatures = () => {
   };
 
   const renderSignature = ({ item }) => {
-    let parsedUrl;
 
-    try {
-      // Parse the URL since it's a stringified JSON
-      parsedUrl = JSON.parse(item.url).url;
-    } catch (error) {
-      console.error("Error parsing URL:", error);
-      return null; // Handle error and prevent rendering broken signature
-    }
 
     console.log("Rendering signature item with parsed URL:", parsedUrl);
 
     return (
-      <TouchableOpacity onPress={() => openZoomView(parsedUrl)} style={styles.signatureContainer}>
-        <Image source={{ uri: parsedUrl }} style={styles.signatureImage} resizeMode="contain" />
+      <TouchableOpacity onPress={() => openZoomView(item.url)} style={styles.signatureContainer}>
+        <Image source={{ uri: item.url }} style={styles.signatureImage} resizeMode="contain" />
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={() => handleDelete(item.id)}
