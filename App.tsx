@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import SplashScreen from 'react-native-splash-screen';
 import { Provider } from 'react-redux';
 import store from './assets/redux/store';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginPage from './screens/LoginPage';
 import RegArtistPage from './screens/artist/RegArtistPage';
 import RegFanPage from './screens/fan/RegFanPage';
@@ -28,16 +29,37 @@ const Stack = createStackNavigator();
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [initialRoute, setInitialRoute] = useState('LoginPage'); // Default to LoginPage
+
   useEffect(() => {
     // Hide the splash screen (the default one, not the video one)
     SplashScreen.hide();
+
+    // Check permissions on app launch and set the initial route accordingly
+    checkPermissionsOnLaunch();
   }, []);
+
+  const checkPermissionsOnLaunch = async () => {
+    try {
+      const permissionsGranted = await AsyncStorage.getItem('permissionsGranted');
+      if (permissionsGranted === 'true') {
+        // You can set the initial route depending on the user role, if needed
+        const role = await AsyncStorage.getItem('userRole'); // Assuming you store role somewhere
+        setInitialRoute(role === 'ARTIST' ? 'ArtistStack' : 'FanStack');
+      } else {
+        setInitialRoute('PermissionsScreen');
+      }
+    } catch (error) {
+      console.error('Error checking permissions on launch:', error);
+      setInitialRoute('LoginPage'); // Fallback in case of an error
+    }
+  };
 
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <NavigationContainer>
-          <Stack.Navigator initialRouteName="LoginPage">
+          <Stack.Navigator initialRouteName={initialRoute}>
             <Stack.Screen
               name="SplashVideoScreen"
               component={SplashVideoScreen}

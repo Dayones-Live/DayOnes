@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   errorText: { color: '#FFF', fontSize: 18 },
   backButton: {
     position: 'absolute',
-    top: 10,
+    top: 30,
     left: 10,
     padding: 10,
   },
