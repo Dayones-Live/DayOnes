@@ -69,7 +69,7 @@ const DayOnesScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <ProfilePictureButton navigation={navigation} />
-      <Text style={styles.pageTitle}>Direct Messages</Text>
+      <Text style={styles.pageTitle}>DayOnes Message</Text>
       <ScrollView style={styles.scrollView}>
         {posts.length === 0 ? (
           <Text style={styles.noPostsText}>No messages yet</Text>
@@ -83,7 +83,7 @@ const DayOnesScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
-  pageTitle: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 20 },
+  pageTitle: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 50 },
   scrollView: { flex: 1, marginBottom: 20 },
   noPostsText: { fontSize: 18, color: '#ffffff', textAlign: 'center', marginVertical: 20 },
   dmContainer: {
