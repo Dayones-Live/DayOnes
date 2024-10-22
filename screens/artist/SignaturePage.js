@@ -7,7 +7,7 @@ import { useSelector } from 'react-redux';
 import LinearGradient from 'react-native-linear-gradient';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
-import { uploadImageToBucket } from '../../utils'; // Assuming you have the S3 upload utility
+import { uploadImageToBucket, uploadSignatureFile } from '../../utils'; // Assuming you have the S3 upload utility
 
 const SignaturePage = () => {
   const navigation = useNavigation();
@@ -53,7 +53,8 @@ const SignaturePage = () => {
 
     try {
       console.log('Uploading image to S3...');
-      const s3Url = await uploadImageToBucket(selectedImage.uri, 'signatures', accessToken);
+      // const s3Url = await uploadImageToBucket(selectedImage.uri, 'signatures', accessToken);
+      const s3Url = await uploadSignatureFile(accessToken, selectedImage.uri);
       console.log('Image successfully uploaded to S3. S3 URL:', s3Url);
 
       const payload = new URLSearchParams({ url: s3Url }).toString();
@@ -67,7 +68,7 @@ const SignaturePage = () => {
       console.log('Headers:', headers);
 
       const response = await axios.post(
-        `${BASEURL}/api/v1/signature`,
+        `${BASEURL}/api/v1/signature/create`,
         payload, // Payload being sent
         { headers }
       );
