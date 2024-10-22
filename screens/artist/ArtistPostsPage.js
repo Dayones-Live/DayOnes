@@ -16,7 +16,11 @@ const ArtistPostsPage = () => {
       const response = await axios.get(`${BASEURL}/api/v1/post/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      setPosts(response.data?.data?.posts || []);
+      const postsData = response.data?.data?.posts || [];
+
+      // Sort posts by 'created_at' field, with newest posts appearing first
+      const sortedPosts = postsData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      setPosts(sortedPosts);
     } catch (error) {
       console.error("Error fetching posts:", error);
       Alert.alert('Error', 'An error occurred while fetching posts.');
@@ -30,27 +34,33 @@ const ArtistPostsPage = () => {
     }, [])
   );
 
+  const renderPostItem = (post, index) => {
+    const postDate = new Date(post.created_at).toLocaleString(); // Format the created_at timestamp
+
+    return (
+      <TouchableOpacity
+        key={index}
+        style={styles.postContainer}
+        onPress={() => navigation.navigate('PostDetailPage', { postId: post.id })}
+      >
+        <Text style={styles.postUser}>{post.locale || 'Unknown Location'}</Text>
+        <Image source={{ uri: post.image_url }} style={styles.postImage} />
+        <View style={styles.interactionContainer}>
+          <Text style={styles.interactionText}>❤️ {post.reactionCount || 0}</Text>
+          <Text style={styles.interactionText}>💬 {post.commentsCount || 0}</Text>
+        </View>
+        <Text style={styles.postDate}>{postDate}</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      {/* Add Profile Picture Button in the top-left corner */}
       <ProfilePictureButton />
 
       <Text style={styles.pageTitle}>Posts</Text>
       <ScrollView style={styles.scrollView}>
-        {posts.map((post, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.postContainer}
-            onPress={() => navigation.navigate('PostDetailPage', { postId: post.id })}
-          >
-            <Text style={styles.postUser}>{post.locale || 'Unknown Location'}</Text>
-            <Image source={{ uri: post.image_url }} style={styles.postImage} />
-            <View style={styles.interactionContainer}>
-              <Text style={styles.interactionText}>❤️ {post.reactionCount || 0}</Text>
-              <Text style={styles.interactionText}>💬 {post.commentsCount || 0}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        {posts.map((post, index) => renderPostItem(post, index))}
       </ScrollView>
       {posts.length === 0 && (
         <View style={styles.buttonContainer}>
@@ -72,6 +82,7 @@ const styles = StyleSheet.create({
   postImage: { width: '100%', height: 200, borderRadius: 10 },
   interactionContainer: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10 },
   interactionText: { fontSize: 16, color: '#FF0080' },
+  postDate: { fontSize: 14, color: '#888', marginTop: 5 }, // Style for the timestamp
   buttonContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
   button: { backgroundColor: '#FF0080', padding: 15, borderRadius: 25, alignItems: 'center' },
   buttonText: { fontSize: 18, color: '#ffffff', fontWeight: 'bold' },

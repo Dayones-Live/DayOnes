@@ -34,7 +34,8 @@ const PostDetailPage = () => {
       });
 
       const postData = response.data?.data?.post || {};
-      const reactionCount = response.data?.data?.reaction || 0;
+      const reactions = response.data?.data?.reactions || []; // Use reactions array directly
+      const reactionCount = reactions.length || 0; // Calculate the reaction count
       const artistComments = response.data?.data?.artistComments || [];
       const comments = response.data?.data?.comments || [];
 

@@ -24,25 +24,53 @@ const DayOnesScreen = ({ navigation }) => {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      console.log('Posts data:', response.data?.data?.posts); // Log only the posts data
-      setPosts(response.data?.data?.posts || []);
+      const postsData = response.data?.data?.posts || [];
+
+      // Sort posts by 'created_at' field, with newest posts appearing first
+      const sortedPosts = postsData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      console.log('Posts data sorted:', sortedPosts); // Log sorted posts data for verification
+      setPosts(sortedPosts);
     } catch (error) {
       console.error('Error fetching posts:', error);
       Alert.alert('Error', 'An error occurred while fetching posts.');
     }
   };
 
-  // Refetch collection whenever page is focused
+  // Refetch collection whenever the page is focused
   useFocusEffect(
     useCallback(() => {
       fetchArtistPosts();
     }, [])
   );
 
+  // Helper function to format the date to a readable "X time ago" format
+  const formatTimeAgo = (date) => {
+    const now = new Date();
+    const postDate = new Date(date);
+    const differenceInSeconds = Math.floor((now - postDate) / 1000);
+
+    if (differenceInSeconds < 60) {
+      return `${differenceInSeconds} seconds ago`;
+    } else if (differenceInSeconds < 3600) {
+      const minutes = Math.floor(differenceInSeconds / 60);
+      return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    } else if (differenceInSeconds < 86400) {
+      const hours = Math.floor(differenceInSeconds / 3600);
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+      const days = Math.floor(differenceInSeconds / 86400);
+      return `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+  };
+
   const renderPostItem = (post, index) => {
-    // Extracting the user's full name and avatar URL from the post
+    // Extract user's full name and avatar URL from the post
     const artistName = post.user?.full_name || 'Unknown Artist';
     const avatarUrl = post.user?.avatar_url || 'https://example.com/default-avatar.png'; // Replace with a default avatar image if none exists
+
+    // Format the 'created_at' timestamp using the helper function
+    const formattedTime = formatTimeAgo(post.created_at);
 
     return (
       <TouchableOpacity
@@ -59,7 +87,9 @@ const DayOnesScreen = ({ navigation }) => {
             <Text style={styles.dmText}>
               {artistName} sent you a message
             </Text>
-            <Text style={styles.messagePreview}>Tap to view message</Text>
+            <Text style={styles.messagePreview}>
+              Tap to view message - {formattedTime}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>

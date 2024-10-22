@@ -22,11 +22,11 @@ const DMDetailPage = ({ route }) => {
 
       const { post, artistComments, comments } = response.data.data;
 
-      // Combine and sort both comments by created_at timestamp with newest first
+      // Combine and sort both comments by created_at timestamp with oldest first
       const combinedComments = [
         ...artistComments.map((comment) => ({ ...comment, role: 'ARTIST' })),
         ...comments.map((comment) => ({ ...comment, role: 'FAN' }))
-      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)); // Sort oldest first
 
       // Preserve liked state if requested
       const updatedPost = { ...post, combinedComments };
@@ -145,7 +145,10 @@ const DMDetailPage = ({ route }) => {
                 }
               >
                 <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
-                <Text style={styles.commentText}>{comment.message}</Text>
+                <View>
+                  <Text style={styles.commentAuthor}>{comment.user.full_name}</Text>
+                  <Text style={styles.commentText}>{comment.message}</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -201,6 +204,7 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
+  commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold' }, // Full name styling
   commentText: { fontSize: 16, color: '#FFF' },
   commentInputContainer: {
     flexDirection: 'row',
