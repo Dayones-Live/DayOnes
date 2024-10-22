@@ -184,21 +184,12 @@ const EditScreen = ({ route, navigation }) => {
     );
   };
 
-  const renderSignature = ({ item }) => {
-    let parsedUrl;
-    try {
-      parsedUrl = JSON.parse(item.url).url;
-    } catch (error) {
-      console.error("Error parsing signature URL:", error);
-      return null; // Return null to avoid rendering if there's an error
-    }
-
-    return (
-      <TouchableOpacity onPress={() => handleSignatureSelect(item)}>
-        <Image source={{ uri: parsedUrl }} style={styles.signatureThumbnail} />
-      </TouchableOpacity>
-    );
-  };
+  const renderSignature = ({ item }) => (
+    <TouchableOpacity onPress={() => handleSignatureSelect(item)}>
+      <Image source={{ uri: item.url }} style={styles.signatureThumbnail} />
+    </TouchableOpacity>
+  );
+  
 
   return (
     <View style={styles.container}>

@@ -102,13 +102,16 @@ const HHomePage = () => {
         console.log('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         const uploadedImage = response.assets[0];
-
+  
         console.log('Selected image URI:', uploadedImage.uri);
         setSelectedImage(uploadedImage);
-        uploadImageToS3(uploadedImage.uri); // Upload image to S3 and store URL
+  
+        // Navigate to the EditScreen with the selected image
+        navigation.navigate('EditScreen', { selectedImage: uploadedImage });
       }
     });
   };
+  
 
   const clearSelectedImage = () => {
     setSelectedImage(null);

@@ -34,10 +34,9 @@ const ArtistSignatures = () => {
   };
 
   const renderSignature = ({ item }) => {
-
-
-    console.log("Rendering signature item with parsed URL:", parsedUrl);
-
+    // There's no 'parsedUrl', so directly use 'item.url'
+    console.log("Rendering signature item with URL:", item.url);
+  
     return (
       <TouchableOpacity onPress={() => openZoomView(item.url)} style={styles.signatureContainer}>
         <Image source={{ uri: item.url }} style={styles.signatureImage} resizeMode="contain" />
@@ -50,6 +49,7 @@ const ArtistSignatures = () => {
       </TouchableOpacity>
     );
   };
+  
 
   return (
     <View style={styles.container}>
