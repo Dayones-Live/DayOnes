@@ -6,8 +6,8 @@ import { useSelector } from 'react-redux';
 const ProfilePictureButton = () => {
   const navigation = useNavigation();
 
-  const profile = useSelector(state => state.userProfile) || {
-    profilePicture: null,
+  const profile = useSelector(state => state.userProfile?.data) || {
+    avatar_url: null,
     fullName: 'First Last',
     email: 'FirstLast@gmail.com',
   };
@@ -16,7 +16,7 @@ const ProfilePictureButton = () => {
     <View style={styles.container}>
       <TouchableOpacity onPress={() => navigation.navigate('ProfileScreen')}>
         <Image
-          source={profile.data.avatar_url ? { uri: profile.data.avatar_url } : require('../images/defaultProfileImage.png')}
+          source={profile.avatar_url ? { uri: profile.avatar_url } : require('../images/defaultProfileImage.png')}
           style={styles.profilePicture}
         />
       </TouchableOpacity>
@@ -26,17 +26,17 @@ const ProfilePictureButton = () => {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute', // Position absolutely
-    top: 20, // Position near the top of the screen
-    left: 20, // Position near the left of the screen
-    zIndex: 1, // Ensure it stays on top
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 1,
   },
   profilePicture: {
-    width: 40, // Small profile picture size
+    width: 40,
     height: 40,
-    borderRadius: 20, // Make it circular
+    borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#FFD700', // Gold border
+    borderColor: '#FFD700',
   },
 });
 

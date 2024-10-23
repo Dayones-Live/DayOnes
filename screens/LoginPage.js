@@ -16,6 +16,13 @@ import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import LogoText from '../assets/components/LogoText';
 import useLogin from '../assets/hooks/useLogin';
+import {
+  check,
+  PERMISSIONS,
+  RESULTS,
+  checkNotifications,
+} from 'react-native-permissions';
+import { Platform } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +33,39 @@ const LoginScreen = () => {
   const navigation = useNavigation();
   const userProfile = useSelector((state) => state.userProfile);
   const { mutate: loginUser } = useLogin();
+
+  const checkAllPermissions = async () => {
+    try {
+      const camera = await check(
+        Platform.select({
+          ios: PERMISSIONS.IOS.CAMERA,
+          android: PERMISSIONS.ANDROID.CAMERA,
+        }),
+      );
+      const library = await check(
+        Platform.OS === 'ios'
+          ? PERMISSIONS.IOS.PHOTO_LIBRARY
+          : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+      );
+      const notifications = (await checkNotifications()).status;
+      const location = await check(
+        Platform.OS === 'ios'
+          ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
+          : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+      );
+
+      return (
+        camera === RESULTS.GRANTED &&
+        notifications === RESULTS.GRANTED &&
+        library === RESULTS.GRANTED &&
+        location === RESULTS.GRANTED
+
+      );
+    } catch (error) {
+      console.log('Error checking permissions:', error);
+      return false;
+    }
+  };
 
   // Navigation to the correct stack after login
   const navigateToAppropriateStack = (role) => {
@@ -50,13 +90,17 @@ const LoginScreen = () => {
       {
         onSuccess: (data) => {
           setIsLoading(false);
-          const { role } = data;
 
-          // Dispatch user profile data to the Redux store
+          // Try to get the role from the API response or fallback to Redux user profile
+          const role = data?.role || userProfile?.data?.role;
           console.log('User Profile from Redux:', userProfile);
+          console.log('Role from API or Redux:', role);  // Log role for debugging
 
-          // Navigate to PermissionsScreen for permission checks
-          navigation.navigate('PermissionsScreen');
+          if (role === 'ARTIST' || role === 'USER') {
+            navigateToAppropriateStack(role);  // Correctly navigate based on role
+          } else {
+            Alert.alert('Login Error', 'Unrecognized user role.');
+          }
         },
         onError: (error) => {
           setIsLoading(false);
@@ -76,6 +120,8 @@ const LoginScreen = () => {
       }
     );
   };
+
+
 
   return (
     <SafeAreaView style={styles.container}>
