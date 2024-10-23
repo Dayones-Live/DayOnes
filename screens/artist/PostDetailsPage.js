@@ -22,6 +22,7 @@ const PostDetailPage = () => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
+  const [likedComments, setLikedComments] = useState([]); // For tracking liked comments
   const route = useRoute();
   const navigation = useNavigation();
   const { postId } = route.params;
@@ -77,6 +78,21 @@ const PostDetailPage = () => {
     }
   };
 
+  // Toggle like on a specific comment
+  const toggleLikeComment = (commentId) => {
+    setLikedComments((prevLikedComments) => {
+      if (prevLikedComments.includes(commentId)) {
+        return prevLikedComments.filter((id) => id !== commentId);
+      }
+      return [...prevLikedComments, commentId];
+    });
+  };
+
+  // Like all comments placeholder
+  const likeAllComments = () => {
+    Alert.alert('Like All Comments', 'Placeholder for liking all comments.');
+  };
+
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
@@ -125,6 +141,9 @@ const PostDetailPage = () => {
             <Text style={styles.interactionText}>
               💬 {Array.isArray(sortedComments) ? sortedComments.length : 0}
             </Text>
+            <TouchableOpacity onPress={likeAllComments} style={styles.likeAllButton}>
+              <Text style={styles.likeAllButtonText}>Like All Comments</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Comments Section */}
@@ -144,6 +163,20 @@ const PostDetailPage = () => {
                     <Text style={styles.commentAuthor}>{comment.user.full_name}</Text>
                   </View>
                   <Text style={styles.commentText}>{comment.message}</Text>
+
+                  {/* Heart button for fan comments */}
+                  {comment.role === 'FAN' && (
+                    <TouchableOpacity
+                      style={styles.heartButton}
+                      onPress={() => toggleLikeComment(comment.id)}
+                    >
+                      <Icon
+                        name="heart"
+                        size={20}
+                        color={likedComments.includes(comment.id) ? '#FF0080' : '#FFFFFF'}
+                      />
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))}
           </View>
@@ -197,6 +230,14 @@ const styles = StyleSheet.create({
   postImage: { width: '100%', height: 400, marginVertical: 20, resizeMode: 'cover' },
   interactionContainer: { flexDirection: 'row', justifyContent: 'flex-start', width: '100%', paddingBottom: 10 },
   interactionText: { fontSize: 16, color: '#FF0080', marginRight: 10 },
+  likeAllButton: {
+    backgroundColor: '#FF0080',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginLeft: 5,
+  },
+  likeAllButtonText: { color: '#FFFFFF', fontSize: 14 },
   commentsContainer: {
     flexDirection: 'column',
     paddingHorizontal: 10,
@@ -207,15 +248,16 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     backgroundColor: '#333',
     borderRadius: 8,
-    padding: 10,
+    padding: 7,
     marginVertical: 5,
     maxWidth: '70%',
+    position: 'relative', // To position heart icon
   },
   artistCommentContainer: {
     alignSelf: 'flex-end',
     backgroundColor: '#FF0080',
     borderRadius: 8,
-    padding: 10,
+    padding: 7,
     marginVertical: 5,
     maxWidth: '70%',
   },
@@ -227,7 +269,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 7,
     borderTopWidth: 1,
     borderColor: '#333',
     backgroundColor: '#0c002b',
@@ -246,6 +288,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
   },
   sendButton: { marginLeft: 10, padding: 10, borderRadius: 20 },
+  heartButton: {
+    position: 'absolute',
+    right: -30,
+    top: '50%',
+    transform: [{ translateY: -10 }], // Center it vertically
+  },
 });
 
 export default PostDetailPage;
