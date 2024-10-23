@@ -199,34 +199,35 @@ const FHomePage = () => {
       <LinearGradient colors={['#00ffcc', '#0099cc']} style={styles.header}>
         <Text style={styles.headerText}>DayOnes Invites</Text>
       </LinearGradient>
-
+  
       <FlatList
         data={invites}
         keyExtractor={(item) => item.id}
         renderItem={renderInviteItem}
         ListEmptyComponent={<Text style={styles.noInviteText}>No Invites Available</Text>}
       />
-
-      {/* Controls only visible if invites are disabled */}
-      {!isInviteEnabled && (
-        <View style={styles.controlsContainer}>
-          <View style={styles.switchContainer}>
-            <Text style={styles.switchText}>{isInviteEnabled ? 'Invites Enabled' : 'Invites Disabled'}</Text>
-            <Switch
-              value={isInviteEnabled}
-              onValueChange={toggleInvite}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={isInviteEnabled ? '#f5dd4b' : '#f4f3f4'}
-            />
-          </View>
-
-          <TouchableOpacity style={styles.fetchButton} onPress={fetchInvites}>
-            <Text style={styles.buttonText}>Get Invites</Text>
-          </TouchableOpacity>
+  
+      {/* Controls to toggle invites */}
+      <View style={styles.controlsContainer}>
+        <View style={styles.switchContainer}>
+          <Text style={styles.switchText}>
+            {isInviteEnabled ? 'Invites Enabled' : 'Invites Disabled'}
+          </Text>
+          <Switch
+            value={isInviteEnabled}
+            onValueChange={toggleInvite}
+            trackColor={{ false: '#767577', true: '#81b0ff' }}
+            thumbColor={isInviteEnabled ? '#f5dd4b' : '#f4f3f4'}
+          />
         </View>
-      )}
+  
+        <TouchableOpacity style={styles.fetchButton} onPress={fetchInvites}>
+          <Text style={styles.buttonText}>Get Invites</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
+  
 };
 
 const styles = StyleSheet.create({

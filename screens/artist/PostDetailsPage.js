@@ -102,7 +102,7 @@ const PostDetailPage = () => {
   return (
     <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={[styles.scrollViewContainer, { paddingBottom: 100 }]} // Add paddingBottom here
+        contentContainerStyle={[styles.scrollViewContainer, { paddingBottom: 100 }]}
         style={{ flex: 1 }}
       >
         <View style={{ flexGrow: 1, justifyContent: 'flex-start' }}>
@@ -175,7 +175,7 @@ const PostDetailPage = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#0c002b', padding: 16, alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#0c002b', padding: 16 }, // Ensure it takes full width
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0c002b' },
   errorText: { color: '#FFF', fontSize: 18 },
   headerContainer: {
@@ -192,9 +192,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#FFFFFF',
     fontWeight: 'bold',
-    marginLeft: 10, // Ensures text is to the right of the arrow
+    marginLeft: 10,
   },
-  postImage: { width: '100%', height: 400, marginVertical: 20 },
+  postImage: { width: '100%', height: 400, marginVertical: 20, resizeMode: 'cover' },
   interactionContainer: { flexDirection: 'row', justifyContent: 'flex-start', width: '100%', paddingBottom: 10 },
   interactionText: { fontSize: 16, color: '#FF0080', marginRight: 10 },
   commentsContainer: {
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: 1,
     borderColor: '#333',
-    backgroundColor: 'transparent',
+    backgroundColor: '#0c002b',
     position: 'absolute',
     bottom: 0,
     width: '100%',
