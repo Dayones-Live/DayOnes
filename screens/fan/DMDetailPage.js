@@ -9,8 +9,9 @@ const DMDetailPage = ({ route }) => {
   const { postId } = route.params;
   const [post, setPost] = useState(null);
   const [commentText, setCommentText] = useState('');
-  const [liked, setLiked] = useState(false); // Separate liked state
+  const [liked, setLiked] = useState(false); // Liked state
   const accessToken = useSelector((state) => state.accessToken);
+  const userEmail = useSelector((state) => state.userProfile.data.email); // Get the logged-in user's email
 
   const fetchPostDetails = async (preserveLike = false) => {
     try {
@@ -20,7 +21,14 @@ const DMDetailPage = ({ route }) => {
 
       console.log("Full API Response:", response.data);
 
-      const { post, artistComments, comments } = response.data.data;
+      const { post, artistComments, comments, reactions } = response.data.data;
+
+      // Check if the user's email is in the reactions array
+      const isPostLiked = reactions.some(reaction => reaction.user.email === userEmail);
+      console.log("Is Post Liked:", isPostLiked); // Debug to check if the post is liked
+
+      // Set the liked state based on the reactions
+      setLiked(isPostLiked);
 
       // Combine and sort both comments by created_at timestamp with oldest first
       const combinedComments = [
@@ -32,8 +40,6 @@ const DMDetailPage = ({ route }) => {
       const updatedPost = { ...post, combinedComments };
       if (preserveLike) {
         updatedPost.liked = liked;
-      } else {
-        setLiked(post.liked); // Update the liked state
       }
       setPost(updatedPost);
 
