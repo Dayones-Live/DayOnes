@@ -70,7 +70,17 @@ const ArtistPostsPage = () => {
         onLongPress={() => confirmDelete(post.id)} // Long press to show delete confirmation
       >
         <Text style={styles.postUser}>{post.locale || 'Unknown Location'}</Text>
-        <Image source={{ uri: post.image_url }} style={styles.postImage} />
+
+        {post.image_url ? (
+          // Display image if available
+          <Image source={{ uri: post.image_url }} style={styles.postImage} />
+        ) : (
+          // Display black box with "Invite Only" text inside
+          <View style={styles.inviteOnlyBox}>
+            <Text style={styles.inviteOnlyText}>Invite Only</Text>
+          </View>
+        )}
+
         <View style={styles.interactionContainer}>
           <Text style={styles.interactionText}>❤️ {post.reactionCount || 0}</Text>
           <Text style={styles.interactionText}>💬 {post.commentsCount || 0}</Text>
@@ -79,6 +89,8 @@ const ArtistPostsPage = () => {
       </TouchableOpacity>
     );
   };
+
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -196,6 +208,22 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: 'bold',
   },
+  inviteOnlyBox: {
+    width: '100%',
+    height: 200, // Same height as the image
+    backgroundColor: '#000', // Black background
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  inviteOnlyText: {
+    fontSize: 18,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+
+
 });
 
 export default ArtistPostsPage;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  SafeAreaView, // Import SafeAreaView
+  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -41,6 +41,13 @@ const PostDetailPage = () => {
       const artistComments = response.data?.data?.artistComments || [];
       const comments = response.data?.data?.comments || [];
 
+      console.log("Fetched comments:", comments);
+
+      const likedCommentsArray = comments
+        .filter((comment) => comment.commentReactionCount > 0) // Check if commentReactionCount is greater than 0
+        .map((comment) => comment.id);
+
+      setLikedComments(likedCommentsArray); // Pre-set liked comments based on API response
       setPost({ ...postData, reactionCount, artistComments, comments });
     } catch (error) {
       console.error('Error fetching post:', error.response || error.message);
@@ -79,17 +86,84 @@ const PostDetailPage = () => {
     }
   };
 
-  const toggleLikeComment = (commentId) => {
-    setLikedComments((prevLikedComments) => {
-      if (prevLikedComments.includes(commentId)) {
-        return prevLikedComments.filter((id) => id !== commentId);
-      }
-      return [...prevLikedComments, commentId];
-    });
+  // Function to like a comment
+  const likeComment = async (commentId) => {
+    try {
+      await axios.post(
+        `${BASEURL}/api/v1/comment/like/${commentId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
+      console.log(`Comment with ID: ${commentId} liked.`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to like the comment.');
+    }
   };
 
-  const likeAllComments = () => {
-    Alert.alert('Like All Comments', 'Placeholder for liking all comments.');
+  // Function to dislike a comment
+  const dislikeComment = async (commentId) => {
+    try {
+      await axios.post(
+        `${BASEURL}/api/v1/comment/dislike/${commentId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      setLikedComments((prevLikedComments) =>
+        prevLikedComments.filter((id) => id !== commentId)
+      );
+      console.log(`Comment with ID: ${commentId} disliked.`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to dislike the comment.');
+    }
+  };
+
+  // Toggle like/dislike state
+  const toggleLikeComment = (commentId) => {
+    if (likedComments.includes(commentId)) {
+      dislikeComment(commentId); // If already liked, dislike it
+    } else {
+      likeComment(commentId); // If not liked, like it
+    }
+  };
+
+  // Function to like all comments
+  const likeAllComments = async () => {
+    try {
+      const response = await axios.post(
+        `${BASEURL}/api/v1/comment/like-all/${postId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      if (response.status === 201 || response.status === 200) {
+        // Mark all comments as liked
+        const allCommentIds = post.comments.map(comment => comment.id);
+        setLikedComments(allCommentIds); // Set all comment IDs to liked
+        console.log("All comments liked successfully.");
+        Alert.alert('Success', 'All comments have been liked.');
+      } else {
+        console.error("Response status:", response.status);
+        console.error("Response data:", response.data);
+        Alert.alert('Error', 'Failed to like all comments.');
+      }
+    } catch (error) {
+      console.error("Error details:", error.response || error.message);
+      if (error.response) {
+        Alert.alert(
+          'Error',
+          `Failed to like all comments. Server returned status ${error.response.status}: ${error.response.data?.message || 'Unknown error'}`
+        );
+      } else {
+        Alert.alert('Error', 'Failed to like all comments due to a network or server issue.');
+      }
+    }
   };
 
   if (loading) {
@@ -130,7 +204,7 @@ const PostDetailPage = () => {
           {post.image_url ? (
             <Image source={{ uri: post.image_url }} style={styles.postImage} />
           ) : (
-            <Text style={styles.errorText}>Image not available</Text>
+            <Text style={styles.errorText}></Text>
           )}
 
           <View style={styles.interactionContainer}>
@@ -138,6 +212,8 @@ const PostDetailPage = () => {
             <Text style={styles.interactionText}>
               💬 {Array.isArray(sortedComments) ? sortedComments.length : 0}
             </Text>
+
+            {/* Like All Comments Button */}
             <TouchableOpacity onPress={likeAllComments} style={styles.likeAllButton}>
               <Text style={styles.likeAllButtonText}>Like All Comments</Text>
             </TouchableOpacity>

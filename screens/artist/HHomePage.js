@@ -128,11 +128,16 @@ const HHomePage = () => {
   };
 
   const createPost = async () => {
-    // Check if it's INVITE_ONLY and set a default image URL
-    let postImageUrl = uploadedImageUrl; // Use the uploaded image URL if it's available
+    // Check if it's 'Invite + Photo' and no image has been selected
+    if (postType === 'INVITE_PHOTO' && !selectedImage) {
+      Alert.alert('Warning', 'You must select a photo when choosing "Invite + Photo."');
+      return; // Prevent post creation if no image is selected
+    }
 
-    if (!uploadedImageUrl && postType === 'INVITE_ONLY') {
-      postImageUrl = 'https://picsum.photos/id/237/200/300'; // Replace with your stock image URL
+    // Don't include the image URL for 'Invite Only' posts
+    let postImageUrl = null;
+    if (postType === 'INVITE_PHOTO') {
+      postImageUrl = uploadedImageUrl; // Use the uploaded image URL for 'Invite + Photo'
     }
 
     // Get the geolocation dynamically
@@ -146,7 +151,7 @@ const HHomePage = () => {
           const locale = await getLocale(latitude, longitude);
 
           const postData = {
-            imageUrl: postImageUrl, // Use the actual uploaded image URL or default for INVITE_ONLY
+            imageUrl: postImageUrl, // Use the actual uploaded image URL if 'Invite + Photo', null for 'Invite Only'
             range: sliderValue[0],
             type: postType, // Use the selected post type
             latitude: latitude.toString(),
@@ -154,7 +159,7 @@ const HHomePage = () => {
             locale: locale,
           };
 
-          console.log('Attempting to create post with data:', postData);
+          console.log('Attempting to create post with the following data:', postData);
 
           const response = await fetch(`${BASEURL}/api/v1/post/`, {
             method: 'POST',
@@ -171,14 +176,14 @@ const HHomePage = () => {
 
           if (response.ok) {
             console.log("Post created successfully");
-            alert('Post created successfully!');
+            Alert.alert('Success', 'Post created successfully!');
           } else {
             console.error("Error creating post:", jsonResponse);
-            alert(`Failed to create post: ${jsonResponse.message || 'Unknown error'}`);
+            Alert.alert('Error', `Failed to create post: ${jsonResponse.message || 'Unknown error'}`);
           }
         } catch (error) {
           console.error('Error during post creation:', error);
-          alert('An error occurred while creating the post. Check console for details.');
+          Alert.alert('Error', 'An error occurred while creating the post. Check console for details.');
         }
       },
       (error) => {
@@ -188,6 +193,7 @@ const HHomePage = () => {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
   };
+
 
   const feetToMeters = feet => Math.round(feet * 0.3048);
 
