@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
+import ProfilePictureButton from '../../assets/components/ProfilePictureButton'; // Import ProfilePictureButton
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { logoutUser } from '../../redux/actions';
@@ -109,7 +110,17 @@ const ArtistPostsPage = () => {
         onLongPress={() => confirmDelete(post.id)}
       >
         <Text style={styles.postUser}>{post.locale || 'Unknown Location'}</Text>
-        <Image source={{ uri: post.image_url }} style={styles.postImage} />
+
+        {post.image_url ? (
+          // Display image if available
+          <Image source={{ uri: post.image_url }} style={styles.postImage} />
+        ) : (
+          // Display black box with "Invite Only" text inside
+          <View style={styles.inviteOnlyBox}>
+            <Text style={styles.inviteOnlyText}>Invite Only</Text>
+          </View>
+        )}
+
         <View style={styles.interactionContainer}>
           <Text style={styles.interactionText}>❤️ {post.reactionCount || 0}</Text>
           <Text style={styles.interactionText}>💬 {post.commentsCount || 0}</Text>
@@ -118,6 +129,8 @@ const ArtistPostsPage = () => {
       </TouchableOpacity>
     );
   };
+
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -142,6 +155,110 @@ const ArtistPostsPage = () => {
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#0c002b', // Navy blue background
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#0c002b', // Navy blue background color
+    padding: 16,
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  scrollView: {
+    flex: 1,
+    marginBottom: 20,
+  },
+  postContainer: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  postUser: {
+    fontSize: 16,
+    color: '#ffffff',
+    marginBottom: 5,
+    fontWeight: 'bold',
+  },
+  postImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+  },
+  interactionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 10,
+  },
+  interactionText: {
+    fontSize: 16,
+    color: '#FF0080',
+  },
+  postDate: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 5,
+  }, // Style for the timestamp
+
+  // Style for the "Message All Fans" button
+  messageAllButton: {
+    position: 'absolute',
+    top: 25, // Move it down a bit
+    right: 5, // Move it a little more to the right
+    paddingVertical: 7,
+    paddingHorizontal: 10, // Adjusted padding for better button shape
+    backgroundColor: '#FF0080',
+    borderRadius: 25,
+    zIndex: 10, // Ensure it stays clickable and above other elements
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+  },
+  messageAllText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  button: {
+    backgroundColor: '#FF0080',
+    padding: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: 18,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  inviteOnlyBox: {
+    width: '100%',
+    height: 200, // Same height as the image
+    backgroundColor: '#000', // Black background
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  inviteOnlyText: {
+    fontSize: 18,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+
+
   safeArea: { flex: 1, backgroundColor: '#0c002b' },
   container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
   pageTitle: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 20 },
