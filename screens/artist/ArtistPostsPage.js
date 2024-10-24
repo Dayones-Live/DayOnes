@@ -28,6 +28,30 @@ const ArtistPostsPage = () => {
     }
   };
 
+  const handleDelete = async (postId) => {
+    try {
+      await axios.delete(`${BASEURL}/api/v1/post/${postId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      setPosts(posts.filter(post => post.id !== postId)); // Remove deleted post from state
+      Alert.alert('Success', 'The post has been deleted.');
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      Alert.alert('Error', 'Failed to delete the post.');
+    }
+  };
+
+  const confirmDelete = (postId) => {
+    Alert.alert(
+      'Delete Post',
+      'Are you sure you want to delete this post and all of its data?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', onPress: () => handleDelete(postId), style: 'destructive' },
+      ]
+    );
+  };
+
   // Fetch posts whenever page is focused
   useFocusEffect(
     useCallback(() => {
@@ -43,6 +67,7 @@ const ArtistPostsPage = () => {
         key={index}
         style={styles.postContainer}
         onPress={() => navigation.navigate('PostDetailPage', { postId: post.id })}
+        onLongPress={() => confirmDelete(post.id)} // Long press to show delete confirmation
       >
         <Text style={styles.postUser}>{post.locale || 'Unknown Location'}</Text>
         <Image source={{ uri: post.image_url }} style={styles.postImage} />
