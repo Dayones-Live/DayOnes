@@ -5,7 +5,6 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton'; // Import ProfilePictureButton
-import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { logoutUser } from '../../redux/actions';
 
