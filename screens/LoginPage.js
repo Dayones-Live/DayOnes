@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   StatusBar,
   Dimensions,
 } from 'react-native';
@@ -30,6 +29,9 @@ const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [role, setRole] = useState(null); // Track role separately
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
+
   const navigation = useNavigation();
   const userProfile = useSelector((state) => state.userProfile);
   const { mutate: loginUser } = useLogin();
@@ -57,9 +59,8 @@ const LoginScreen = () => {
       return (
         camera === RESULTS.GRANTED &&
         notifications === RESULTS.GRANTED &&
-        library === RESULTS.GRANTED &&
-        location === RESULTS.GRANTED
-
+        location === RESULTS.GRANTED &&
+        library === RESULTS.GRANTED
       );
     } catch (error) {
       console.log('Error checking permissions:', error);
@@ -67,20 +68,43 @@ const LoginScreen = () => {
     }
   };
 
-  // Navigation to the correct stack after login
-  const navigateToAppropriateStack = (role) => {
+  // Navigate to the appropriate stack based on user role
+  const navigateToAppropriateStack = () => {
+    if (!role) {
+      return; // Prevent navigating with no role
+    }
     if (role === 'ARTIST') {
       navigation.navigate('ArtistStack');
     } else if (role === 'USER') {
       navigation.navigate('FanStack');
-    } else {
-      Alert.alert('Login Error', 'Unrecognized user role.');
     }
   };
 
-  const handleLogin = () => {
+  // Update the role and handle navigation based on profile updates
+  useEffect(() => {
+    if (userProfile?.data?.role) {
+      setRole(userProfile.data.role);
+      setIsLoading(false); // Ensure loading stops once profile is ready
+    }
+  }, [userProfile]);
+
+  useEffect(() => {
+    if (role && !isLoading) {
+      // Once the role is set and not loading, proceed to check permissions
+      checkAllPermissions().then((permissions) => {
+        setPermissionsGranted(permissions);
+        if (permissions) {
+          navigateToAppropriateStack();
+        } else {
+          navigation.navigate('PermissionsScreen');
+        }
+      });
+    }
+  }, [role, isLoading]);
+
+  const handleLogin = (retry = false) => {
     if (!username || !password) {
-      Alert.alert('Validation Error', 'Please enter both username and password.');
+      alert('Validation Error', 'Please enter both username and password.');
       return;
     }
     setIsLoading(true);
@@ -91,50 +115,49 @@ const LoginScreen = () => {
         onSuccess: (data) => {
           setIsLoading(false);
 
-          // Try to get the role from the API response or fallback to Redux user profile
-          const role = data?.role || userProfile?.data?.role;
+          const userRole = data?.role || userProfile?.data?.role;
+          setRole(userRole);
           console.log('User Profile from Redux:', userProfile);
-          console.log('Role from API or Redux:', role);  // Log role for debugging
+          console.log('Role from API or Redux:', userRole);
 
-          if (role === 'ARTIST' || role === 'USER') {
-            navigateToAppropriateStack(role);  // Correctly navigate based on role
+          if (userRole === 'ARTIST' || userRole === 'USER') {
+            checkAllPermissions().then((permissionsGranted) => {
+              setPermissionsGranted(permissionsGranted);
+              if (permissionsGranted) {
+                navigateToAppropriateStack();
+              }
+            });
           } else {
-            Alert.alert('Login Error', 'Unrecognized user role.');
+            console.log('Unrecognized role, handling silently.'); // Handle silently
           }
         },
         onError: (error) => {
           setIsLoading(false);
 
-          // Handle specific login errors
           if (error.toString().includes('User is not confirmed')) {
-            Alert.alert('Account Not Confirmed', 'Please confirm your account to proceed.');
-            navigation.navigate('VerifyAccount', { email: username }); // Navigate to VerifyAccount with email
+            alert('Account Not Confirmed', 'Please confirm your account to proceed.');
+            navigation.navigate('VerifyAccount', { email: username });
           } else if (error.toString().includes('401')) {
-            Alert.alert('Login Failed', 'Invalid username or password.');
+            alert('Login Failed', 'Invalid username or password.');
           } else if (error.toString().includes('404')) {
-            Alert.alert('Login Failed', 'User not found.');
+            alert('Login Failed', 'User not found.');
           } else {
-            Alert.alert('Login Failed', 'An unexpected error occurred.');
+            alert('Login Failed', 'An unexpected error occurred.');
           }
         },
       }
     );
   };
 
-
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Content Container with navy blue background */}
       <View style={styles.contentContainer}>
-        {/* Logo, positioned closer to the top */}
         <View style={styles.topSection}>
           <LogoText />
         </View>
 
-        {/* Input Fields and Login Button */}
         <View style={styles.middleSection}>
           <View style={styles.inputContainer}>
             <TextInput
@@ -157,13 +180,12 @@ const LoginScreen = () => {
           </View>
 
           <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.loginButton}>
-            <TouchableOpacity onPress={handleLogin} style={styles.fullWidth} disabled={isLoading}>
+            <TouchableOpacity onPress={() => handleLogin()} style={styles.fullWidth} disabled={isLoading}>
               <Text style={styles.buttonText}>{isLoading ? 'Logging in...' : 'Login'}</Text>
             </TouchableOpacity>
           </LinearGradient>
         </View>
 
-        {/* Google and Apple Buttons */}
         <View style={styles.iconContainer}>
           <TouchableOpacity style={styles.iconButton}>
             <Icon name="google" size={24} color="#000" />
@@ -200,7 +222,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c002b', // Navy blue background color
+    backgroundColor: '#0c002b',
   },
   contentContainer: {
     flex: 1,
@@ -299,7 +321,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.8,
     shadowRadius: 3,
-    marginBottom: 20, // Adjusted spacing
+    marginBottom: 20,
   },
   signupArtistText: {
     color: '#000',
