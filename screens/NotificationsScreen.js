@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, SafeAreaView } from 'react-native'; // Import SafeAreaView
 import useTodos from '../assets/hooks/useTodos'; // Adjust the path if necessary
 import ProfilePictureButton from '../assets/components/ProfilePictureButton'; // Import the ProfilePictureButton
 
@@ -8,23 +8,23 @@ const NotificationsScreen = () => {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color="#00ff00" />
         <Text style={styles.text}>Loading...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <Text style={styles.text}>Error fetching data</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Add Profile Picture Button in the top-left corner */}
       <ProfilePictureButton />
 
@@ -38,7 +38,7 @@ const NotificationsScreen = () => {
           </View>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

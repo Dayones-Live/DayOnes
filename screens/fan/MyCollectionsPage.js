@@ -7,6 +7,7 @@ import {
   Image,
   Text,
   Modal,
+  SafeAreaView, // Added SafeAreaView
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
@@ -50,9 +51,9 @@ const MyCollectionsPage = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ProfilePictureButton navigation={navigation} />
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.imageGrid}>
+      <ScrollView style={[styles.scrollView, { paddingTop: 30 }]} contentContainerStyle={styles.imageGrid}>
         {posts.length === 0 ? (
           <Text style={styles.noPostsText}>Nothing in your collection right now</Text>
         ) : (
@@ -77,7 +78,7 @@ const MyCollectionsPage = ({ navigation }) => {
           )}
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 

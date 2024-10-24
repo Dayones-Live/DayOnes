@@ -1,6 +1,5 @@
-// DMsScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert, TouchableOpacity, SafeAreaView } from 'react-native'; // Import SafeAreaView
 import { useSelector } from 'react-redux';
 import { getConversations } from '../assets/services/apiService';
 import { useNavigation } from '@react-navigation/native'; // Import useNavigation
@@ -22,14 +21,14 @@ const DMsScreen = () => {
       console.error('Error: Missing access token.');
       return;
     }
-  
+
     try {
       console.log('Fetching conversations with access token:', accessToken);
       const response = await getConversations(accessToken, pageNo, pageSize); // Pass pageNo and pageSize
-  
+
       // Correctly access conversations from the response data
       const { conversations } = response.data;
-  
+
       if (conversations && conversations.length > 0) {
         setConversations(conversations); // Set conversations if found
         console.log('Conversations fetched successfully:', conversations);
@@ -43,7 +42,6 @@ const DMsScreen = () => {
       setConversations([]); // In case of error, set to empty array
     }
   };
-  
 
   const handleConversationPress = (conversationId) => {
     // Navigate to the ConversationThread screen with the conversationId as a parameter
@@ -61,14 +59,14 @@ const DMsScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.text}>Direct Messages</Text>
       <FlatList
         data={conversations}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

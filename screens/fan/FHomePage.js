@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Switch, Alert, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, Switch, Alert, FlatList, TouchableOpacity, Image, SafeAreaView } from 'react-native'; // Added SafeAreaView
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
 import { useSelector, useDispatch } from 'react-redux';
@@ -195,18 +195,18 @@ const FHomePage = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <LinearGradient colors={['#00ffcc', '#0099cc']} style={styles.header}>
         <Text style={styles.headerText}>DayOnes Invites</Text>
       </LinearGradient>
-  
+
       <FlatList
         data={invites}
         keyExtractor={(item) => item.id}
         renderItem={renderInviteItem}
         ListEmptyComponent={<Text style={styles.noInviteText}>No Invites Available</Text>}
       />
-  
+
       {/* Controls to toggle invites */}
       <View style={styles.controlsContainer}>
         <View style={styles.switchContainer}>
@@ -220,14 +220,14 @@ const FHomePage = () => {
             thumbColor={isInviteEnabled ? '#f5dd4b' : '#f4f3f4'}
           />
         </View>
-  
+
         <TouchableOpacity style={styles.fetchButton} onPress={fetchInvites}>
           <Text style={styles.buttonText}>Get Invites</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
-  
+
 };
 
 const styles = StyleSheet.create({

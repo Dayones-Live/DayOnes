@@ -7,12 +7,13 @@ import {
   Dimensions,
   Alert,
   Image,
+  SafeAreaView, // Import SafeAreaView
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
-import Geocoder from 'react-native-geocoder-reborn'; // Ensure this is imported
+import Geocoder from 'react-native-geocoder-reborn';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { useSelector } from 'react-redux';
@@ -32,6 +33,8 @@ const HHomePage = () => {
   const [sliderValue, setSliderValue] = useState([100]); // Initial value
   const [selectedImage, setSelectedImage] = useState(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState(null); // Store S3 URL
+  const [postType, setPostType] = useState('INVITE_PHOTO'); // Track whether it's an invite + photo or invite only
+
   const navigation = useNavigation();
   const route = useRoute();
   const accessToken = useSelector(state => state.accessToken);
@@ -49,12 +52,10 @@ const HHomePage = () => {
 
   useEffect(() => {
     if (route.params?.editedImage) {
-      console.log("Received editedImage:", route.params.editedImage);
-      setSelectedImage(route.params.editedImage); // Make sure this is set correctly
-      uploadImageToS3(route.params.editedImage.uri); // Check that the URI is valid here
+      setSelectedImage(route.params.editedImage);
+      uploadImageToS3(route.params.editedImage.uri);
     }
   }, [route.params?.editedImage]);
-
 
   const geolocationData = useSelector(state => state.geolocationData) || {
     latitude: 0.0,
@@ -76,17 +77,15 @@ const HHomePage = () => {
       } else if (response.assets && response.assets.length > 0) {
         const capturedImage = response.assets[0];
         setSelectedImage(capturedImage);
-
         navigation.navigate('EditScreen', { selectedImage: capturedImage });
       }
     });
   };
 
-  // Upload image to S3 bucket
   const uploadImageToS3 = async (imageUri) => {
     try {
       const s3Url = await uploadImageToBucket(imageUri, 'posts', accessToken);
-      setUploadedImageUrl(s3Url); // Set uploaded image URL for post
+      setUploadedImageUrl(s3Url);
       console.log('Image uploaded successfully to S3:', s3Url);
     } catch (error) {
       console.error('Failed to upload image:', error);
@@ -102,20 +101,15 @@ const HHomePage = () => {
         console.log('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         const uploadedImage = response.assets[0];
-  
-        console.log('Selected image URI:', uploadedImage.uri);
         setSelectedImage(uploadedImage);
-  
-        // Navigate to the EditScreen with the selected image
         navigation.navigate('EditScreen', { selectedImage: uploadedImage });
       }
     });
   };
-  
 
   const clearSelectedImage = () => {
     setSelectedImage(null);
-    setUploadedImageUrl(null); // Clear the uploaded image URL
+    setUploadedImageUrl(null);
   };
 
   const getLocale = async (latitude, longitude) => {
@@ -134,10 +128,11 @@ const HHomePage = () => {
   };
 
   const createPost = async () => {
-    if (!uploadedImageUrl) {
-      console.log("Error: No image uploaded");
-      alert('Please upload an image before creating a post.');
-      return;
+    // Check if it's INVITE_ONLY and set a default image URL
+    let postImageUrl = uploadedImageUrl; // Use the uploaded image URL if it's available
+
+    if (!uploadedImageUrl && postType === 'INVITE_ONLY') {
+      postImageUrl = 'https://picsum.photos/id/237/200/300'; // Replace with your stock image URL
     }
 
     // Get the geolocation dynamically
@@ -151,12 +146,12 @@ const HHomePage = () => {
           const locale = await getLocale(latitude, longitude);
 
           const postData = {
-            imageUrl: uploadedImageUrl, // Use the actual uploaded image URL
+            imageUrl: postImageUrl, // Use the actual uploaded image URL or default for INVITE_ONLY
             range: sliderValue[0],
-            type: 'INVITE_PHOTO',
-            latitude: latitude.toString(), // Use the dynamic latitude and longitude
+            type: postType, // Use the selected post type
+            latitude: latitude.toString(),
             longitude: longitude.toString(),
-            locale: locale, // Set the locale dynamically
+            locale: locale,
           };
 
           console.log('Attempting to create post with data:', postData);
@@ -172,16 +167,14 @@ const HHomePage = () => {
 
           const jsonResponse = await response.json();
 
-          console.log("Post creation response:", jsonResponse); // Log the entire response
+          console.log("Post creation response:", jsonResponse);
 
           if (response.ok) {
             console.log("Post created successfully");
             alert('Post created successfully!');
           } else {
             console.error("Error creating post:", jsonResponse);
-            alert(
-              `Failed to create post: ${jsonResponse.message || 'Unknown error'}`,
-            );
+            alert(`Failed to create post: ${jsonResponse.message || 'Unknown error'}`);
           }
         } catch (error) {
           console.error('Error during post creation:', error);
@@ -196,14 +189,11 @@ const HHomePage = () => {
     );
   };
 
-  const feetToMeters = feet => {
-    return Math.round(feet * 0.3048);
-  };
+  const feetToMeters = feet => Math.round(feet * 0.3048);
 
   const defaultSliderValues = [10, 50, 100, 500];
 
   const handleSliderChange = value => {
-    // Snap to nearest value in the predefined array
     const closestValue = defaultSliderValues.reduce((prev, curr) =>
       Math.abs(curr - value[0]) < Math.abs(prev - value[0]) ? curr : prev
     );
@@ -216,7 +206,6 @@ const HHomePage = () => {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           let iconName;
-
           switch (route.name) {
             case 'Posts':
               iconName = 'file-text-o';
@@ -231,7 +220,6 @@ const HHomePage = () => {
               iconName = 'home';
               break;
           }
-
           return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#FF0080',
@@ -245,89 +233,118 @@ const HHomePage = () => {
     >
       <Tab.Screen name="Main" options={{ tabBarLabel: 'Home' }}>
         {() => (
-          <View style={styles.container}>
-            <ProfilePictureButton />
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={styles.container}>
+              <ProfilePictureButton />
 
-            <View style={styles.header}>
-              <Text style={styles.title}>Autographs & Invites</Text>
-            </View>
+              <View style={styles.header}>
+                <Text style={styles.title}>Autographs & Invites</Text>
+              </View>
 
-            <LinearGradient
-              colors={['#FF00FF', '#001F3F']}
-              style={styles.imageContainer}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              {selectedImage ? (
-                <View style={styles.selectedImageContainer}>
-                  <Image
-                    source={{ uri: selectedImage.uri }}
-                    style={styles.selectedImage}
+              <LinearGradient
+                colors={['#FF00FF', '#001F3F']}
+                style={styles.imageContainer}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                {selectedImage ? (
+                  <View style={styles.selectedImageContainer}>
+                    <Image
+                      source={{ uri: selectedImage.uri }}
+                      style={styles.selectedImage}
+                    />
+                    <TouchableOpacity
+                      style={styles.clearButton}
+                      onPress={clearSelectedImage}
+                    >
+                      <Icon name="times" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <Text style={styles.imageText}>Talk to your fans</Text>
+                )}
+              </LinearGradient>
+
+              <View style={styles.pictureContainer}>
+                <TouchableOpacity
+                  style={styles.pictureButton}
+                  onPress={takePicture}
+                >
+                  <Icon
+                    name="camera"
+                    size={30}
+                    color="#00FFFF"
+                    style={styles.icon}
                   />
-                  <TouchableOpacity
-                    style={styles.clearButton}
-                    onPress={clearSelectedImage}
-                  >
-                    <Icon name="times" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <Text style={styles.imageText}>Talk to your fans</Text>
-              )}
-            </LinearGradient>
+                  <Text style={styles.buttonText}>Take Picture</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.pictureButton}
+                  onPress={uploadFile}
+                >
+                  <Icon
+                    name="file"
+                    size={30}
+                    color="#00FFFF"
+                    style={styles.icon}
+                  />
+                  <Text style={styles.buttonText}>Upload File</Text>
+                </TouchableOpacity>
+              </View>
 
-            <View style={styles.pictureContainer}>
-              <TouchableOpacity
-                style={styles.pictureButton}
-                onPress={takePicture}
-              >
-                <Icon
-                  name="camera"
-                  size={30}
-                  color="#00FFFF"
-                  style={styles.icon}
+              {/* Radio buttons to select post type */}
+              <View style={styles.radioGroup}>
+                <Text style={styles.radioGroupLabel}>Choose what to send:</Text>
+                <TouchableOpacity
+                  style={styles.radioButton}
+                  onPress={() => setPostType('INVITE_PHOTO')}
+                >
+                  <Icon
+                    name={postType === 'INVITE_PHOTO' ? 'dot-circle-o' : 'circle-o'}
+                    size={24}
+                    color="#fff"
+                  />
+                  <Text style={styles.radioLabel}>Invite + Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.radioButton}
+                  onPress={() => setPostType('INVITE_ONLY')}
+                >
+                  <Icon
+                    name={postType === 'INVITE_ONLY' ? 'dot-circle-o' : 'circle-o'}
+                    size={24}
+                    color="#fff"
+                  />
+                  <Text style={styles.radioLabel}>Invite Only</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.sliderContainer}>
+                <Text style={styles.sliderLabel}>Range</Text>
+
+                <Text style={styles.sliderValue}>
+                  {sliderValue[0]} feet ({feetToMeters(sliderValue[0])} meters)
+                </Text>
+
+                <MultiSlider
+                  values={sliderValue}
+                  sliderLength={width - 80}
+                  min={Math.min(...defaultSliderValues)}
+                  max={Math.max(...defaultSliderValues)}
+                  step={1}
+                  onValuesChange={handleSliderChange}
+                  selectedStyle={styles.sliderSelectedStyle}
+                  unselectedStyle={styles.sliderUnselectedStyle}
+                  trackStyle={styles.sliderTrackStyle}
+                  markerStyle={styles.sliderMarkerStyle}
                 />
-                <Text style={styles.buttonText}>Take Picture</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.pictureButton}
-                onPress={uploadFile}
-              >
-                <Icon
-                  name="file"
-                  size={30}
-                  color="#00FFFF"
-                  style={styles.icon}
-                />
-                <Text style={styles.buttonText}>Upload File</Text>
+              </View>
+
+              <TouchableOpacity style={styles.sendButton} onPress={createPost}>
+                <Text style={styles.sendButtonText}>Send Invite</Text>
               </TouchableOpacity>
             </View>
-
-            <View style={styles.sliderContainer}>
-              <Text style={styles.sliderLabel}>Range</Text>
-
-              <Text style={styles.sliderValue}>
-                {sliderValue[0]} feet ({feetToMeters(sliderValue[0])} meters)
-              </Text>
-
-              <MultiSlider
-                values={sliderValue}
-                sliderLength={width - 80}
-                min={Math.min(...defaultSliderValues)}
-                max={Math.max(...defaultSliderValues)}
-                step={1}
-                onValuesChange={handleSliderChange}
-                selectedStyle={styles.sliderSelectedStyle}
-                unselectedStyle={styles.sliderUnselectedStyle}
-                trackStyle={styles.sliderTrackStyle}
-                markerStyle={styles.sliderMarkerStyle}
-              />
-            </View>
-
-            <TouchableOpacity style={styles.sendButton} onPress={createPost}>
-              <Text style={styles.sendButtonText}>Send Invite</Text>
-            </TouchableOpacity>
-          </View>
+          </SafeAreaView>
         )}
       </Tab.Screen>
       <Tab.Screen name="Posts" component={ArtistPostsPage} />
@@ -457,6 +474,25 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  radioGroup: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  radioGroupLabel: {
+    fontSize: 18,
+    color: '#fff',
+    marginBottom: 10,
+  },
+  radioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  radioLabel: {
+    color: '#fff',
+    marginLeft: 10,
+    fontSize: 16,
   },
 });
 

@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   Image,
+  SafeAreaView, // Added SafeAreaView
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
@@ -97,7 +98,7 @@ const DayOnesScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ProfilePictureButton navigation={navigation} />
       <Text style={styles.pageTitle}>DayOnes Message</Text>
       <ScrollView style={styles.scrollView}>
@@ -107,7 +108,7 @@ const DayOnesScreen = ({ navigation }) => {
           posts.map((post, index) => renderPostItem(post, index))
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

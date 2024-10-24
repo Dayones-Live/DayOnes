@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, Alert, Modal, SafeAreaView } from 'react-native'; // Added SafeAreaView
 import { useNavigation } from '@react-navigation/native';
 import { useSignatures } from '../../assets/hooks/useSignatures';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -36,7 +36,7 @@ const ArtistSignatures = () => {
   const renderSignature = ({ item }) => {
     // There's no 'parsedUrl', so directly use 'item.url'
     console.log("Rendering signature item with URL:", item.url);
-  
+
     return (
       <TouchableOpacity onPress={() => openZoomView(item.url)} style={styles.signatureContainer}>
         <Image source={{ uri: item.url }} style={styles.signatureImage} resizeMode="contain" />
@@ -49,10 +49,10 @@ const ArtistSignatures = () => {
       </TouchableOpacity>
     );
   };
-  
+
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>My Signatures</Text>
 
       {isLoading ? (
@@ -92,7 +92,7 @@ const ArtistSignatures = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
