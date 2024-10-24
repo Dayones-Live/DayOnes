@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  SafeAreaView, // Import SafeAreaView
   View,
   Text,
   StyleSheet,
@@ -35,8 +36,8 @@ const PostDetailPage = () => {
       });
 
       const postData = response.data?.data?.post || {};
-      const reactions = response.data?.data?.reactions || []; // Use reactions array directly
-      const reactionCount = reactions.length || 0; // Calculate the reaction count
+      const reactions = response.data?.data?.reactions || [];
+      const reactionCount = reactions.length || 0;
       const artistComments = response.data?.data?.artistComments || [];
       const comments = response.data?.data?.comments || [];
 
@@ -68,8 +69,8 @@ const PostDetailPage = () => {
       );
 
       if (response.status === 200 || response.status === 201) {
-        setCommentText(''); // Clear the input after sending
-        fetchPostDetails(); // Refetch post details to get the updated comments
+        setCommentText('');
+        fetchPostDetails();
       } else {
         Alert.alert('Error', 'Unexpected response from the server.');
       }
@@ -78,7 +79,6 @@ const PostDetailPage = () => {
     }
   };
 
-  // Toggle like on a specific comment
   const toggleLikeComment = (commentId) => {
     setLikedComments((prevLikedComments) => {
       if (prevLikedComments.includes(commentId)) {
@@ -88,35 +88,33 @@ const PostDetailPage = () => {
     });
   };
 
-  // Like all comments placeholder
   const likeAllComments = () => {
     Alert.alert('Like All Comments', 'Placeholder for liking all comments.');
   };
 
   if (loading) {
     return (
-      <View style={styles.loaderContainer}>
+      <SafeAreaView style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#FF0080" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!post) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <Text style={styles.errorText}>Post not found</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
-  // Combine and sort comments by time
   const sortedComments = [
     ...post.artistComments.map((comment) => ({ ...comment, role: 'ARTIST' })),
     ...post.comments.map((comment) => ({ ...comment, role: 'FAN' })),
   ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={[styles.scrollViewContainer, { paddingBottom: 100 }]}
         style={{ flex: 1 }}
@@ -135,7 +133,6 @@ const PostDetailPage = () => {
             <Text style={styles.errorText}>Image not available</Text>
           )}
 
-          {/* Interaction icons (like and comment) */}
           <View style={styles.interactionContainer}>
             <Text style={styles.interactionText}>❤️ {post.reactionCount}</Text>
             <Text style={styles.interactionText}>
@@ -146,7 +143,6 @@ const PostDetailPage = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Comments Section */}
           <View style={styles.commentsContainer}>
             {Array.isArray(sortedComments) &&
               sortedComments.map((comment, index) => (
@@ -164,7 +160,6 @@ const PostDetailPage = () => {
                   </View>
                   <Text style={styles.commentText}>{comment.message}</Text>
 
-                  {/* Heart button for fan comments */}
                   {comment.role === 'FAN' && (
                     <TouchableOpacity
                       style={styles.heartButton}
@@ -183,7 +178,6 @@ const PostDetailPage = () => {
         </View>
       </ScrollView>
 
-      {/* Comment Input Bar */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.commentInputContainer}
@@ -203,12 +197,12 @@ const PostDetailPage = () => {
           <Icon name="send" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0c002b', padding: 16 }, // Ensure it takes full width
+  container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0c002b' },
   errorText: { color: '#FFF', fontSize: 18 },
   headerContainer: {
@@ -218,15 +212,8 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingBottom: 10,
   },
-  backButton: {
-    padding: 10,
-  },
-  postTitle: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
+  backButton: { padding: 10 },
+  postTitle: { fontSize: 24, color: '#FFFFFF', fontWeight: 'bold', marginLeft: 10 },
   postImage: { width: '100%', height: 400, marginVertical: 20, resizeMode: 'cover' },
   interactionContainer: { flexDirection: 'row', justifyContent: 'flex-start', width: '100%', paddingBottom: 10 },
   interactionText: { fontSize: 16, color: '#FF0080', marginRight: 10 },
@@ -251,7 +238,7 @@ const styles = StyleSheet.create({
     padding: 7,
     marginVertical: 5,
     maxWidth: '70%',
-    position: 'relative', // To position heart icon
+    position: 'relative',
   },
   artistCommentContainer: {
     alignSelf: 'flex-end',
@@ -292,7 +279,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -30,
     top: '50%',
-    transform: [{ translateY: -10 }], // Center it vertically
+    transform: [{ translateY: -10 }],
   },
 });
 
