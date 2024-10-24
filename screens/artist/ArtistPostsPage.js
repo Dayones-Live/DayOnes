@@ -1,18 +1,19 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
-import { BASEURL } from '../../assets/constants';
-import ProfilePictureButton from '../../assets/components/ProfilePictureButton'; // Import ProfilePictureButton
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { logoutUser } from '../../redux/actions';
+import { BASEURL } from '../../assets/constants'; // Make sure BASEURL is correctly imported
+import ProfilePictureButton from '../../assets/components/ProfilePictureButton'; // Import ProfilePictureButton
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [isModalVisible, setModalVisible] = useState(false); // Modal visibility state
+  const [postText, setPostText] = useState(''); // Text input state
   const accessToken = useSelector(state => state.accessToken);
   const isLoggedIn = useSelector(state => state.isLoggedIn);
   const navigation = useNavigation();
@@ -51,30 +52,6 @@ const ArtistPostsPage = () => {
     }
   };
 
-  const handleDelete = async (postId) => {
-    try {
-      await axios.delete(`${BASEURL}/api/v1/post/${postId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      setPosts(posts.filter(post => post.id !== postId));
-      Alert.alert('Success', 'The post has been deleted.');
-    } catch (error) {
-      console.error('Error deleting post:', error);
-      Alert.alert('Error', 'Failed to delete the post.');
-    }
-  };
-
-  const confirmDelete = (postId) => {
-    Alert.alert(
-      'Delete Post',
-      'Are you sure you want to delete this post and all of its data?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', onPress: () => handleDelete(postId), style: 'destructive' },
-      ]
-    );
-  };
-
   useEffect(() => {
     if (!isLoggedIn) {
       setPosts([]);
@@ -98,6 +75,52 @@ const ArtistPostsPage = () => {
     }
   };
 
+  const handleOpenModal = () => {
+    setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+  };
+
+  const handleSendPost = async () => {
+    if (!postText.trim()) {
+      Alert.alert('Error', 'Post content cannot be empty.');
+      return;
+    }
+  
+    try {
+      const response = await axios.post(`${BASEURL}/api/v1/post/generic`, 
+        {
+          message: postText,           // Using the message field as per the Postman request
+          type: 'GENERIC',             // "GENERIC" as the post type
+          imageUrl: 'https://c1.staticflickr.com/3/2899/14341091933_1e92e62d12_b.jpg',  // You can replace this with dynamic image input
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`, // Authorization header with Bearer token
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+  
+      if (response.status === 200 || response.status === 201) {
+        Alert.alert('Success', 'Your message has been sent to all fans.');
+        setPostText(''); // Clear the input field after sending the post
+        setModalVisible(false); // Close the modal
+      } else {
+        Alert.alert('Error', 'Failed to send the message. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error sending post:', error.response?.data || error.message);
+      Alert.alert('Error', `Failed to send post: ${error.response?.data?.message || 'An error occurred'}`);
+    }
+  };
+  
+  
+  
+  
+
   const renderPostItem = (post, index) => {
     const postDate = new Date(post.created_at).toLocaleString();
 
@@ -111,10 +134,8 @@ const ArtistPostsPage = () => {
         <Text style={styles.postUser}>{post.locale || 'Unknown Location'}</Text>
 
         {post.image_url ? (
-          // Display image if available
           <Image source={{ uri: post.image_url }} style={styles.postImage} />
         ) : (
-          // Display black box with "Invite Only" text inside
           <View style={styles.inviteOnlyBox}>
             <Text style={styles.inviteOnlyText}>Invite Only</Text>
           </View>
@@ -129,13 +150,11 @@ const ArtistPostsPage = () => {
     );
   };
 
-
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <ProfilePictureButton />
-        <TouchableOpacity style={styles.messageAllButton} onPress={() => Alert.alert('Message All Fans', 'This will send a message to all fans.')}>
+        <TouchableOpacity style={styles.messageAllButton} onPress={handleOpenModal}>
           <Text style={styles.messageAllText}>Message All Fans</Text>
         </TouchableOpacity>
 
@@ -148,6 +167,44 @@ const ArtistPostsPage = () => {
           {posts.map((post, index) => renderPostItem(post, index))}
         </ScrollView>
         {loading && <Text style={styles.loadingText}>Loading more posts...</Text>}
+
+        {/* Modal for "Message All Fans" */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={handleCloseModal}
+        >
+          <View style={styles.modalBackground}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Message All Fans</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="What is happening?!"
+                placeholderTextColor="gray"
+                value={postText}
+                onChangeText={setPostText}
+                multiline
+              />
+
+              <View style={styles.iconRow}>
+                <Icon name="image" size={24} color="blue" />
+                <Icon name="gif" size={24} color="blue" />
+                <Icon name="smile-o" size={24} color="blue" />
+                <Icon name="camera" size={24} color="blue" />
+                <Icon name="map-marker" size={24} color="blue" />
+              </View>
+
+              <TouchableOpacity style={styles.postButton} onPress={handleSendPost}>
+                <Text style={styles.postButtonText}>Post</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -203,74 +260,82 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginTop: 5,
-  }, // Style for the timestamp
-
-  // Style for the "Message All Fans" button
+  },
   messageAllButton: {
     position: 'absolute',
-    top: 25, // Move it down a bit
-    right: 5, // Move it a little more to the right
+    top: 25,
+    right: 5,
     paddingVertical: 7,
-    paddingHorizontal: 10, // Adjusted padding for better button shape
+    paddingHorizontal: 10,
     backgroundColor: '#FF0080',
     borderRadius: 25,
-    zIndex: 10, // Ensure it stays clickable and above other elements
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
+    zIndex: 10,
   },
   messageAllText: {
     fontSize: 14,
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
-
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
+  loadingText: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginVertical: 10,
   },
-  button: {
-    backgroundColor: '#FF0080',
-    padding: 15,
-    borderRadius: 25,
+
+  // Modal styles
+  modalBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  modalContainer: {
+    width: '90%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
     alignItems: 'center',
   },
-  buttonText: {
-    fontSize: 18,
-    color: '#ffffff',
+  modalTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
+    marginBottom: 15,
   },
-  inviteOnlyBox: {
+  textInput: {
     width: '100%',
-    height: 200, // Same height as the image
-    backgroundColor: '#000', // Black background
+    minHeight: 80,
+    borderColor: '#ccc',
+    borderWidth: 1,
     borderRadius: 10,
-    justifyContent: 'center',
+    padding: 10,
+    marginBottom: 20,
+    fontSize: 16,
+  },
+  iconRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 20,
+  },
+  postButton: {
+    backgroundColor: '#FF0080',
+    padding: 10,
+    borderRadius: 10,
+    width: '100%',
     alignItems: 'center',
     marginBottom: 10,
   },
-  inviteOnlyText: {
-    fontSize: 18,
-    color: '#ffffff',
+  postButtonText: {
+    color: 'white',
     fontWeight: 'bold',
   },
-
-
-  safeArea: { flex: 1, backgroundColor: '#0c002b' },
-  container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
-  pageTitle: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 20 },
-  scrollView: { flex: 1, marginBottom: 20 },
-  postContainer: { marginBottom: 20, alignItems: 'center' },
-  postUser: { fontSize: 16, color: '#ffffff', marginBottom: 5, fontWeight: 'bold' },
-  postImage: { width: '100%', height: 200, borderRadius: 10 },
-  interactionContainer: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10 },
-  interactionText: { fontSize: 16, color: '#FF0080' },
-  postDate: { fontSize: 14, color: '#888', marginTop: 5 },
-  messageAllButton: { position: 'absolute', top: 25, right: 5, paddingVertical: 7, paddingHorizontal: 10, backgroundColor: '#FF0080', borderRadius: 25, zIndex: 10 },
-  messageAllText: { fontSize: 14, color: '#FFFFFF', fontWeight: 'bold' },
-  loadingText: { color: '#FFFFFF', textAlign: 'center', marginVertical: 10 },
+  closeButton: {
+    marginTop: 10,
+  },
+  closeButtonText: {
+    color: 'blue',
+    fontWeight: 'bold',
+  },
 });
 
 export default ArtistPostsPage;
