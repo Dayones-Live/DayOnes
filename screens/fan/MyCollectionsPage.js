@@ -54,18 +54,19 @@ const MyCollectionsPage = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ProfilePictureButton navigation={navigation} />
       <ScrollView style={[styles.scrollView, { paddingTop: 30 }]} contentContainerStyle={styles.imageGrid}>
-        {posts.length === 0 ? (
-          <Text style={styles.noPostsText}>Nothing in your collection right now</Text>
-        ) : (
-          posts.map((post, index) => (
-            <TouchableOpacity key={index} style={styles.imageWrapper} onPress={() => openImageModal(post.image_url)}>
-              {post.image_url && (
-                <Image source={{ uri: post.image_url }} style={styles.image} />
-              )}
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
+  {posts.length === 0 ? (
+    <Text style={styles.noPostsText}>Nothing in your collection right now</Text>
+  ) : (
+    posts
+      .filter(post => post.image_url)  // Filter out posts with no image URL
+      .map((post, index) => (
+        <TouchableOpacity key={index} style={styles.imageWrapper} onPress={() => openImageModal(post.image_url)}>
+          <Image source={{ uri: post.image_url }} style={styles.image} />
+        </TouchableOpacity>
+      ))
+  )}
+</ScrollView>
+
 
       {/* Modal for Full-Screen Image */}
       <Modal visible={isModalVisible} transparent={true} onRequestClose={closeImageModal}>
