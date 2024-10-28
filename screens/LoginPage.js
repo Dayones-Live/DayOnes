@@ -8,12 +8,12 @@ import {
   StyleSheet,
   StatusBar,
   Dimensions,
+  Image,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import LogoText from '../assets/components/LogoText';
 import useLogin from '../assets/hooks/useLogin';
 import {
   check,
@@ -29,7 +29,7 @@ const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [role, setRole] = useState(null); // Track role separately
+  const [role, setRole] = useState(null); 
   const [permissionsGranted, setPermissionsGranted] = useState(false);
 
   const navigation = useNavigation();
@@ -68,10 +68,9 @@ const LoginScreen = () => {
     }
   };
 
-  // Navigate to the appropriate stack based on user role
   const navigateToAppropriateStack = () => {
     if (!role) {
-      return; // Prevent navigating with no role
+      return;
     }
     if (role === 'ARTIST') {
       navigation.navigate('ArtistStack');
@@ -80,17 +79,15 @@ const LoginScreen = () => {
     }
   };
 
-  // Update the role and handle navigation based on profile updates
   useEffect(() => {
     if (userProfile?.data?.role) {
       setRole(userProfile.data.role);
-      setIsLoading(false); // Ensure loading stops once profile is ready
+      setIsLoading(false);
     }
   }, [userProfile]);
 
   useEffect(() => {
     if (role && !isLoading) {
-      // Once the role is set and not loading, proceed to check permissions
       checkAllPermissions().then((permissions) => {
         setPermissionsGranted(permissions);
         if (permissions) {
@@ -128,7 +125,7 @@ const LoginScreen = () => {
               }
             });
           } else {
-            console.log('Unrecognized role, handling silently.'); // Handle silently
+            console.log('Unrecognized role, handling silently.');
           }
         },
         onError: (error) => {
@@ -155,7 +152,12 @@ const LoginScreen = () => {
 
       <View style={styles.contentContainer}>
         <View style={styles.topSection}>
-          <LogoText />
+          {/* Updated the size to 2.5x */}
+          <Image
+            source={require('../assets/images/1024.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={styles.middleSection}>
@@ -222,7 +224,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c002b',
+    backgroundColor: '#000',
   },
   contentContainer: {
     flex: 1,
@@ -233,6 +235,10 @@ const styles = StyleSheet.create({
   topSection: {
     alignItems: 'center',
     marginBottom: 30,
+  },
+  logo: {
+    width: 200,  // Increased width 2.5x
+    height: 140, // Increased height 2.5x
   },
   middleSection: {
     justifyContent: 'center',

@@ -128,38 +128,31 @@ const HHomePage = () => {
   };
 
   const createPost = async () => {
-    // Check if it's 'Invite + Photo' and no image has been selected
     if (postType === 'INVITE_PHOTO' && !selectedImage) {
       Alert.alert('Warning', 'You must select a photo when choosing "Invite + Photo."');
-      return; // Prevent post creation if no image is selected
+      return;
     }
 
-    // Don't include the image URL for 'Invite Only' posts
     let postImageUrl = null;
     if (postType === 'INVITE_PHOTO') {
-      postImageUrl = uploadedImageUrl; // Use the uploaded image URL for 'Invite + Photo'
+      postImageUrl = uploadedImageUrl;
     }
 
-    // Get the geolocation dynamically
     Geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        console.log("User's current location:", latitude, longitude);
 
         try {
-          // Get the locale using reverse geocoding
           const locale = await getLocale(latitude, longitude);
 
           const postData = {
-            imageUrl: postImageUrl, // Use the actual uploaded image URL if 'Invite + Photo', null for 'Invite Only'
+            imageUrl: postImageUrl,
             range: sliderValue[0],
-            type: postType, // Use the selected post type
+            type: postType,
             latitude: latitude.toString(),
             longitude: longitude.toString(),
             locale: locale,
           };
-
-          console.log('Attempting to create post with the following data:', postData);
 
           const response = await fetch(`${BASEURL}/api/v1/post/`, {
             method: 'POST',
@@ -172,31 +165,23 @@ const HHomePage = () => {
 
           const jsonResponse = await response.json();
 
-          console.log("Post creation response:", jsonResponse);
-
           if (response.ok) {
-            console.log("Post created successfully");
             Alert.alert('Success', 'Post created successfully!');
           } else {
-            console.error("Error creating post:", jsonResponse);
             Alert.alert('Error', `Failed to create post: ${jsonResponse.message || 'Unknown error'}`);
           }
         } catch (error) {
-          console.error('Error during post creation:', error);
-          Alert.alert('Error', 'An error occurred while creating the post. Check console for details.');
+          Alert.alert('Error', 'An error occurred while creating the post.');
         }
       },
       (error) => {
-        console.error("Geolocation error:", error);
         Alert.alert('Error', 'Failed to get your location. Please enable location services.');
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
   };
 
-
   const feetToMeters = feet => Math.round(feet * 0.3048);
-
   const defaultSliderValues = [10, 50, 100, 500];
 
   const handleSliderChange = value => {
@@ -244,15 +229,13 @@ const HHomePage = () => {
               <ProfilePictureButton />
 
               <View style={styles.header}>
-                <Text style={styles.title}>Autographs & Invites</Text>
+                <Image 
+                  source={require('../../assets/images/1024.png')} 
+                  style={styles.logo} 
+                />
               </View>
 
-              <LinearGradient
-                colors={['#FF00FF', '#001F3F']}
-                style={styles.imageContainer}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
+              <View style={styles.imageContainer}>
                 {selectedImage ? (
                   <View style={styles.selectedImageContainer}>
                     <Image
@@ -267,9 +250,12 @@ const HHomePage = () => {
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <Text style={styles.imageText}>Talk to your fans</Text>
+                  <Image
+                    source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
+                    style={styles.placeholderImage}
+                  />
                 )}
-              </LinearGradient>
+              </View>
 
               <View style={styles.pictureContainer}>
                 <TouchableOpacity
@@ -298,7 +284,6 @@ const HHomePage = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Radio buttons to select post type */}
               <View style={styles.radioGroup}>
                 <Text style={styles.radioGroupLabel}>Choose what to send:</Text>
                 <TouchableOpacity
@@ -346,9 +331,18 @@ const HHomePage = () => {
                 />
               </View>
 
-              <TouchableOpacity style={styles.sendButton} onPress={createPost}>
-                <Text style={styles.sendButtonText}>Send Invite</Text>
-              </TouchableOpacity>
+              <View style={styles.sendButtonContainer}>
+                <LinearGradient
+                  colors={['#00E5FF', '#D500F9']} // Blue to pink gradient
+                  style={styles.sendButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <TouchableOpacity style={styles.sendButton} onPress={createPost}>
+                    <Text style={styles.sendButtonText}>Send Invite</Text>
+                  </TouchableOpacity>
+                </LinearGradient>
+              </View>
             </View>
           </SafeAreaView>
         )}
@@ -363,18 +357,17 @@ const HHomePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c002b',
+    backgroundColor: '#000',
     padding: 20,
     alignItems: 'center',
   },
   header: {
     marginBottom: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
+  logo: {
+    width: 100, // Adjust the size of the logo as needed
+    height: 50,
+    resizeMode: 'contain',
   },
   imageContainer: {
     width: '100%',
@@ -390,13 +383,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  imageText: {
-    position: 'absolute',
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
   selectedImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  placeholderImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
@@ -417,8 +409,8 @@ const styles = StyleSheet.create({
   },
   pictureButton: {
     width: '45%',
-    height: 120,
-    backgroundColor: '#001F3F',
+    height: 110,
+    backgroundColor: '#000',
     borderColor: '#00FFFF',
     borderWidth: 1,
     borderRadius: 20,
@@ -469,12 +461,21 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
-  sendButton: {
+  sendButtonContainer: {
     width: '100%',
+    borderRadius: 10,
+    overflow: 'hidden', // Ensures the gradient follows the button shape
+    marginVertical: -20,
+  },
+  sendButtonGradient: {
     paddingVertical: 15,
     borderRadius: 10,
-    backgroundColor: '#FF0080',
+    width: '100%',
     alignItems: 'center',
+  },
+  sendButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendButtonText: {
     color: '#fff',
