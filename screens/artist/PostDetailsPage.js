@@ -23,8 +23,8 @@ const PostDetailPage = () => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
-  const [likedComments, setLikedComments] = useState([]); 
-  const [commentsToShow, setCommentsToShow] = useState(10); 
+  const [likedComments, setLikedComments] = useState([]);
+  const [commentsToShow, setCommentsToShow] = useState(10);
   const [isModalVisible, setModalVisible] = useState(false); // For modal visibility
   const [selectedImage, setSelectedImage] = useState(null); // Image picker state
 
@@ -44,12 +44,11 @@ const PostDetailPage = () => {
       const reactionCount = reactions.length || 0;
       const artistComments = response.data?.data?.artistComments || [];
       const comments = response.data?.data?.comments || [];
-
       const likedCommentsArray = comments
-        .filter((comment) => comment.commentReactionCount > 0)
+        .filter((comment) => comment.commentReactionCount > 0) // Check if commentReactionCount is greater than 0
         .map((comment) => comment.id);
 
-      setLikedComments(likedCommentsArray); 
+      setLikedComments(likedCommentsArray); // Pre-set liked comments based on API response
       setPost({ ...postData, reactionCount, artistComments, comments });
     } catch (error) {
       console.error('Error fetching post:', error.response || error.message);
@@ -89,6 +88,83 @@ const PostDetailPage = () => {
       }
     });
   };
+
+    // Function to like a comment
+    const likeComment = async (commentId) => {
+      try {
+        await axios.post(
+          `${BASEURL}/api/v1/comment/like/${commentId}`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+        setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
+        console.log(`Comment with ID: ${commentId} liked.`);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to like the comment.');
+      }
+    };
+    // Function to dislike a comment
+    const dislikeComment = async (commentId) => {
+      try {
+        await axios.post(
+          `${BASEURL}/api/v1/comment/dislike/${commentId}`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+        setLikedComments((prevLikedComments) =>
+          prevLikedComments.filter((id) => id !== commentId)
+        );
+        console.log(`Comment with ID: ${commentId} disliked.`);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to dislike the comment.');
+      }
+    };
+    // Toggle like/dislike state
+
+    const toggleLikeComment = (commentId) => {
+          if (likedComments.includes(commentId)) {
+      dislikeComment(commentId); // If already liked, dislike it
+    } else {
+      likeComment(commentId); // If not liked, like it
+    }}
+
+    const likeAllComments = async () => {
+      try {
+        const response = await axios.post(
+          `${BASEURL}/api/v1/comment/like-all/${postId}`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+        if (response.status === 201 || response.status === 200) {
+          // Mark all comments as liked
+          const allCommentIds = post.comments.map(comment => comment.id);
+          setLikedComments(allCommentIds); // Set all comment IDs to liked
+          console.log("All comments liked successfully.");
+          Alert.alert('Success', 'All comments have been liked.');
+        } else {
+          console.error("Response status:", response.status);
+          console.error("Response data:", response.data);
+          Alert.alert('Error', 'Failed to like all comments.');
+        }
+      } catch (error) {
+        console.error("Error details:", error.response || error.message);
+        if (error.response) {
+          Alert.alert(
+            'Error',
+            `Failed to like all comments. Server returned status ${error.response.status}: ${error.response.data?.message || 'Unknown error'}`
+          );
+        } else {
+          Alert.alert('Error', 'Failed to like all comments due to a network or server issue.');
+        }
+      }
+    };
+
 
   const handleSendComment = async () => {
     if (!commentText.trim() && !selectedImage) {
@@ -158,7 +234,7 @@ const PostDetailPage = () => {
     ...post.artistComments.map((comment) => ({ ...comment, role: 'ARTIST' })),
     ...post.comments.map((comment) => ({ ...comment, role: 'FAN' })),
   ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-   .slice(0, commentsToShow); 
+   .slice(0, commentsToShow);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -191,6 +267,9 @@ const PostDetailPage = () => {
             <Text style={styles.interactionText}>
               💬 {Array.isArray(sortedComments) ? post.comments.length : 0}
             </Text>
+            <TouchableOpacity onPress={likeAllComments} style={styles.likeAllButton}>
+              <Text style={styles.likeAllButtonText}>Like All Comments</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.commentsContainer}>
@@ -275,10 +354,7 @@ const PostDetailPage = () => {
               <TouchableOpacity onPress={handleSelectImage}>
                 <Icon name="image" size={24} color="blue" />
               </TouchableOpacity>
-              <Icon name="gif" size={24} color="blue" />
-              <Icon name="smile-o" size={24} color="blue" />
               <Icon name="camera" size={24} color="blue" />
-              <Icon name="map-marker" size={24} color="blue" />
             </View>
 
             <TouchableOpacity style={styles.postButton} onPress={handleSendComment}>
@@ -346,7 +422,7 @@ const styles = StyleSheet.create({
   },
   dmButton: {
     position: 'absolute',
-    right: -60, 
+    right: -60,
     top: '50%',
     transform: [{ translateY: -10 }],
   },
@@ -390,6 +466,14 @@ const styles = StyleSheet.create({
   postButtonText: { color: 'white', fontWeight: 'bold' },
   closeButton: { marginTop: 10 },
   closeButtonText: { color: 'blue', fontWeight: 'bold' },
+  likeAllButton: {
+    backgroundColor: '#FF0080',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginLeft: 5,
+  },
+  likeAllButtonText: { color: '#FFFFFF', fontSize: 14 },
 });
 
 export default PostDetailPage;
