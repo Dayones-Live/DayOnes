@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, SafeAreaView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
 import useSendMessage from '../assets/hooks/useSendMessage';
@@ -108,7 +108,7 @@ const ConversationThread = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeContainer}>
       <FlatList
         data={[...messages].reverse()}
         keyExtractor={(item) => item.id.toString()}
@@ -129,11 +129,15 @@ const ConversationThread = () => {
           <Text style={styles.sendButtonText}>➤</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#0c002b',
+  },
   container: {
     flex: 1,
     backgroundColor: '#0c002b',
