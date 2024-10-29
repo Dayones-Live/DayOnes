@@ -89,83 +89,171 @@ const PostDetailPage = () => {
     });
   };
 
-    // Function to like a comment
-    const likeComment = async (commentId) => {
-      try {
-        await axios.post(
-          `${BASEURL}/api/v1/comment/like/${commentId}`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
-        setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
-        console.log(`Comment with ID: ${commentId} liked.`);
-      } catch (error) {
-        Alert.alert('Error', 'Failed to like the comment.');
-      }
-    };
-    // Function to dislike a comment
-    const dislikeComment = async (commentId) => {
-      try {
-        await axios.post(
-          `${BASEURL}/api/v1/comment/dislike/${commentId}`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
-        setLikedComments((prevLikedComments) =>
-          prevLikedComments.filter((id) => id !== commentId)
-        );
-        console.log(`Comment with ID: ${commentId} disliked.`);
-      } catch (error) {
-        Alert.alert('Error', 'Failed to dislike the comment.');
-      }
-    };
-    // Toggle like/dislike state
+  // Function to like a comment
+  const likeComment = async (commentId) => {
+    try {
+      await axios.post(
+        `${BASEURL}/api/v1/comment/like/${commentId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
+      console.log(`Comment with ID: ${commentId} liked.`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to like the comment.');
+    }
+  };
 
-    const toggleLikeComment = (commentId) => {
-          if (likedComments.includes(commentId)) {
+  // Function to dislike a comment
+  const dislikeComment = async (commentId) => {
+    try {
+      await axios.post(
+        `${BASEURL}/api/v1/comment/dislike/${commentId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      setLikedComments((prevLikedComments) =>
+        prevLikedComments.filter((id) => id !== commentId)
+      );
+      console.log(`Comment with ID: ${commentId} disliked.`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to dislike the comment.');
+    }
+  };
+
+  // Toggle like/dislike state
+  const toggleLikeComment = (commentId) => {
+    if (likedComments.includes(commentId)) {
       dislikeComment(commentId); // If already liked, dislike it
     } else {
       likeComment(commentId); // If not liked, like it
-    }}
+    }
+  };
 
-    const likeAllComments = async () => {
-      try {
+  const likeAllComments = async () => {
+    try {
+      const response = await axios.post(
+        `${BASEURL}/api/v1/comment/like-all/${postId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      if (response.status === 201 || response.status === 200) {
+        // Mark all comments as liked
+        const allCommentIds = post.comments.map(comment => comment.id);
+        setLikedComments(allCommentIds); // Set all comment IDs to liked
+        console.log("All comments liked successfully.");
+        Alert.alert('Success', 'All comments have been liked.');
+      } else {
+        console.error("Response status:", response.status);
+        console.error("Response data:", response.data);
+        Alert.alert('Error', 'Failed to like all comments.');
+      }
+    } catch (error) {
+      console.error("Error details:", error.response || error.message);
+      if (error.response) {
+        Alert.alert(
+          'Error',
+          `Failed to like all comments. Server returned status ${error.response.status}: ${error.response.data?.message || 'Unknown error'}`
+        );
+      } else {
+        Alert.alert('Error', 'Failed to like all comments due to a network or server issue.');
+      }
+    }
+  };
+
+  const checkForExistingConversation = async (receiverId) => {
+    try {
+      const response = await axios.get(
+        `${BASEURL}/api/v1/conversation?pageNo=1&pageSize=100`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+  
+      const conversations = response.data?.data?.conversations || [];
+  
+      // Check if there's an existing conversation with the receiverId
+      const existingConversation = conversations.find(
+        (conv) => conv.reciever_id === receiverId || conv.sender_id === receiverId
+      );
+  
+      return existingConversation; // Return the conversation if found
+    } catch (error) {
+      console.error('Error fetching conversations:', error.message);
+      return null;
+    }
+  };
+  
+  // Function to create a conversation or navigate to an existing one
+  const createOrNavigateConversation = async (receiverId, initialMessage) => {
+    // First, check if a conversation already exists with the receiver
+    const existingConversation = await checkForExistingConversation(receiverId);
+  
+    if (existingConversation) {
+      console.log('Existing conversation found:', existingConversation);
+      // Navigate to the existing conversation
+      navigation.navigate('ConversationThread', { conversationId: existingConversation.id });
+    } else {
+      // No conversation found, so create a new one
+      await createConversation(receiverId, initialMessage);
+    }
+  };
+
+  const createConversation = async (receiverId, initialMessage) => {
+    try {
+      // Fetch existing conversations first
+      const conversationsResponse = await axios.get(`${BASEURL}/api/v1/conversation?pageNo=1&pageSize=50`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      
+      const existingConversations = conversationsResponse.data?.data?.conversations || [];
+      
+      // Check if a conversation with the receiverId already exists
+      const existingConversation = existingConversations.find(conversation => 
+        (conversation.reciever_id === receiverId || conversation.sender_reciever_code.includes(receiverId))
+      );
+  
+      if (existingConversation) {
+        // If conversation exists, navigate to the existing conversation
+        const conversationId = existingConversation.id;
+        console.log('Navigating to existing conversation:', conversationId);
+        navigation.navigate('ConversationThread', { conversationId });
+      } else {
+        // If no conversation exists, create a new one
         const response = await axios.post(
-          `${BASEURL}/api/v1/comment/like-all/${postId}`,
-          {},
+          `${BASEURL}/api/v1/conversation`,
+          {
+            recieverId: receiverId,  // Ensure the spelling matches the API requirement
+            lastMessage: initialMessage || "Hello!",  // A default initial message
+          },
           {
             headers: { Authorization: `Bearer ${accessToken}` },
           }
         );
-        if (response.status === 201 || response.status === 200) {
-          // Mark all comments as liked
-          const allCommentIds = post.comments.map(comment => comment.id);
-          setLikedComments(allCommentIds); // Set all comment IDs to liked
-          console.log("All comments liked successfully.");
-          Alert.alert('Success', 'All comments have been liked.');
+  
+        console.log('Conversation API response:', response.data);
+  
+        const conversationId = response.data?.data?.id;
+  
+        if (conversationId) {
+          console.log('Conversation created successfully');
+          // Navigate to the new ConversationThread screen with the conversationId
+          navigation.navigate('ConversationThread', { conversationId });
         } else {
-          console.error("Response status:", response.status);
-          console.error("Response data:", response.data);
-          Alert.alert('Error', 'Failed to like all comments.');
-        }
-      } catch (error) {
-        console.error("Error details:", error.response || error.message);
-        if (error.response) {
-          Alert.alert(
-            'Error',
-            `Failed to like all comments. Server returned status ${error.response.status}: ${error.response.data?.message || 'Unknown error'}`
-          );
-        } else {
-          Alert.alert('Error', 'Failed to like all comments due to a network or server issue.');
+          Alert.alert('Error', 'Failed to retrieve conversation ID.');
         }
       }
-    };
-
-
+    } catch (error) {
+      console.error('Error creating conversation:', error.response?.data || error.message);
+      Alert.alert('Error', 'An error occurred while creating the conversation.');
+    }
+  };
   const handleSendComment = async () => {
     if (!commentText.trim() && !selectedImage) {
       Alert.alert('Error', 'Comment or image is required.');
@@ -305,7 +393,7 @@ const PostDetailPage = () => {
                       {/* New DM icon */}
                       <TouchableOpacity
                         style={styles.dmButton}
-                        onPress={() => console.log('DM icon pressed')} // Placeholder functionality
+                        onPress={() => createConversation(comment.user.id, 'Hey, let’s chat!')}  // Passing user ID and a default message
                       >
                         <Icon
                           name="paper-plane"

@@ -29,6 +29,11 @@ import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotific
 const { width } = Dimensions.get('window');
 const Tab = createBottomTabNavigator();
 
+// Importing logos
+const cameraLogo = require('../../assets/images/CameraLogo.png');
+const uploadLogo = require('../../assets/images/UploadLogo.png');
+const dayonesLogo = require('../../assets/images/1024.png'); // DayOnes logo
+
 const HHomePage = () => {
   const [sliderValue, setSliderValue] = useState([100]); // Initial value
   const [selectedImage, setSelectedImage] = useState(null);
@@ -229,10 +234,12 @@ const HHomePage = () => {
               <ProfilePictureButton />
 
               <View style={styles.header}>
+                <Text style={styles.headerText}>Personal</Text>
                 <Image 
-                  source={require('../../assets/images/1024.png')} 
+                  source={dayonesLogo}  // Added back the DayOnes logo
                   style={styles.logo} 
                 />
+                <Text style={styles.headerText}>Media</Text>
               </View>
 
               <View style={styles.imageContainer}>
@@ -262,11 +269,9 @@ const HHomePage = () => {
                   style={styles.pictureButton}
                   onPress={takePicture}
                 >
-                  <Icon
-                    name="camera"
-                    size={30}
-                    color="#00FFFF"
-                    style={styles.icon}
+                  <Image
+                    source={cameraLogo} // Using the new CameraLogo
+                    style={styles.cameraLogo} // Style for the logo
                   />
                   <Text style={styles.buttonText}>Take Picture</Text>
                 </TouchableOpacity>
@@ -274,11 +279,9 @@ const HHomePage = () => {
                   style={styles.pictureButton}
                   onPress={uploadFile}
                 >
-                  <Icon
-                    name="file"
-                    size={30}
-                    color="#00FFFF"
-                    style={styles.icon}
+                  <Image
+                    source={uploadLogo} // Using the new UploadLogo
+                    style={styles.uploadLogo} // Style for the logo
                   />
                   <Text style={styles.buttonText}>Upload File</Text>
                 </TouchableOpacity>
@@ -362,12 +365,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
+    flexDirection: 'row', // Align the text and logo in a row
+    alignItems: 'center',
     marginBottom: 20,
   },
+  headerText: {
+    color: '#C0C0C0',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginHorizontal: -1, // Space between text and logo
+    Vertical: 10,
+  },
   logo: {
-    width: 100, // Adjust the size of the logo as needed
+    width: 50, // Adjust the size of the logo as needed
     height: 50,
     resizeMode: 'contain',
+    left:-2,
   },
   imageContainer: {
     width: '100%',
@@ -411,17 +424,26 @@ const styles = StyleSheet.create({
     width: '45%',
     height: 110,
     backgroundColor: '#000',
-    borderColor: '#00FFFF',
+    borderColor: '#000',
     borderWidth: 1,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  icon: {
-    marginBottom: 10,
+  cameraLogo: {
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    marginBottom: 1,
+  },
+  uploadLogo: {
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    marginBottom: 1,
   },
   buttonText: {
-    color: '#00FFFF',
+    color: '#C0C0C0',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -432,13 +454,13 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     fontSize: 18,
-    color: '#fff',
+    color: '#C0C0C0',
     marginBottom: 10,
   },
   sliderValue: {
     fontSize: 18,
-    color: '#fff',
-    marginBottom: 20,
+    color: '#C0C0C0',
+    marginBottom: -5,
   },
   sliderSelectedStyle: {
     backgroundColor: '#FF00FF',
@@ -449,7 +471,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   sliderTrackStyle: {
-    height: 10,
+    height:10,
     borderRadius: 10,
     backgroundColor: '#444',
   },
@@ -465,7 +487,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 10,
     overflow: 'hidden', // Ensures the gradient follows the button shape
-    marginVertical: -20,
+    marginVertical: 0,
   },
   sendButtonGradient: {
     paddingVertical: 15,
@@ -478,26 +500,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
   },
   radioGroup: {
     marginBottom: 20,
     alignItems: 'center',
+    color: '#C0C0C0',
   },
   radioGroupLabel: {
     fontSize: 18,
-    color: '#fff',
+    color: '#C0C0C0',
     marginBottom: 10,
   },
   radioButton: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
+    color: '#C0C0C0',
+    
   },
   radioLabel: {
-    color: '#fff',
+    color: '#C0C0C0',
     marginLeft: 10,
     fontSize: 16,
   },
