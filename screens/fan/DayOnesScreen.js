@@ -134,8 +134,8 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginRight: 15,
   },
-  dmText: { fontSize: 18, color: '#ffffff', fontWeight: 'bold' },
-  messagePreview: { fontSize: 14, color: '#888', marginTop: 5 },
+  dmText: { fontSize: 15, color: '#ffffff', fontWeight: 'bold' },
+  messagePreview: { fontSize: 12, color: '#888', marginTop: 5 },
 });
 
 export default DayOnesScreen;

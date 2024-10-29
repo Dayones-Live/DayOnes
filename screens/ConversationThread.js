@@ -1,10 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, SafeAreaView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
 import useSendMessage from '../assets/hooks/useSendMessage';
 import { getMessages } from '../assets/services/apiService';
 import socket from '../assets/services/socket';
+
+const formatTime = (date) => {
+  const options = { hour: 'numeric', minute: 'numeric' };
+  return new Date(date).toLocaleTimeString([], options);
+};
+
+const formatDateLabel = (date) => {
+  const messageDate = new Date(date);
+  const today = new Date();
+  const isToday = messageDate.toDateString() === today.toDateString();
+
+  if (isToday) {
+    return formatTime(date); // Show time only
+  } else {
+    return `${messageDate.getMonth() + 1}/${messageDate.getDate()}`; // Show month/day
+  }
+};
 
 const ConversationThread = () => {
   const [messages, setMessages] = useState([]);
@@ -12,26 +29,10 @@ const ConversationThread = () => {
   const route = useRoute();
   const { conversationId } = route.params;
   const accessToken = useSelector((state) => state.accessToken);
-  const loggedInUser = useSelector((state) => state.user);
+  const loggedInUser = useSelector(state => state.userProfile);
+  const loggedInUserEmail = loggedInUser?.data.email || null;
   const loggedInUserId = loggedInUser?.id || null;
-  const { sendMessage, error } = useSendMessage(accessToken);
-
-  // Re-fetch messages every time the screen is focused
-  useFocusEffect(
-    React.useCallback(() => {
-      // Fetch messages every time the user navigates to this screen
-      fetchMessages();
-
-      // Re-establish WebSocket connection every time the screen is focused
-      socket.emit('join-conversation', conversationId);
-
-      // Clean up the WebSocket connection when leaving the screen
-      return () => {
-        socket.off('chat-message');
-        socket.emit('leave-conversation', conversationId);
-      };
-    }, [conversationId])
-  );
+  const { sendMessage } = useSendMessage(accessToken);
 
   // Fetch messages from the server
   const fetchMessages = async () => {
@@ -42,12 +43,22 @@ const ConversationThread = () => {
 
     try {
       const data = await getMessages(conversationId, accessToken);
-      console.log('Fetched messages:', data.data.messages);
-      setMessages(data.data.messages);
+      console.log('Fetched messages from server:', data.data.messages);
+
+      const sortedMessages = data.data.messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      setMessages(sortedMessages);
     } catch (err) {
       console.error('Error fetching messages:', err.message);
     }
   };
+
+  // Fetch messages on component mount and set up polling
+  useEffect(() => {
+    fetchMessages(); // Fetch on component mount
+    const interval = setInterval(fetchMessages, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval); // Clean up interval on unmount
+  }, [accessToken, conversationId]);
 
   // Handle sending a new message
   const handleSendMessage = async () => {
@@ -62,9 +73,8 @@ const ConversationThread = () => {
         senderId: loggedInUserId,
       };
 
-      socket.emit('chat-message', messagePayload); // Emit the message via WebSocket
+      console.log('Sending message:', messagePayload);
 
-      // Optimistically add the message to the UI immediately
       setMessages((prevMessages) => [
         ...prevMessages,
         {
@@ -72,50 +82,39 @@ const ConversationThread = () => {
           message: newMessage,
           sender_id: loggedInUserId,
           created_at: new Date().toISOString(),
+          messageSender: { email: loggedInUserEmail },
         },
       ]);
 
-      setNewMessage(''); // Clear the input
+      setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
     }
   };
 
-  // Listen for incoming messages via WebSocket
-  useEffect(() => {
-    socket.on('chat-message', (messageData) => {
-      const remoteMessage = messageData.message;
-      if (remoteMessage) {
-        setMessages((previousMessages) => [...previousMessages, remoteMessage]);
-      }
-    });
-
-    return () => {
-      socket.off('chat-message'); // Clean up when unmounting
-    };
-  }, []);
-
   const renderMessage = ({ item }) => {
-    const isSender = item.sender_id === loggedInUserId;
+    const senderEmail = item.messageSender?.email || null;
+    const isSender = senderEmail === loggedInUserEmail;
+    const timestamp = formatDateLabel(item.created_at); // Custom timestamp formatting
 
     return (
       <View style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}>
         <View style={[styles.messageBubble, isSender ? styles.senderBubble : styles.receiverBubble]}>
           <Text style={styles.messageText}>{item.message}</Text>
-          <Text style={styles.messageTimestamp}>{item.created_at}</Text>
+          <Text style={styles.messageTimestamp}>{timestamp}</Text>
         </View>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeContainer}>
       <FlatList
-        data={messages.reverse()} // Reverse the order of messages so newest ones show at the bottom
-        keyExtractor={(item) => item.id}
+        data={[...messages].reverse()}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={renderMessage}
         style={styles.messageList}
-        extraData={messages}
+        inverted={true} // Display newest message at the bottom
       />
 
       <View style={styles.inputContainer}>
@@ -130,11 +129,15 @@ const ConversationThread = () => {
           <Text style={styles.sendButtonText}>➤</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#0c002b',
+  },
   container: {
     flex: 1,
     backgroundColor: '#0c002b',
@@ -156,7 +159,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   messageBubble: {
-    padding: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     borderRadius: 20,
     maxWidth: '75%',
     position: 'relative',
@@ -170,12 +174,12 @@ const styles = StyleSheet.create({
   messageText: {
     color: '#fff',
     fontSize: 16,
+    marginBottom: 5, // Add some space between the text and the timestamp
   },
   messageTimestamp: {
     color: '#aaa',
     fontSize: 12,
     textAlign: 'right',
-    marginTop: 5,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -204,5 +208,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
+
 
 export default ConversationThread;
