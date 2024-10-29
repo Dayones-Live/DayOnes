@@ -11,6 +11,7 @@
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
+		2115F8E625884814BCC7F426 /* Montserrat-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 899165D32C4249ED96AC6C54 /* Montserrat-VariableFont_wght.ttf */; };
 		518157415DD29B7C19458AE7 /* Pods_DayOnes_DayOnesTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAC364FF663CE17CCDD29E23 /* Pods_DayOnes_DayOnesTests.framework */; };
 		6044A27561EDC0E671C0705E /* Pods_DayOnes.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67E9A5837AC6AE700ABAAA91 /* Pods_DayOnes.framework */; };
 		6AA3F40C2CB435B300A932DA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6AA3F40B2CB435B300A932DA /* GoogleService-Info.plist */; };
@@ -49,6 +50,7 @@
 		6AB8D0872CB5872100DFD91A /* DayOnesRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = DayOnesRelease.entitlements; path = DayOnes/DayOnesRelease.entitlements; sourceTree = "<group>"; };
 		7459644D8622EBAC5044DD30 /* Pods-DayOnes-DayOnesTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes-DayOnesTests.debug.xcconfig"; path = "Target Support Files/Pods-DayOnes-DayOnesTests/Pods-DayOnes-DayOnesTests.debug.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = DayOnes/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		899165D32C4249ED96AC6C54 /* Montserrat-VariableFont_wght.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-VariableFont_wght.ttf"; path = "../assets/fonts/Montserrat-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		95EAED01222F3DA16CF0241F /* Pods-DayOnes.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes.debug.xcconfig"; path = "Target Support Files/Pods-DayOnes/Pods-DayOnes.debug.xcconfig"; sourceTree = "<group>"; };
 		AAC364FF663CE17CCDD29E23 /* Pods_DayOnes_DayOnesTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DayOnes_DayOnesTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C56841602C90E146003EA1CF /* main.jsbundle */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.jsbundle; sourceTree = "<group>"; };
@@ -119,6 +121,15 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		6B97EB8F09604FB7A64EA160 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				899165D32C4249ED96AC6C54 /* Montserrat-VariableFont_wght.ttf */,
+			);
+			name = Resources;
+			path = "";
+			sourceTree = "<group>";
+		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
@@ -136,6 +147,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				6B97EB8F09604FB7A64EA160 /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -266,6 +278,7 @@
 				6AA3F40C2CB435B300A932DA /* GoogleService-Info.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				EEBD8BC22CA4A971798AC313 /* PrivacyInfo.xcprivacy in Resources */,
+				2115F8E625884814BCC7F426 /* Montserrat-VariableFont_wght.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

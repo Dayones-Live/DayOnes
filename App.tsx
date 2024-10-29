@@ -6,6 +6,7 @@ import { Provider } from 'react-redux';
 import store from './assets/redux/store';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Text, View, StyleSheet, ActivityIndicator } from 'react-native'; // Import necessary components
 import LoginPage from './screens/LoginPage';
 import RegArtistPage from './screens/artist/RegArtistPage';
 import RegFanPage from './screens/fan/RegFanPage';
@@ -156,5 +157,17 @@ const App = () => {
     </Provider>
   );
 };
+
+// Styles, including Montserrat font usage
+const styles = StyleSheet.create({
+  regularText: {
+    fontFamily: 'Montserrat-VariableFont_wght', // Using the Montserrat font
+    fontWeight: '400', // Regular weight
+  },
+  boldText: {
+    fontFamily: 'Montserrat-VariableFont_wght', // Using the Montserrat font
+    fontWeight: '700', // Bold weight
+  },
+});
 
 export default App;

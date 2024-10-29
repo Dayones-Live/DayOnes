@@ -36,7 +36,7 @@ const ArtistTabNavigator = () => {
         tabBarActiveTintColor: '#FF0080',
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
-          backgroundColor: '#0c002b',
+          backgroundColor: '#000',
           borderTopWidth: 0,
         },
         headerShown: false,
