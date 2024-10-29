@@ -6,33 +6,55 @@ import axios from 'axios';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { BASEURL } from '../../assets/constants';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker'; // Import image picker
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
-  const [pinnedPost, setPinnedPost] = useState(null); // State for the pinned post
+  const [pinnedPost, setPinnedPost] = useState(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isModalVisible, setModalVisible] = useState(false);
   const [postText, setPostText] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null); // New state for selected image
+  const [selectedImage, setSelectedImage] = useState(null);
   const accessToken = useSelector(state => state.accessToken);
   const isLoggedIn = useSelector(state => state.isLoggedIn);
   const navigation = useNavigation();
 
   // Fetch posts based on the page number
   const fetchArtistPosts = async (pageNum) => {
-    if (loading || !hasMore) return;
+    console.log(`Attempting to fetch posts for page ${pageNum}. Loading: ${loading}, Has More: ${hasMore}`);
+
+    if (loading || !hasMore) {
+      console.log("Exiting fetch because loading is in progress or hasMore is false.");
+      return;
+    }
 
     setLoading(true);
+    console.log("Set loading to true.");
 
     try {
-      const response = await axios.get(`${BASEURL}/api/v1/post?page=${pageNum}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      // Construct the API URL with the page parameter
+      const apiUrl = `${BASEURL}/api/v1/post?page=${pageNum}`;
+      console.log(`API Call: GET ${apiUrl}`);
+
+      // Print headers
+      const headers = { Authorization: `Bearer ${accessToken}` };
+      console.log('Headers:', headers);
+
+      // Make the API call
+      const response = await axios.get(apiUrl, { headers });
+
+      // Log the entire response data for inspection
+      console.log(`Received response from ${apiUrl}:`, response.data);
 
       const postsData = response.data?.data?.posts || [];
+      console.log(`Received ${postsData.length} posts from the API for page ${pageNum}.`);
+
+      // Log each post with its ID and created_at date
+      postsData.forEach((post, index) => {
+        console.log(`Post ${index + 1} from page ${pageNum}: ID=${post.id}, Created At=${post.created_at}`);
+      });
 
       // Check if any post is a "Generic Post" and pin it
       const genericPost = postsData.find(post => post.type === 'GENERIC');
@@ -40,14 +62,19 @@ const ArtistPostsPage = () => {
 
       if (genericPost) {
         setPinnedPost(genericPost);
+        console.log("Pinned a generic post:", genericPost);
       }
 
       if (otherPosts.length === 0) {
         setHasMore(false);
+        console.log("No more posts to load. Setting hasMore to false.");
       } else {
         setPosts(prevPosts => {
           const newPosts = otherPosts.filter(post => !prevPosts.some(prevPost => prevPost.id === post.id));
-          return [...prevPosts, ...newPosts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          const allPosts = [...prevPosts, ...newPosts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+          console.log(`Updated total number of posts in state: ${allPosts.length}`);
+          return allPosts;
         });
       }
     } catch (error) {
@@ -55,13 +82,15 @@ const ArtistPostsPage = () => {
       Alert.alert('Error', 'An error occurred while fetching posts.');
     } finally {
       setLoading(false);
+      console.log("Set loading to false after fetching posts.");
     }
   };
+
+
 
   const handleDelete = async (postId) => {
     try {
       console.log(`Attempting to delete post with ID: ${postId}`);
-
       const response = await axios.delete(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -71,9 +100,9 @@ const ArtistPostsPage = () => {
       if (response.status === 200 || response.status === 204 || response.status === 201) {
         Alert.alert('Success', 'The post has been deleted.');
         setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+        console.log(`Deleted post with ID: ${postId}.`);
       } else {
         Alert.alert('Error', `Failed to delete post. Status code: ${response.status}`);
-        console.log('Unexpected response status:', response.status);
       }
     } catch (error) {
       console.error('Error deleting post:', error.response ? error.response.data : error.message);
@@ -97,6 +126,7 @@ const ArtistPostsPage = () => {
       setPosts([]);
       setPage(1);
       setHasMore(true);
+      console.log("Reset state as user is not logged in.");
     } else {
       fetchArtistPosts(1);
     }
@@ -112,6 +142,7 @@ const ArtistPostsPage = () => {
     const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
     if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 20 && !loading && hasMore) {
       setPage(prevPage => prevPage + 1);
+      console.log(`Incrementing page to ${page + 1} in handleLoadMore`);
     }
   };
 
@@ -137,14 +168,13 @@ const ArtistPostsPage = () => {
       } else {
         let { uri } = response.assets[0];
         if (!uri.startsWith('file://')) {
-          uri = `file://${uri}`; // Add file:// prefix if missing
+          uri = `file://${uri}`;
         }
-        console.log('Captured image URI:', uri); // Log the URI to confirm
+        console.log('Captured image URI:', uri);
         setSelectedImage(uri);
       }
     });
   };
-
 
   const uploadFile = () => {
     launchImageLibrary(options, (response) => {
@@ -155,9 +185,9 @@ const ArtistPostsPage = () => {
       } else {
         let { uri } = response.assets[0];
         if (!uri.startsWith('file://')) {
-          uri = `file://${uri}`; // Add file:// prefix if missing
+          uri = `file://${uri}`;
         }
-        console.log('Selected image URI:', uri); // Log the URI to confirm
+        console.log('Selected image URI:', uri);
         setSelectedImage(uri);
       }
     });
@@ -176,7 +206,7 @@ const ArtistPostsPage = () => {
       };
 
       if (selectedImage) {
-        postData.imageUrl = selectedImage; // Use the selected image URL
+        postData.imageUrl = selectedImage;
       }
 
       const response = await axios.post(`${BASEURL}/api/v1/post/generic`, postData, {
@@ -189,8 +219,9 @@ const ArtistPostsPage = () => {
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Success', 'Your message has been sent to all fans.');
         setPostText('');
-        setSelectedImage(null);  // Clear the selected image after post
+        setSelectedImage(null);
         setModalVisible(false);
+        console.log("Posted a new message successfully.");
       } else {
         Alert.alert('Error', 'Failed to send the message. Please try again.');
       }
@@ -243,39 +274,33 @@ const ArtistPostsPage = () => {
           onScroll={handleLoadMore}
           scrollEventThrottle={400}
         >
-          {/* Render pinned post at the top */}
           {pinnedPost && (
-  <TouchableOpacity
-    key={pinnedPost.id}
-    style={styles.postContainer}
-    onPress={() => navigation.navigate('PostDetailPage', { postId: pinnedPost.id })}
-    onLongPress={() => confirmDelete(pinnedPost.id)}
-  >
-    {/* Show "My DayOnes" for the pinned post */}
-    <Text style={styles.postUser}>My DayOnes</Text>
+            <TouchableOpacity
+              key={pinnedPost.id}
+              style={styles.postContainer}
+              onPress={() => navigation.navigate('PostDetailPage', { postId: pinnedPost.id })}
+              onLongPress={() => confirmDelete(pinnedPost.id)}
+            >
+              <Text style={styles.postUser}>My DayOnes</Text>
+              {pinnedPost.image_url ? (
+                <Image source={{ uri: pinnedPost.image_url }} style={styles.postImage} />
+              ) : (
+                <View style={styles.inviteOnlyBox}>
+                  <Text style={styles.inviteOnlyText}>Invite Only</Text>
+                </View>
+              )}
+              <View style={styles.interactionContainer}>
+                <Text style={styles.interactionText}>❤️ {pinnedPost.reactionCount || 0}</Text>
+                <Text style={styles.interactionText}>💬 {pinnedPost.commentsCount || 0}</Text>
+              </View>
+              <Text style={styles.postDate}>{new Date(pinnedPost.created_at).toLocaleString()}</Text>
+            </TouchableOpacity>
+          )}
 
-    {pinnedPost.image_url ? (
-      <Image source={{ uri: pinnedPost.image_url }} style={styles.postImage} />
-    ) : (
-      <View style={styles.inviteOnlyBox}>
-        <Text style={styles.inviteOnlyText}>Invite Only</Text>
-      </View>
-    )}
-
-    <View style={styles.interactionContainer}>
-      <Text style={styles.interactionText}>❤️ {pinnedPost.reactionCount || 0}</Text>
-      <Text style={styles.interactionText}>💬 {pinnedPost.commentsCount || 0}</Text>
-    </View>
-    <Text style={styles.postDate}>{new Date(pinnedPost.created_at).toLocaleString()}</Text>
-  </TouchableOpacity>
-)}
-
-          {/* Render all other posts */}
           {posts.map((post, index) => renderPostItem(post, index))}
         </ScrollView>
         {loading && <Text style={styles.loadingText}>Loading more posts...</Text>}
 
-        {/* Modal for "Message All Fans" */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -293,17 +318,15 @@ const ArtistPostsPage = () => {
                 onChangeText={setPostText}
                 multiline
               />
-
               {selectedImage && (
                 <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
               )}
-
               <View style={styles.iconRow}>
                 <TouchableOpacity onPress={uploadFile}>
                   <Icon name="image" size={24} color="blue" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={takePicture}>
-                <Icon name="camera" size={24} color="blue" />
+                  <Icon name="camera" size={24} color="blue" />
                 </TouchableOpacity>
               </View>
 
@@ -321,7 +344,6 @@ const ArtistPostsPage = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0c002b' },
   container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
