@@ -4,9 +4,9 @@ import { useSelector } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { BASEURL } from '../../assets/constants'; 
+import { BASEURL } from '../../assets/constants';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
-import { launchImageLibrary } from 'react-native-image-picker'; // Import image picker
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker'; // Import image picker
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -123,19 +123,41 @@ const ArtistPostsPage = () => {
     setModalVisible(false);
   };
 
-  const handleSelectImage = () => {
-    const options = {
-      mediaType: 'photo',
-      quality: 1,
-    };
+  const options = {
+    mediaType: 'photo',
+    includeBase64: false,
+  };
 
+  const takePicture = () => {
+    launchCamera(options, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorCode) {
+        console.log('ImagePicker Error: ', response.errorMessage);
+      } else {
+        let { uri } = response.assets[0];
+        if (!uri.startsWith('file://')) {
+          uri = `file://${uri}`; // Add file:// prefix if missing
+        }
+        console.log('Captured image URI:', uri); // Log the URI to confirm
+        setSelectedImage(uri);
+      }
+    });
+  };
+
+
+  const uploadFile = () => {
     launchImageLibrary(options, (response) => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorCode) {
         console.log('ImagePicker Error: ', response.errorMessage);
       } else {
-        const { uri } = response.assets[0];
+        let { uri } = response.assets[0];
+        if (!uri.startsWith('file://')) {
+          uri = `file://${uri}`; // Add file:// prefix if missing
+        }
+        console.log('Selected image URI:', uri); // Log the URI to confirm
         setSelectedImage(uri);
       }
     });
@@ -277,13 +299,12 @@ const ArtistPostsPage = () => {
               )}
 
               <View style={styles.iconRow}>
-                <TouchableOpacity onPress={handleSelectImage}>
+                <TouchableOpacity onPress={uploadFile}>
                   <Icon name="image" size={24} color="blue" />
                 </TouchableOpacity>
-                <Icon name="gif" size={24} color="blue" />
-                <Icon name="smile-o" size={24} color="blue" />
+                <TouchableOpacity onPress={takePicture}>
                 <Icon name="camera" size={24} color="blue" />
-                <Icon name="map-marker" size={24} color="blue" />
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity style={styles.postButton} onPress={handleSendPost}>
