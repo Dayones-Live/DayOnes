@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, SafeAreaView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { useSelector } from 'react-redux';
-import { useRoute, useFocusEffect } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import useSendMessage from '../assets/hooks/useSendMessage';
 import { getMessages } from '../assets/services/apiService';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import socket from '../assets/services/socket';
+import { uploadImageToBucket } from '../utils';
 
 const formatTime = (date) => {
   const options = { hour: 'numeric', minute: 'numeric' };
@@ -26,6 +28,7 @@ const formatDateLabel = (date) => {
 const ConversationThread = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null); // State to hold selected image URI
   const route = useRoute();
   const { conversationId } = route.params;
   const accessToken = useSelector((state) => state.accessToken);
@@ -54,39 +57,85 @@ const ConversationThread = () => {
 
   // Fetch messages on component mount and set up polling
   useEffect(() => {
-    fetchMessages(); // Fetch on component mount
-    const interval = setInterval(fetchMessages, 5000); // Poll every 5 seconds
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000);
 
-    return () => clearInterval(interval); // Clean up interval on unmount
+    return () => clearInterval(interval);
   }, [accessToken, conversationId]);
+
+  // Function to handle image upload
+  const handleImageUpload = async (imageUri) => {
+    try {
+      // Assuming `uploadImageToBucket` is a function that uploads the image and returns the URL
+      const s3Url = await uploadImageToBucket(imageUri, 'message-images', accessToken);
+      return s3Url; // Return the S3 URL to be used in handleSendMessage
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      Alert.alert('Error', 'Image upload failed. Please try again.');
+      return null;
+    }
+  };
+
+  // Function to handle selecting an image from the gallery
+  const handleSelectImage = () => {
+    launchImageLibrary({ mediaType: 'photo', includeBase64: false }, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorMessage) {
+        console.error('ImagePicker Error:', response.errorMessage);
+      } else if (response.assets && response.assets.length > 0) {
+        const selectedImageUri = response.assets[0].uri;
+        setSelectedImage(selectedImageUri);
+      }
+    });
+  };
+
+  // Function to handle taking a picture with the camera
+  const handleTakePicture = () => {
+    launchCamera({ mediaType: 'photo', includeBase64: false }, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorMessage) {
+        console.error('ImagePicker Error:', response.errorMessage);
+      } else if (response.assets && response.assets.length > 0) {
+        const capturedImageUri = response.assets[0].uri;
+        setSelectedImage(capturedImageUri);
+      }
+    });
+  };
 
   // Handle sending a new message
   const handleSendMessage = async () => {
-    if (newMessage.trim() === '') return;
+    if (newMessage.trim() === '' && !selectedImage) return;
 
     try {
-      await sendMessage(conversationId, newMessage);
+      let imageUrl = null;
 
-      const messagePayload = {
-        conversationId,
-        message: newMessage,
-        senderId: loggedInUserId,
-      };
+      // If there’s an image selected, upload it to the server
+      if (selectedImage) {
+        imageUrl = await handleImageUpload(selectedImage);
+        if (!imageUrl) return; // Exit if image upload fails
+      }
 
-      console.log('Sending message:', messagePayload);
+      // Send the message to the server
+      await sendMessage(conversationId, newMessage, imageUrl);
 
+      // Update the local message state with the new message
       setMessages((prevMessages) => [
         ...prevMessages,
         {
           id: Date.now().toString(),
           message: newMessage,
+          imageUrl, // Include the image URL
           sender_id: loggedInUserId,
           created_at: new Date().toISOString(),
           messageSender: { email: loggedInUserEmail },
         },
       ]);
 
+      // Clear the input and selected image
       setNewMessage('');
+      setSelectedImage(null);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -95,11 +144,14 @@ const ConversationThread = () => {
   const renderMessage = ({ item }) => {
     const senderEmail = item.messageSender?.email || null;
     const isSender = senderEmail === loggedInUserEmail;
-    const timestamp = formatDateLabel(item.created_at); // Custom timestamp formatting
+    const timestamp = formatDateLabel(item.created_at);
 
     return (
       <View style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}>
         <View style={[styles.messageBubble, isSender ? styles.senderBubble : styles.receiverBubble]}>
+          {item.imageUrl && (
+            <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
+          )}
           <Text style={styles.messageText}>{item.message}</Text>
           <Text style={styles.messageTimestamp}>{timestamp}</Text>
         </View>
@@ -118,6 +170,13 @@ const ConversationThread = () => {
       />
 
       <View style={styles.inputContainer}>
+        <TouchableOpacity onPress={handleSelectImage}>
+          <Text style={styles.addImageButton}>🖼️</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleTakePicture}>
+          <Text style={styles.addImageButton}>📷</Text>
+        </TouchableOpacity>
+
         <TextInput
           value={newMessage}
           onChangeText={setNewMessage}
@@ -137,11 +196,6 @@ const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: '#0c002b',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#0c002b',
-    padding: 10,
   },
   messageList: {
     flex: 1,
@@ -174,12 +228,18 @@ const styles = StyleSheet.create({
   messageText: {
     color: '#fff',
     fontSize: 16,
-    marginBottom: 5, // Add some space between the text and the timestamp
+    marginBottom: 5,
   },
   messageTimestamp: {
     color: '#aaa',
     fontSize: 12,
     textAlign: 'right',
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 5,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -207,7 +267,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
   },
+  addImageButton: {
+    fontSize: 24,
+    marginHorizontal: 5,
+  },
 });
-
 
 export default ConversationThread;
