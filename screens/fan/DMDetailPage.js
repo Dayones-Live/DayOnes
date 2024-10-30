@@ -10,13 +10,14 @@ const DMDetailPage = ({ route }) => {
   const [post, setPost] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [liked, setLiked] = useState(false);
-  const [inputHeight, setInputHeight] = useState(40); // Track the height of the input
+  const [likedComments, setLikedComments] = useState([]); // Track liked artist and fan comments separately
+  const [inputHeight, setInputHeight] = useState(40);
   const accessToken = useSelector((state) => state.accessToken);
   const userEmail = useSelector((state) => state.userProfile.data.email);
 
   useEffect(() => {
     const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setInputHeight(40); // Reset the height when the keyboard hides
+      setInputHeight(40);
     });
 
     return () => {
@@ -24,35 +25,42 @@ const DMDetailPage = ({ route }) => {
     };
   }, []);
 
-  const fetchPostDetails = async (preserveLike = false) => {
+  const fetchPostDetails = async () => {
     try {
       const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      const { post, artistComments, comments, reactions } = response.data.data;
+
+      const postData = response.data?.data?.post || {};
+      const reactions = response.data?.data?.reactions || [];
+      const artistComments = response.data?.data?.artistComments || [];
+      const comments = response.data?.data?.comments || [];
+
+      // Set post reactions
       const isPostLiked = reactions.some(reaction => reaction.user.email === userEmail);
       setLiked(isPostLiked);
 
-      const combinedComments = [
-        ...artistComments.map((comment) => ({ ...comment, role: 'ARTIST' })),
-        ...comments.map((comment) => ({ ...comment, role: 'FAN' }))
-      ].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      // Identify liked artist comments based on commentReactionCount
+      const likedArtistComments = artistComments
+        .filter((comment) => comment.commentReactionCount > 0)
+        .map((comment) => comment.id);
 
-      const updatedPost = { ...post, combinedComments };
-      if (preserveLike) {
-        updatedPost.liked = liked;
-      }
-      setPost(updatedPost);
+      // Identify liked fan comments based on commentReactionCount
+      const likedFanComments = comments
+        .filter((comment) => comment.commentReactionCount > 0)
+        .map((comment) => comment.id);
 
+      setLikedComments([...likedArtistComments, ...likedFanComments]); // Combine both artist and fan liked comments
+      setPost({ ...postData, artistComments, comments });
     } catch (error) {
-      console.error('Error fetching post details:', error);
-      Alert.alert('Error', 'Failed to load post details.');
+      console.error('Error fetching post details:', error.response || error.message);
+      Alert.alert('Error', 'Could not load post details.');
     }
   };
 
   useEffect(() => {
     fetchPostDetails();
-  }, []);
+  }, [postId]);
 
   const toggleLike = async () => {
     try {
@@ -88,7 +96,7 @@ const DMDetailPage = ({ route }) => {
 
       if (response.status === 200 || response.status === 201) {
         setCommentText('');
-        fetchPostDetails(true);
+        fetchPostDetails();
       } else {
         Alert.alert("Error", "Unexpected response from the server.");
       }
@@ -98,8 +106,36 @@ const DMDetailPage = ({ route }) => {
     }
   };
 
-  const isCommentLikedByArtist = (comment) => {
-    return comment.commentReactionCount > 0 && comment.user.email === userEmail;
+  const likeComment = async (commentId) => {
+    try {
+      await axios.post(
+        `${BASEURL}/api/v1/comment/like/${commentId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to like the comment.');
+    }
+  };
+
+  const dislikeComment = async (commentId) => {
+    try {
+      await axios.post(
+        `${BASEURL}/api/v1/comment/dislike/${commentId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      setLikedComments((prevLikedComments) =>
+        prevLikedComments.filter((id) => id !== commentId)
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to dislike the comment.');
+    }
   };
 
   if (!post) {
@@ -131,23 +167,35 @@ const DMDetailPage = ({ route }) => {
         </View>
 
         <View style={styles.commentsContainer}>
-          {post.combinedComments?.map((comment, index) => (
+          {post.artistComments?.map((comment, index) => (
             <View
               key={index}
-              style={
-                comment.role === 'ARTIST'
-                  ? styles.artistCommentContainer
-                  : styles.fanCommentContainer
-              }
+              style={styles.artistCommentContainer}
             >
               <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
               <View>
                 <Text style={styles.commentAuthor}>{comment.user.full_name}</Text>
                 <Text style={styles.commentText}>{comment.message}</Text>
               </View>
-              {isCommentLikedByArtist(comment) && (
-                <Icon name="heart" size={20} color="#FF0000" style={styles.likeIcon} />
-              )}
+              <TouchableOpacity onPress={() => likedComments.includes(comment.id) ? dislikeComment(comment.id) : likeComment(comment.id)}>
+                <Icon name="heart" size={20} color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'} />
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          {post.comments?.map((comment, index) => (
+            <View
+              key={index}
+              style={styles.fanCommentContainer}
+            >
+              <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
+              <View>
+                <Text style={styles.commentAuthor}>{comment.user.full_name}</Text>
+                <Text style={styles.commentText}>{comment.message}</Text>
+              </View>
+              <TouchableOpacity onPress={() => likedComments.includes(comment.id) ? dislikeComment(comment.id) : likeComment(comment.id)}>
+                <Icon name="heart" size={20} color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'} />
+              </TouchableOpacity>
             </View>
           ))}
         </View>
@@ -159,15 +207,15 @@ const DMDetailPage = ({ route }) => {
         style={styles.commentInputContainer}
       >
         <TextInput
-          style={[styles.commentInput, { height: inputHeight }]}  // Dynamically controlled height
+          style={[styles.commentInput, { height: inputHeight }]}
           placeholder="Write a comment..."
           placeholderTextColor="#aaa"
           value={commentText}
           onChangeText={setCommentText}
-          multiline={false}  // Single line input
+          multiline={false}
           numberOfLines={1}
-          onFocus={() => setInputHeight(40)}  // Reset height on focus
-          onBlur={() => setInputHeight(40)}  // Reset height on blur
+          onFocus={() => setInputHeight(40)}
+          onBlur={() => setInputHeight(40)}
         />
         <TouchableOpacity
           style={[styles.sendButton, { backgroundColor: commentText.trim() ? '#FF0080' : '#555' }]}
@@ -195,7 +243,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignSelf: 'flex-start',
     alignItems: 'center',
-    backgroundColor: '#FF0080',
+    backgroundColor: '#000',
     padding: 10,
     borderRadius: 8,
     marginVertical: 5,
