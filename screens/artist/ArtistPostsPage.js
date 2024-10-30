@@ -7,6 +7,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { BASEURL } from '../../assets/constants';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { uploadImageToBucket } from '../../utils';
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -129,14 +130,37 @@ const ArtistPostsPage = () => {
     });
   };
 
+  const handleImageUpload = async (imageUri) => {
+    try {
+      const s3Url = await uploadImageToBucket(imageUri, 'profile-pictures', accessToken);
+      setSelectedImage(s3Url);
+      return s3Url; // Return the S3 URL to be used in handleSendPost
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      Alert.alert('Error', 'Image upload failed. Please try again.');
+      return null; // Return null if the upload fails
+    }
+  };
+
   const handleSendPost = async () => {
     if (!postText.trim()) {
       Alert.alert('Error', 'Post content cannot be empty.');
       return;
     }
 
+    let s3Url = selectedImage;
+
+    // Check if selectedImage is a local URI (i.e., not yet uploaded to S3)
+    if (selectedImage && !selectedImage.startsWith('https://')) {
+      s3Url = await handleImageUpload(selectedImage); // Upload to S3 and get the URL
+      if (!s3Url) {
+        Alert.alert('Error', 'Image upload failed. Please try again.');
+        return;
+      }
+    }
+
     try {
-      const postData = { message: postText, type: 'GENERIC', imageUrl: selectedImage };
+      const postData = { message: postText, type: 'GENERIC', imageUrl: s3Url };
       const response = await axios.post(`${BASEURL}/api/v1/post/generic`, postData, {
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       });
@@ -153,6 +177,7 @@ const ArtistPostsPage = () => {
       Alert.alert('Error', `Failed to send post: ${error.response?.data?.message || 'An error occurred'}`);
     }
   };
+
 
   const renderPostItem = (post, index) => {
     const postDate = new Date(post.created_at).toLocaleString();
