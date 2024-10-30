@@ -65,20 +65,45 @@ const DMDetailPage = ({ route }) => {
   const toggleLike = async () => {
     try {
       if (!liked) {
-        await axios.post(`${BASEURL}/api/v1/post/${postId}/likes`, {}, {
+        const response = await axios.post(`${BASEURL}/api/v1/post/${postId}/likes`, {}, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
-        setLiked(true);
+        if (response.status === 200 || response.status === 201) {
+          setLiked(true);
+        } else {
+          console.error("Unexpected response status:", response.status);
+          Alert.alert("Error", "Failed to like the post due to an unexpected response.");
+        }
       } else {
-        await axios.delete(`${BASEURL}/api/v1/post/${postId}/likes`, {
+        const response = await axios.delete(`${BASEURL}/api/v1/post/${postId}/likes`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
-        setLiked(false);
+        if (response.status === 200 || response.status === 204) {
+          setLiked(false);
+        } else {
+          console.error("Unexpected response status:", response.status);
+          Alert.alert("Error", "Failed to unlike the post due to an unexpected response.");
+        }
       }
     } catch (error) {
       console.error("Error toggling like:", error);
+
+      if (error.response) {
+        if (error.response.status === 403) {
+          Alert.alert("Permission Denied", "You don't have permission to perform this action. Please check your access token or user permissions.");
+        } else if (error.response.status === 401) {
+          Alert.alert("Unauthorized", "Your session may have expired. Please log in again.");
+        } else {
+          Alert.alert("Error", `Request failed with status code ${error.response.status}`);
+        }
+      } else if (error.request) {
+        Alert.alert("Network Error", "No response from the server. Please check your connection.");
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
     }
   };
+
 
   const addComment = async () => {
     if (!commentText.trim()) {
@@ -107,19 +132,58 @@ const DMDetailPage = ({ route }) => {
   };
 
   const likeComment = async (commentId) => {
+    console.log("Function likeComment called with commentId:", commentId);
+
+    if (!commentId) {
+      console.warn("No commentId provided to likeComment function.");
+      return;
+    }
+
+    console.log("Access token being used:", accessToken);
+
     try {
-      await axios.post(
+      const response = await axios.post(
         `${BASEURL}/api/v1/comment/like/${commentId}`,
         {},
         {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-      setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
+
+      console.log("Response status:", response.status);
+      console.log("Response data:", response.data);
+
+      if (response.status === 200 || response.status === 201) {
+        setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
+        console.log(`Comment with ID ${commentId} successfully liked.`);
+      } else {
+        console.warn("Unexpected response status:", response.status);
+        Alert.alert("Error", "Unexpected response from the server.");
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to like the comment.');
+      console.error("Error occurred in likeComment:", error);
+
+      if (error.response) {
+        console.error("Error response status:", error.response.status);
+        console.error("Error response data:", error.response.data);
+
+        if (error.response.status === 403) {
+          Alert.alert("Permission Denied", "You don't have permission to like this comment.");
+        } else if (error.response.status === 401) {
+          Alert.alert("Unauthorized", "Your session may have expired. Please log in again.");
+        } else {
+          Alert.alert("Error", `Request failed with status code ${error.response.status}`);
+        }
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+        Alert.alert("Network Error", "No response from the server. Please check your connection.");
+      } else {
+        console.error("Unexpected error:", error.message);
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
     }
   };
+
 
   const dislikeComment = async (commentId) => {
     try {
@@ -193,9 +257,8 @@ const DMDetailPage = ({ route }) => {
                 <Text style={styles.commentAuthor}>{comment.user.full_name}</Text>
                 <Text style={styles.commentText}>{comment.message}</Text>
               </View>
-              <TouchableOpacity onPress={() => likedComments.includes(comment.id) ? dislikeComment(comment.id) : likeComment(comment.id)}>
-                <Icon name="heart" size={20} color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'} />
-              </TouchableOpacity>
+              {likedComments.includes(comment.id) && (<Icon name="heart" size={20} color="#FF0000" />)}
+
             </View>
           ))}
         </View>
