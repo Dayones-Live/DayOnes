@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
@@ -21,91 +21,53 @@ const ArtistPostsPage = () => {
   const isLoggedIn = useSelector(state => state.isLoggedIn);
   const navigation = useNavigation();
 
-  // Fetch posts based on the page number
-  const fetchArtistPosts = async (pageNum) => {
-    console.log(`Attempting to fetch posts for page ${pageNum}. Loading: ${loading}, Has More: ${hasMore}`);
-
-    if (loading || !hasMore) {
-      console.log("Exiting fetch because loading is in progress or hasMore is false.");
-      return;
-    }
-
+  const fetchArtistPosts = async (pageNum = 1) => {
+    if (loading || !hasMore) return;
     setLoading(true);
-    console.log("Set loading to true.");
 
     try {
-      // Construct the API URL with the page parameter
-      const apiUrl = `${BASEURL}/api/v1/post?page=${pageNum}`;
-      console.log(`API Call: GET ${apiUrl}`);
-
-      // Print headers
-      const headers = { Authorization: `Bearer ${accessToken}` };
-      console.log('Headers:', headers);
-
-      // Make the API call
-      const response = await axios.get(apiUrl, { headers });
-
-      // Log the entire response data for inspection
-      console.log(`Received response from ${apiUrl}:`, response.data);
-
-      const postsData = response.data?.data?.posts || [];
-      console.log(`Received ${postsData.length} posts from the API for page ${pageNum}.`);
-
-      // Log each post with its ID and created_at date
-      postsData.forEach((post, index) => {
-        console.log(`Post ${index + 1} from page ${pageNum}: ID=${post.id}, Created At=${post.created_at}`);
+      const apiUrl = `${BASEURL}/api/v1/post?pageNo=${pageNum}&pageSize=25`;
+      const response = await axios.get(apiUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      // Check if any post is a "Generic Post" and pin it
+      const postsData = response.data?.data?.posts || [];
       const genericPost = postsData.find(post => post.type === 'GENERIC');
       const otherPosts = postsData.filter(post => post.type !== 'GENERIC');
 
-      if (genericPost) {
-        setPinnedPost(genericPost);
-        console.log("Pinned a generic post:", genericPost);
-      }
+      if (genericPost) setPinnedPost(genericPost);
+      if (otherPosts.length < 10) setHasMore(false);
 
-      if (otherPosts.length === 0) {
-        setHasMore(false);
-        console.log("No more posts to load. Setting hasMore to false.");
-      } else {
-        setPosts(prevPosts => {
-          const newPosts = otherPosts.filter(post => !prevPosts.some(prevPost => prevPost.id === post.id));
-          const allPosts = [...prevPosts, ...newPosts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      // Sort posts by date (most recent first)
+      otherPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-          console.log(`Updated total number of posts in state: ${allPosts.length}`);
-          return allPosts;
-        });
-      }
+      setPosts(prevPosts => {
+        const newPosts = otherPosts.filter(post => !prevPosts.some(prevPost => prevPost.id === post.id));
+        return pageNum === 1 ? newPosts : [...prevPosts, ...newPosts];
+      });
+
+      setPage(pageNum + 1);
     } catch (error) {
-      console.error('Error fetching posts:', error);
       Alert.alert('Error', 'An error occurred while fetching posts.');
     } finally {
       setLoading(false);
-      console.log("Set loading to false after fetching posts.");
     }
   };
 
 
-
   const handleDelete = async (postId) => {
     try {
-      console.log(`Attempting to delete post with ID: ${postId}`);
       const response = await axios.delete(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      console.log('Delete response:', response);
-
-      if (response.status === 200 || response.status === 204 || response.status === 201) {
+      if (response.status === 201 || response.status === 204) {
         Alert.alert('Success', 'The post has been deleted.');
         setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
-        console.log(`Deleted post with ID: ${postId}.`);
       } else {
         Alert.alert('Error', `Failed to delete post. Status code: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error deleting post:', error.response ? error.response.data : error.message);
       Alert.alert('Error', `An error occurred: ${error.response?.data?.message || error.message}`);
     }
   };
@@ -126,7 +88,6 @@ const ArtistPostsPage = () => {
       setPosts([]);
       setPage(1);
       setHasMore(true);
-      console.log("Reset state as user is not logged in.");
     } else {
       fetchArtistPosts(1);
     }
@@ -141,54 +102,29 @@ const ArtistPostsPage = () => {
   const handleLoadMore = ({ nativeEvent }) => {
     const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
     if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 20 && !loading && hasMore) {
-      setPage(prevPage => prevPage + 1);
-      console.log(`Incrementing page to ${page + 1} in handleLoadMore`);
+      fetchArtistPosts(page);
     }
   };
 
-  const handleOpenModal = () => {
-    setModalVisible(true);
-  };
+  const handleOpenModal = () => setModalVisible(true);
+  const handleCloseModal = () => setModalVisible(false);
 
-  const handleCloseModal = () => {
-    setModalVisible(false);
-  };
-
-  const options = {
-    mediaType: 'photo',
-    includeBase64: false,
-  };
+  const options = { mediaType: 'photo', includeBase64: false };
 
   const takePicture = () => {
     launchCamera(options, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else {
-        let { uri } = response.assets[0];
-        if (!uri.startsWith('file://')) {
-          uri = `file://${uri}`;
-        }
-        console.log('Captured image URI:', uri);
-        setSelectedImage(uri);
+      if (!response.didCancel && !response.errorCode) {
+        const { uri } = response.assets[0];
+        setSelectedImage(uri.startsWith('file://') ? uri : `file://${uri}`);
       }
     });
   };
 
   const uploadFile = () => {
     launchImageLibrary(options, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else {
-        let { uri } = response.assets[0];
-        if (!uri.startsWith('file://')) {
-          uri = `file://${uri}`;
-        }
-        console.log('Selected image URI:', uri);
-        setSelectedImage(uri);
+      if (!response.didCancel && !response.errorCode) {
+        const { uri } = response.assets[0];
+        setSelectedImage(uri.startsWith('file://') ? uri : `file://${uri}`);
       }
     });
   };
@@ -200,20 +136,9 @@ const ArtistPostsPage = () => {
     }
 
     try {
-      const postData = {
-        message: postText,
-        type: 'GENERIC',
-      };
-
-      if (selectedImage) {
-        postData.imageUrl = selectedImage;
-      }
-
+      const postData = { message: postText, type: 'GENERIC', imageUrl: selectedImage };
       const response = await axios.post(`${BASEURL}/api/v1/post/generic`, postData, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       });
 
       if (response.status === 200 || response.status === 201) {
@@ -221,12 +146,10 @@ const ArtistPostsPage = () => {
         setPostText('');
         setSelectedImage(null);
         setModalVisible(false);
-        console.log("Posted a new message successfully.");
       } else {
         Alert.alert('Error', 'Failed to send the message. Please try again.');
       }
     } catch (error) {
-      console.error('Error sending post:', error.response?.data || error.message);
       Alert.alert('Error', `Failed to send post: ${error.response?.data?.message || 'An error occurred'}`);
     }
   };
@@ -242,7 +165,6 @@ const ArtistPostsPage = () => {
         onLongPress={() => confirmDelete(post.id)}
       >
         <Text style={styles.postUser}>{post.locale || 'Unknown Location'}</Text>
-
         {post.image_url ? (
           <Image source={{ uri: post.image_url }} style={styles.postImage} />
         ) : (
@@ -250,7 +172,6 @@ const ArtistPostsPage = () => {
             <Text style={styles.inviteOnlyText}>Invite Only</Text>
           </View>
         )}
-
         <View style={styles.interactionContainer}>
           <Text style={styles.interactionText}>❤️ {post.reactionCount || 0}</Text>
           <Text style={styles.interactionText}>💬 {post.commentsCount || 0}</Text>

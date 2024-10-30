@@ -7,7 +7,8 @@ import {
   ScrollView,
   Alert,
   Image,
-  SafeAreaView, // Added SafeAreaView
+  SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,35 +18,46 @@ import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 
 const DayOnesScreen = ({ navigation }) => {
   const [posts, setPosts] = useState([]);
+  const [pageNo, setPageNo] = useState(1); // Track the current page
+  const [loading, setLoading] = useState(false); // Loading state for new pages
+  const [hasMore, setHasMore] = useState(true); // Track if there are more posts to load
   const accessToken = useSelector((state) => state.accessToken);
 
-  const fetchArtistPosts = async () => {
+  const fetchArtistPosts = async (page = 1, pageSize = 10) => {
     try {
-      const response = await axios.get(`${BASEURL}/api/v1/post/`, {
+      setLoading(true);
+      const response = await axios.get(`${BASEURL}/api/v1/post/?pageNo=${page}&pageSize=${pageSize}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       const postsData = response.data?.data?.posts || [];
-
-      // Sort posts by 'created_at' field, with newest posts appearing first
       const sortedPosts = postsData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-      console.log('Posts data sorted:', sortedPosts); // Log sorted posts data for verification
-      setPosts(sortedPosts);
+      // Append new posts if not the first page, otherwise replace
+      setPosts(prevPosts => (page === 1 ? sortedPosts : [...prevPosts, ...sortedPosts]));
+      setHasMore(postsData.length === pageSize); // If fewer items were returned, we've reached the end
     } catch (error) {
       console.error('Error fetching posts:', error);
       Alert.alert('Error', 'An error occurred while fetching posts.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Refetch collection whenever the page is focused
+  // Load more posts when scrolling to the end
+  const loadMorePosts = () => {
+    if (!loading && hasMore) {
+      setPageNo(prevPage => prevPage + 1);
+    }
+  };
+
+  // Fetch posts whenever pageNo changes
   useFocusEffect(
     useCallback(() => {
-      fetchArtistPosts();
-    }, [])
+      fetchArtistPosts(pageNo);
+    }, [pageNo])
   );
 
-  // Helper function to format the date to a readable "X time ago" format
   const formatTimeAgo = (date) => {
     const now = new Date();
     const postDate = new Date(date);
@@ -66,11 +78,8 @@ const DayOnesScreen = ({ navigation }) => {
   };
 
   const renderPostItem = (post, index) => {
-    // Extract user's full name and avatar URL from the post
     const artistName = post.user?.full_name || 'Unknown Artist';
-    const avatarUrl = post.user?.avatar_url || 'https://example.com/default-avatar.png'; // Replace with a default avatar image if none exists
-
-    // Format the 'created_at' timestamp using the helper function
+    const avatarUrl = post.user?.avatar_url || 'https://example.com/default-avatar.png';
     const formattedTime = formatTimeAgo(post.created_at);
 
     return (
@@ -80,17 +89,10 @@ const DayOnesScreen = ({ navigation }) => {
         onPress={() => navigation.navigate('DMDetailPage', { postId: post.id })}
       >
         <View style={styles.userInfo}>
-          <Image
-            source={{ uri: avatarUrl }}
-            style={styles.avatar}
-          />
+          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           <View>
-            <Text style={styles.dmText}>
-              {artistName} sent you a message
-            </Text>
-            <Text style={styles.messagePreview}>
-              Tap to view message - {formattedTime}
-            </Text>
+            <Text style={styles.dmText}>{artistName} sent you a message</Text>
+            <Text style={styles.messagePreview}>Tap to view message - {formattedTime}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -101,12 +103,22 @@ const DayOnesScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ProfilePictureButton navigation={navigation} />
       <Text style={styles.pageTitle}>DayOnes Message</Text>
-      <ScrollView style={styles.scrollView}>
-        {posts.length === 0 ? (
+      <ScrollView
+        style={styles.scrollView}
+        onScroll={({ nativeEvent }) => {
+          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+          if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 20) {
+            loadMorePosts();
+          }
+        }}
+        scrollEventThrottle={400}
+      >
+        {posts.length === 0 && !loading ? (
           <Text style={styles.noPostsText}>No messages yet</Text>
         ) : (
           posts.map((post, index) => renderPostItem(post, index))
         )}
+        {loading && <ActivityIndicator size="large" color="#FF0080" style={styles.loadingIndicator} />}
       </ScrollView>
     </SafeAreaView>
   );
@@ -136,6 +148,7 @@ const styles = StyleSheet.create({
   },
   dmText: { fontSize: 15, color: '#ffffff', fontWeight: 'bold' },
   messagePreview: { fontSize: 12, color: '#888', marginTop: 5 },
+  loadingIndicator: { marginVertical: 20 },
 });
 
 export default DayOnesScreen;
