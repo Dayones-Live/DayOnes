@@ -52,11 +52,15 @@ const DMDetailPage = ({ route }) => {
 
       setLikedComments([...likedArtistComments, ...likedFanComments]); // Combine both artist and fan liked comments
       setPost({ ...postData, artistComments, comments });
+
+      // Log the post details
+      console.log("Post details:", { ...postData, artistComments, comments });
     } catch (error) {
       console.error('Error fetching post details:', error.response || error.message);
       Alert.alert('Error', 'Could not load post details.');
     }
   };
+
 
   useEffect(() => {
     fetchPostDetails();
