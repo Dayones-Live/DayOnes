@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import axios from 'axios';
 import { BASEURL } from '../assets/constants';
-import LogoText from '../assets/components/LogoText';
+import LinearGradient from 'react-native-linear-gradient';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../utils';
 import { setUserProfile } from '../assets/redux/actions';
@@ -104,7 +104,7 @@ const ProfileScreen = () => {
       const response = await axios.post(url, payload, { headers });
       if (response.status === 201) {
         Alert.alert('Profile Updated', 'Your profile picture has been updated.');
-        dispatch(setUserProfile(response.data.data)); // Update Redux profile data
+        dispatch(setUserProfile(response.data.data));
       } else {
         Alert.alert('Error', 'Failed to update profile. Please try again.');
       }
@@ -116,9 +116,9 @@ const ProfileScreen = () => {
 
   const handleNavigateHome = () => {
     if (profile.data?.role === 'ARTIST') {
-      navigation.navigate('HHomePage'); // Navigate to artist's home page
+      navigation.navigate('HHomePage');
     } else if (profile.data?.role === 'USER') {
-      navigation.navigate('FanStack'); // Navigate to user's home page
+      navigation.navigate('FanStack');
     } else {
       Alert.alert('Error', 'Unknown role. Cannot navigate to the home page.');
     }
@@ -133,7 +133,7 @@ const ProfileScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.logoContainer}>
-          <LogoText />
+          <Image source={require('../assets/images/1024.png')} style={styles.logo} />
         </View>
 
         <View style={styles.profileSection}>
@@ -145,7 +145,6 @@ const ProfileScreen = () => {
           />
 
           <TouchableOpacity
-            style={styles.button}
             onPress={() =>
               Alert.alert('Change Profile Picture', 'Select an option', [
                 { text: 'Take Picture', onPress: handleTakePicture },
@@ -154,7 +153,9 @@ const ProfileScreen = () => {
               ])
             }
           >
-            <Text style={styles.buttonText}>Change Picture</Text>
+            <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.gradientButtonFullWidth}>
+              <Text style={styles.buttonText}>Change Picture</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           <TextInput
@@ -176,12 +177,14 @@ const ProfileScreen = () => {
           <View style={[styles.line, { marginBottom: 15 }]} />
 
           {profile.data?.role === 'ARTIST' && (
-            <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('SignaturePage')}>
-              <Text style={styles.buttonText}>Manage Signatures/Texts</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('SignaturePage')}>
+              <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.gradientButtonFullWidth}>
+                <Text style={styles.buttonText}>Manage Signatures/Texts</Text>
+              </LinearGradient>
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutButtonText}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -193,7 +196,7 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c002b',
+    backgroundColor: '#000',
     justifyContent: 'center',
     padding: 20,
     height: height,
@@ -206,14 +209,24 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 10,
     marginBottom: 20,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
+    marginBottom: 40,
+    marginTop: -40,
   },
   profileSection: {
     backgroundColor: '#111',
     borderRadius: 10,
-    padding: 20,
+    paddingVertical: 30,
+    paddingHorizontal: 25,
     alignItems: 'center',
+    width: '95%', // Adjusted to take up more width of the screen
+    alignSelf: 'center',
   },
   sectionTitle: {
     color: '#FFFFFF',
@@ -244,21 +257,28 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     marginBottom: 15,
   },
-  button: {
-    backgroundColor: '#FFD700',
+  gradientButtonFullWidth: {
     paddingVertical: 10,
     borderRadius: 5,
     alignItems: 'center',
     marginVertical: 5,
+    paddingHorizontal: 25,
     width: '100%',
+    marginBottom: 15,
   },
   buttonText: {
-    color: '#000',
+    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   logoutButton: {
     backgroundColor: '#FF0000',
     paddingVertical: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginVertical: 30,
+    marginBottom: -15,
+    paddingHorizontal: 30,
+
   },
   logoutButtonText: {
     color: '#FFF',
