@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
@@ -7,6 +7,7 @@ import AntDesign from 'react-native-vector-icons/AntDesign'; // Import AntDesign
 import { BASEURL } from '../../assets/constants';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { uploadImageToBucket } from '../../utils';
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -21,47 +22,39 @@ const ArtistPostsPage = () => {
   const isLoggedIn = useSelector(state => state.isLoggedIn);
   const navigation = useNavigation();
 
-  // Fetch posts based on the page number
-  const fetchArtistPosts = async (pageNum) => {
-    console.log(`Attempting to fetch posts for page ${pageNum}. Loading: ${loading}, Has More: ${hasMore}`);
-
-    if (loading || !hasMore) {
-      console.log("Exiting fetch because loading is in progress or hasMore is false.");
-      return;
-    }
-
+  const fetchArtistPosts = async (pageNum = 1) => {
+    if (loading || !hasMore) return;
     setLoading(true);
-    console.log("Set loading to true.");
 
     try {
-      const apiUrl = `${BASEURL}/api/v1/post?page=${pageNum}`;
-      const headers = { Authorization: `Bearer ${accessToken}` };
-
-      const response = await axios.get(apiUrl, { headers });
+      const apiUrl = `${BASEURL}/api/v1/post?pageNo=${pageNum}&pageSize=25`;
+      const response = await axios.get(apiUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
       const postsData = response.data?.data?.posts || [];
       const genericPost = postsData.find(post => post.type === 'GENERIC');
       const otherPosts = postsData.filter(post => post.type !== 'GENERIC');
 
-      if (genericPost) {
-        setPinnedPost(genericPost);
-      }
+      if (genericPost) setPinnedPost(genericPost);
+      if (otherPosts.length < 10) setHasMore(false);
 
-      if (otherPosts.length === 0) {
-        setHasMore(false);
-      } else {
-        setPosts(prevPosts => {
-          const newPosts = otherPosts.filter(post => !prevPosts.some(prevPost => prevPost.id === post.id));
-          return [...prevPosts, ...newPosts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        });
-      }
+      // Sort posts by date (most recent first)
+      otherPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      setPosts(prevPosts => {
+        const newPosts = otherPosts.filter(post => !prevPosts.some(prevPost => prevPost.id === post.id));
+        return pageNum === 1 ? newPosts : [...prevPosts, ...newPosts];
+      });
+
+      setPage(pageNum + 1);
     } catch (error) {
-      console.error('Error fetching posts:', error);
       Alert.alert('Error', 'An error occurred while fetching posts.');
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleDelete = async (postId) => {
     try {
@@ -69,7 +62,7 @@ const ArtistPostsPage = () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      if (response.status === 200 || response.status === 204 || response.status === 201) {
+      if (response.status === 201 || response.status === 204) {
         Alert.alert('Success', 'The post has been deleted.');
         setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
       } else {
@@ -110,31 +103,20 @@ const ArtistPostsPage = () => {
   const handleLoadMore = ({ nativeEvent }) => {
     const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
     if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 20 && !loading && hasMore) {
-      setPage(prevPage => prevPage + 1);
+      fetchArtistPosts(page);
     }
   };
 
-  const handleOpenModal = () => {
-    setModalVisible(true);
-  };
+  const handleOpenModal = () => setModalVisible(true);
+  const handleCloseModal = () => setModalVisible(false);
 
-  const handleCloseModal = () => {
-    setModalVisible(false);
-  };
-
-  const options = {
-    mediaType: 'photo',
-    includeBase64: false,
-  };
+  const options = { mediaType: 'photo', includeBase64: false };
 
   const takePicture = () => {
     launchCamera(options, (response) => {
       if (!response.didCancel && !response.errorCode) {
-        let { uri } = response.assets[0];
-        if (!uri.startsWith('file://')) {
-          uri = `file://${uri}`;
-        }
-        setSelectedImage(uri);
+        const { uri } = response.assets[0];
+        setSelectedImage(uri.startsWith('file://') ? uri : `file://${uri}`);
       }
     });
   };
@@ -142,13 +124,22 @@ const ArtistPostsPage = () => {
   const uploadFile = () => {
     launchImageLibrary(options, (response) => {
       if (!response.didCancel && !response.errorCode) {
-        let { uri } = response.assets[0];
-        if (!uri.startsWith('file://')) {
-          uri = `file://${uri}`;
-        }
-        setSelectedImage(uri);
+        const { uri } = response.assets[0];
+        setSelectedImage(uri.startsWith('file://') ? uri : `file://${uri}`);
       }
     });
+  };
+
+  const handleImageUpload = async (imageUri) => {
+    try {
+      const s3Url = await uploadImageToBucket(imageUri, 'profile-pictures', accessToken);
+      setSelectedImage(s3Url);
+      return s3Url; // Return the S3 URL to be used in handleSendPost
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      Alert.alert('Error', 'Image upload failed. Please try again.');
+      return null; // Return null if the upload fails
+    }
   };
 
   const handleSendPost = async () => {
@@ -157,10 +148,19 @@ const ArtistPostsPage = () => {
       return;
     }
 
-    try {
-      const postData = { message: postText, type: 'GENERIC' };
-      if (selectedImage) postData.imageUrl = selectedImage;
+    let s3Url = selectedImage;
 
+    // Check if selectedImage is a local URI (i.e., not yet uploaded to S3)
+    if (selectedImage && !selectedImage.startsWith('https://')) {
+      s3Url = await handleImageUpload(selectedImage); // Upload to S3 and get the URL
+      if (!s3Url) {
+        Alert.alert('Error', 'Image upload failed. Please try again.');
+        return;
+      }
+    }
+
+    try {
+      const postData = { message: postText, type: 'GENERIC', imageUrl: s3Url };
       const response = await axios.post(`${BASEURL}/api/v1/post/generic`, postData, {
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       });
@@ -178,6 +178,7 @@ const ArtistPostsPage = () => {
     }
   };
 
+
   const renderPostItem = (post, index) => {
     const postDate = new Date(post.created_at).toLocaleString();
 
@@ -189,7 +190,6 @@ const ArtistPostsPage = () => {
         onLongPress={() => confirmDelete(post.id)}
       >
         <Text style={styles.postUser}>{post.locale || 'Unknown Location'}</Text>
-
         {post.image_url ? (
           <Image source={{ uri: post.image_url }} style={styles.postImage} />
         ) : (
@@ -197,7 +197,6 @@ const ArtistPostsPage = () => {
             <Text style={styles.inviteOnlyText}>Invite Only</Text>
           </View>
         )}
-
         <View style={styles.interactionContainer}>
           <Text style={styles.interactionText}>❤️ {post.reactionCount || 0}</Text>
           <Text style={styles.interactionText}>💬 {post.commentsCount || 0}</Text>

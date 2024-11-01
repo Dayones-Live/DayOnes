@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, SafeAreaView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { useSelector } from 'react-redux';
-import { useRoute, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import useSendMessage from '../assets/hooks/useSendMessage';
 import { getMessages } from '../assets/services/apiService';
-import socket from '../assets/services/socket';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { uploadImageToBucket } from '../utils';
 
 const formatTime = (date) => {
   const options = { hour: 'numeric', minute: 'numeric' };
@@ -17,34 +19,30 @@ const formatDateLabel = (date) => {
   const isToday = messageDate.toDateString() === today.toDateString();
 
   if (isToday) {
-    return formatTime(date); // Show time only
+    return formatTime(date);
   } else {
-    return `${messageDate.getMonth() + 1}/${messageDate.getDate()}`; // Show month/day
+    return `${messageDate.getMonth() + 1}/${messageDate.getDate()}`;
   }
 };
 
 const ConversationThread = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
   const route = useRoute();
-  const { conversationId } = route.params;
+  const navigation = useNavigation();
+  const { conversationId, profilePicture, username } = route.params;
   const accessToken = useSelector((state) => state.accessToken);
-  const loggedInUser = useSelector(state => state.userProfile);
+  const loggedInUser = useSelector((state) => state.userProfile);
   const loggedInUserEmail = loggedInUser?.data.email || null;
   const loggedInUserId = loggedInUser?.id || null;
   const { sendMessage } = useSendMessage(accessToken);
 
-  // Fetch messages from the server
   const fetchMessages = async () => {
-    if (!accessToken) {
-      console.error('User is not authenticated');
-      return;
-    }
+    if (!accessToken) return;
 
     try {
       const data = await getMessages(conversationId, accessToken);
-      console.log('Fetched messages from server:', data.data.messages);
-
       const sortedMessages = data.data.messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       setMessages(sortedMessages);
     } catch (err) {
@@ -52,34 +50,58 @@ const ConversationThread = () => {
     }
   };
 
-  // Fetch messages on component mount and set up polling
   useEffect(() => {
-    fetchMessages(); // Fetch on component mount
-    const interval = setInterval(fetchMessages, 5000); // Poll every 5 seconds
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000);
 
-    return () => clearInterval(interval); // Clean up interval on unmount
+    return () => clearInterval(interval);
   }, [accessToken, conversationId]);
 
-  // Handle sending a new message
+  const handleImageUpload = async (imageUri) => {
+    try {
+      const s3Url = await uploadImageToBucket(imageUri, 'message-images', accessToken);
+      return s3Url;
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      Alert.alert('Error', 'Image upload failed. Please try again.');
+      return null;
+    }
+  };
+
+  const handleSelectImage = () => {
+    launchImageLibrary({ mediaType: 'photo' }, (response) => {
+      if (response.assets && response.assets.length > 0) {
+        setSelectedImage(response.assets[0].uri);
+      }
+    });
+  };
+
+  const handleTakePicture = () => {
+    launchCamera({ mediaType: 'photo' }, (response) => {
+      if (response.assets && response.assets.length > 0) {
+        setSelectedImage(response.assets[0].uri);
+      }
+    });
+  };
+
   const handleSendMessage = async () => {
-    if (newMessage.trim() === '') return;
+    if (newMessage.trim() === '' && !selectedImage) return;
 
     try {
-      await sendMessage(conversationId, newMessage);
+      let imageUrl = null;
+      if (selectedImage) {
+        imageUrl = await handleImageUpload(selectedImage);
+        if (!imageUrl) return;
+      }
 
-      const messagePayload = {
-        conversationId,
-        message: newMessage,
-        senderId: loggedInUserId,
-      };
-
-      console.log('Sending message:', messagePayload);
+      await sendMessage(conversationId, newMessage, imageUrl);
 
       setMessages((prevMessages) => [
         ...prevMessages,
         {
           id: Date.now().toString(),
           message: newMessage,
+          imageUrl,
           sender_id: loggedInUserId,
           created_at: new Date().toISOString(),
           messageSender: { email: loggedInUserEmail },
@@ -87,6 +109,7 @@ const ConversationThread = () => {
       ]);
 
       setNewMessage('');
+      setSelectedImage(null);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -95,11 +118,14 @@ const ConversationThread = () => {
   const renderMessage = ({ item }) => {
     const senderEmail = item.messageSender?.email || null;
     const isSender = senderEmail === loggedInUserEmail;
-    const timestamp = formatDateLabel(item.created_at); // Custom timestamp formatting
+    const timestamp = formatDateLabel(item.created_at);
 
     return (
       <View style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}>
         <View style={[styles.messageBubble, isSender ? styles.senderBubble : styles.receiverBubble]}>
+          {item.imageUrl && (
+            <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
+          )}
           <Text style={styles.messageText}>{item.message}</Text>
           <Text style={styles.messageTimestamp}>{timestamp}</Text>
         </View>
@@ -109,24 +135,42 @@ const ConversationThread = () => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      {/* Header with profile picture, name, and back button */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Icon name="arrow-left" size={24} color="#fff" style={styles.backButton} />
+        </TouchableOpacity>
+        <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
+        <Text style={styles.username}>{username}</Text>
+      </View>
+
       <FlatList
         data={[...messages].reverse()}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderMessage}
         style={styles.messageList}
-        inverted={true} // Display newest message at the bottom
+        inverted={true}
+        contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }} // Adds space between last message and bottom bar
       />
 
       <View style={styles.inputContainer}>
+        <TouchableOpacity onPress={handleTakePicture}>
+          <Icon name="camera" size={24} color="#888" style={styles.icon} />
+        </TouchableOpacity>
         <TextInput
           value={newMessage}
           onChangeText={setNewMessage}
-          placeholder="Enter here"
+          placeholder="Message..."
           style={styles.input}
           placeholderTextColor="#ccc"
+          returnKeyType="send"
+          onSubmitEditing={handleSendMessage}
         />
+        <TouchableOpacity onPress={handleSelectImage} style={styles.iconSpacing}>
+          <Icon name="image" size={24} color="#888" style={styles.icon} />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-          <Text style={styles.sendButtonText}>➤</Text>
+          <Icon name="send" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -136,12 +180,27 @@ const ConversationThread = () => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#0c002b',
+    backgroundColor: '#000',
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#0c002b',
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 10,
+    backgroundColor: '#1e1e1e',
+  },
+  backButton: {
+    marginRight: 10,
+  },
+  profilePicture: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  username: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   messageList: {
     flex: 1,
@@ -163,23 +222,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderRadius: 20,
     maxWidth: '75%',
-    position: 'relative',
   },
   senderBubble: {
     backgroundColor: '#4e9af1',
   },
   receiverBubble: {
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#333',
   },
   messageText: {
     color: '#fff',
     fontSize: 16,
-    marginBottom: 5, // Add some space between the text and the timestamp
+    marginBottom: 5,
   },
   messageTimestamp: {
     color: '#aaa',
     fontSize: 12,
     textAlign: 'right',
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 5,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -187,27 +251,30 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 15,
     backgroundColor: '#1e1e1e',
-    borderRadius: 30,
+    borderTopWidth: 1,
+    borderTopColor: '#333',
   },
   input: {
     flex: 1,
     backgroundColor: '#333',
     color: '#fff',
     padding: 10,
-    borderRadius: 30,
+    borderRadius: 20,
     fontSize: 16,
+    marginHorizontal: 10,
   },
   sendButton: {
     backgroundColor: '#4e9af1',
     padding: 10,
     borderRadius: 50,
-    marginLeft: 10,
+    marginLeft: 5,
   },
-  sendButtonText: {
-    color: '#fff',
-    fontSize: 18,
+  icon: {
+    marginHorizontal: 5,
+  },
+  iconSpacing: {
+    marginRight: 10,
   },
 });
-
 
 export default ConversationThread;

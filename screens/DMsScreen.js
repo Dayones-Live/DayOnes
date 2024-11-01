@@ -38,7 +38,6 @@ const DMsScreen = () => {
     }
   };
 
-
   const formatTimeAgo = (dateString) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -58,17 +57,21 @@ const DMsScreen = () => {
     }
   };
 
-  const handleConversationPress = (conversationId) => {
-    navigation.navigate('ConversationThread', { conversationId });
+  const handleConversationPress = (conversationId, sender) => {
+    navigation.navigate('ConversationThread', {
+      conversationId,
+      profilePicture: sender.avatar_url || 'https://example.com/default-avatar.png',
+      username: sender.full_name,
+    });
   };
 
   const renderItem = ({ item }) => {
     const lastMessageTime = formatTimeAgo(item.updated_at);
-    const avatarUrl = item.sender.avatar_url || 'https://example.com/default-avatar.png'; // Use a default avatar URL if missing
+    const avatarUrl = item.sender.avatar_url || 'https://example.com/default-avatar.png';
     const senderName = item.sender.full_name;
 
     return (
-      <TouchableOpacity onPress={() => handleConversationPress(item.id)} style={styles.conversationContainer}>
+      <TouchableOpacity onPress={() => handleConversationPress(item.id, item.sender)} style={styles.conversationContainer}>
         <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         <View style={styles.messageInfo}>
           <Text style={styles.senderName}>{senderName} sent you a message</Text>
@@ -94,7 +97,7 @@ const DMsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c002b',
+    backgroundColor: '#000',
     padding: 20,
   },
   header: {
