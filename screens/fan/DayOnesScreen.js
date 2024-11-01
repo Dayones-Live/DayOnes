@@ -125,7 +125,7 @@ const DayOnesScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
+  container: { flex: 1, backgroundColor: '#000', padding: 16 },
   pageTitle: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 50 },
   scrollView: { flex: 1, marginBottom: 20 },
   noPostsText: { fontSize: 18, color: '#ffffff', textAlign: 'center', marginVertical: 20 },

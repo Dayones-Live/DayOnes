@@ -84,7 +84,7 @@ const MyCollectionsPage = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
+  container: { flex: 1, backgroundColor: '#000', padding: 16 },
   scrollView: { flex: 1 },
   imageGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around' },
   noPostsText: { fontSize: 18, color: '#ffffff', textAlign: 'center', marginVertical: 20 },

@@ -297,7 +297,7 @@ const DMDetailPage = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
+  container: { flex: 1, backgroundColor: '#000', padding: 16 },
   scrollViewContainer: { flexGrow: 1 },
   loadingText: { fontSize: 20, color: '#ffffff' },
   userInfoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
