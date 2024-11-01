@@ -8,7 +8,7 @@ import {
   Alert,
   Image,
   SafeAreaView,
-  Switch, 
+  Switch,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -32,7 +32,7 @@ const { width } = Dimensions.get('window');
 const Tab = createBottomTabNavigator();
 
 const HHomePage = () => {
-  const [isMaxRange, setIsMaxRange] = useState(false);
+  const [isMaxRange, setIsMaxRange] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
   const [postType, setPostType] = useState('INVITE_PHOTO');
@@ -221,13 +221,15 @@ const HHomePage = () => {
               <ProfilePictureButton />
 
               <View style={styles.header}>
-                <Text style={styles.headerText}>Personal</Text>
-                <Image
-                  source={require('../../assets/images/1024.png')}
-                  style={styles.logo}
-                />
-                <Text style={styles.headerText}>Media</Text>
-              </View>
+  <Image
+    source={require('../../assets/images/1024.png')}
+    style={styles.logo}
+  />
+</View>
+
+<Text style={styles.personalMediaText}>Personal Media</Text>
+
+
 
               <View style={styles.imageContainer}>
                 {selectedImage ? (
@@ -349,7 +351,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 0,
   },
   headerText: {
     color: '#C0C0C0',
@@ -414,7 +416,7 @@ const styles = StyleSheet.create({
   },
   cameraIcon: {
     marginBottom: 7,
-    
+
   },
   uploadIcon: {
     marginBottom: 7,
@@ -438,8 +440,8 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 10,
     overflow: 'hidden',
-    marginVertical: 25,
-  },
+    marginTop: 30, // Added margin to move the button down
+},
   sendButtonGradient: {
     paddingVertical: 15,
     borderRadius: 10,
@@ -476,6 +478,15 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 16,
   },
+  personalMediaText: {
+    color: '#C0C0C0',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: -4, // Adjust this as needed for spacing
+    marginBottom: 40, // Ensure space below "Personal Media"
+  },
+
 });
 
 export default HHomePage;
