@@ -9,6 +9,7 @@ import {
   Alert,
   Platform,
   Linking,
+  Image,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -36,7 +37,6 @@ const PermissionsScreen = () => {
     checkAllPermissions();
   }, []);
 
-  // Check all necessary permissions
   const checkAllPermissions = async () => {
     try {
       const camera = await check(
@@ -64,7 +64,6 @@ const PermissionsScreen = () => {
       setNotificationsPermission(notifications === RESULTS.GRANTED);
       setLocationPermission(location === RESULTS.GRANTED);
 
-
       if (
         camera === RESULTS.GRANTED &&
         notifications === RESULTS.GRANTED &&
@@ -74,15 +73,13 @@ const PermissionsScreen = () => {
         navigateToAppropriateStack(profile.data.role);
       }
 
-      // Stop loading once permission check is done
       setLoading(false);
     } catch (error) {
       console.log('Error checking permissions:', error);
-      setLoading(false); // Stop loading even if there is an error
+      setLoading(false);
     }
   };
 
-  // Request individual permissions
   const requestPermission = async (permission, setPermissionState) => {
     try {
       const result = await request(permission);
@@ -97,7 +94,6 @@ const PermissionsScreen = () => {
     }
   };
 
-  // Open App settings if permission is blocked
   const openAppSettings = () => {
     Alert.alert(
       'Permission Required',
@@ -109,7 +105,6 @@ const PermissionsScreen = () => {
     );
   };
 
-  // Navigate to the appropriate stack based on the role
   const navigateToAppropriateStack = role => {
     if (role === 'ARTIST') {
       navigation.navigate('ArtistStack');
@@ -118,9 +113,7 @@ const PermissionsScreen = () => {
     }
   };
 
-  // Handle the "Continue" button
   const handleContinue = () => {
-    // Warn if permissions are not granted, but allow navigation to proceed
     if (!cameraPermission || !libraryPermission || !notificationsPermission || !locationPermission) {
       Alert.alert(
         'Warning',
@@ -138,12 +131,17 @@ const PermissionsScreen = () => {
   return (
     <SafeAreaView style={styles.safeAreaView}>
       <View style={styles.container}>
+        <Text style={styles.headerText}>Permissions</Text>
+        <Image
+          source={require('../assets/images/1024.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+
         {loading ? (
           <ActivityIndicator size="large" color="#ff8800" />
         ) : (
           <>
-            <Text style={styles.headerText}>Permissions</Text>
-
             <PermissionItem
               icon="camera"
               title="Camera"
@@ -200,7 +198,7 @@ const PermissionsScreen = () => {
             />
 
             <LinearGradient
-              colors={['#ffcc00', '#ff8800']}
+              colors={['#00E5FF', '#D500F9']}
               style={styles.continueButton}>
               <TouchableOpacity
                 onPress={handleContinue}
@@ -215,17 +213,17 @@ const PermissionsScreen = () => {
   );
 };
 
-// Permission item component
 const PermissionItem = ({ icon, title, enabled, onPress }) => (
   <View style={styles.permissionItem}>
     <Icon name={icon} size={24} color="#fff" />
     <Text style={styles.permissionText}>{title}</Text>
     <TouchableOpacity
+      onPress={onPress}
       style={[
         styles.permissionButton,
-        enabled ? styles.enabled : styles.disabled,
+        { backgroundColor: enabled ? '#00E5FF' : '#D500F9' },
       ]}
-      onPress={onPress}>
+    >
       <Text style={styles.permissionButtonText}>
         {enabled ? 'Enabled' : 'Allow'}
       </Text>
@@ -236,17 +234,23 @@ const PermissionItem = ({ icon, title, enabled, onPress }) => (
 const styles = StyleSheet.create({
   safeAreaView: {
     flex: 1,
-    backgroundColor: '#0c002b',
+    backgroundColor: '#000',
   },
   container: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 0,
+    paddingTop: 50, // Added extra top padding for spacing
+  },
+  logo: {
+    width: 140,
+    height: 140,
+    marginBottom: 20,
   },
   headerText: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 28,
     textAlign: 'center',
     marginBottom: 30,
     fontWeight: 'bold',
@@ -255,37 +259,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingVertical: 10,
+    width: '100%',
+    paddingVertical: 15,
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 10,
+    marginBottom: 20, // Increased bottom margin for more spacing
   },
   permissionText: {
     color: '#fff',
     fontSize: 18,
+    flex: 1,
+    marginLeft: 10,
   },
   permissionButton: {
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 8,
-  },
-  enabled: {
-    backgroundColor: '#ffcc00',
-  },
-  disabled: {
-    backgroundColor: '#00ffcc',
   },
   permissionButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   continueButton: {
     borderRadius: 10,
     paddingVertical: 15,
     width: '100%',
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 50, // Added extra top margin for spacing
   },
   fullWidth: {
     width: '100%',

@@ -109,7 +109,7 @@ const VerifyAccount = () => {
         </TouchableOpacity>
 
         <Image
-          source={require('../assets/images/DayOnesLogo.png')}
+          source={require('../assets/images/1024.png')}
           style={styles.logo}
           resizeMode="contain"
         />
