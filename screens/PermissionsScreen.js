@@ -1,64 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
   Text,
+  TouchableOpacity,
   StyleSheet,
-  Image,
   ActivityIndicator,
   Alert,
   Platform,
   Linking,
   Image,
 } from 'react-native';
-import axios from 'axios';
-import { BASEURL } from '../assets/constants';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
-import Foundation from 'react-native-vector-icons/Foundation';
+import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import AntDesign from 'react-native-vector-icons/AntDesign';
-import { launchImageLibrary } from 'react-native-image-picker';
+import {
+  check,
+  request,
+  PERMISSIONS,
+  RESULTS,
+  checkNotifications,
+  requestNotifications,
+} from 'react-native-permissions';
+import { useSelector } from 'react-redux';
 
-const PostDetailPage = () => {
-  const [post, setPost] = useState(null);
+const PermissionsScreen = () => {
   const [loading, setLoading] = useState(true);
-  const [commentText, setCommentText] = useState('');
-  const [likedComments, setLikedComments] = useState([]);
-  const [commentsToShow, setCommentsToShow] = useState(10);
-  const [isModalVisible, setModalVisible] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [showComments, setShowComments] = useState(false);
-
-  const route = useRoute();
+  const [cameraPermission, setCameraPermission] = useState(false);
+  const [libraryPermission, setLibraryPermission] = useState(false);
+  const [notificationsPermission, setNotificationsPermission] = useState(false);
+  const [locationPermission, setLocationPermission] = useState(false);
   const navigation = useNavigation();
-  const { postId } = route.params;
-  const accessToken = useSelector((state) => state.accessToken);
-
-  const fetchPostDetails = async () => {
-    try {
-      const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      const postData = response.data?.data?.post || {};
-      const reactions = response.data?.data?.reactions || [];
-      const reactionCount = reactions.length || 0;
-      const artistComments = response.data?.data?.artistComments || [];
-      const comments = response.data?.data?.comments || [];
-      const likedCommentsArray = comments
-        .filter((comment) => comment.commentReactionCount > 0)
-        .map((comment) => comment.id);
-
-      setLikedComments(likedCommentsArray);
-      setPost({ ...postData, reactionCount, artistComments, comments });
-    } catch (error) {
-      console.error('Error fetching post:', error.response || error.message);
-      Alert.alert('Error', 'Could not load post details.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const profile = useSelector(state => state.userProfile);
 
   useEffect(() => {
     checkAllPermissions();
@@ -109,29 +82,15 @@ const PostDetailPage = () => {
 
   const requestPermission = async (permission, setPermissionState) => {
     try {
-      if (likedComments.includes(commentId)) {
-        await axios.post(
-          `${BASEURL}/api/v1/comment/dislike/${commentId}`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
-        setLikedComments((prevLikedComments) =>
-          prevLikedComments.filter((id) => id !== commentId)
-        );
+      const result = await request(permission);
+      if (result === RESULTS.BLOCKED) {
+        openAppSettings();
       } else {
-        await axios.post(
-          `${BASEURL}/api/v1/comment/like/${commentId}`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
-        setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
+        setPermissionState(result === RESULTS.GRANTED);
+        checkAllPermissions();
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to like/dislike the comment.');
+      Alert.alert('Error', 'Failed to request permission');
     }
   };
 
@@ -246,19 +205,10 @@ const PostDetailPage = () => {
                 style={styles.fullWidth}>
                 <Text style={styles.buttonText}>Continue</Text>
               </TouchableOpacity>
-              <Icon name="camera" size={24} color="blue" />
-            </View>
-
-            <TouchableOpacity style={styles.postButton} onPress={handleSendComment}>
-              <Text style={styles.postButtonText}>Send</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+            </LinearGradient>
+          </>
+        )}
+      </View>
     </SafeAreaView>
   );
 };
@@ -305,10 +255,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     fontWeight: 'bold',
   },
-  plusIcon: {
-    padding: 5,
-  },
-  userInfoContainer: {
+  permissionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -337,18 +284,20 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     borderRadius: 10,
-    padding: 20,
+    paddingVertical: 15,
+    width: '100%',
     alignItems: 'center',
     marginTop: 50, // Added extra top margin for spacing
   },
   fullWidth: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 10,
   },
-  postButtonText: { color: 'white', fontWeight: 'bold' },
-  closeButton: { marginTop: 10 },
-  closeButtonText: { color: 'blue', fontWeight: 'bold' },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
 });
 
 export default PermissionsScreen;
