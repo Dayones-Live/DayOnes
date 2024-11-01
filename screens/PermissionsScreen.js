@@ -221,7 +221,7 @@ const PermissionItem = ({ icon, title, enabled, onPress }) => (
       onPress={onPress}
       style={[
         styles.permissionButton,
-        { backgroundColor: enabled ? '#00E5FF' : '#D500F9' },
+        { backgroundColor: enabled ? '#00E5FF' : 'red' },
       ]}
     >
       <Text style={styles.permissionButtonText}>
