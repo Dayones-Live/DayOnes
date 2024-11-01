@@ -7,15 +7,16 @@ import {
   Dimensions,
   Alert,
   Image,
-  SafeAreaView, // Import SafeAreaView
+  SafeAreaView,
+  Switch, 
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
 import Geocoder from 'react-native-geocoder-reborn';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
@@ -25,20 +26,16 @@ import ArtistPostsPage from './ArtistPostsPage';
 import { BASEURL } from '../../assets/constants';
 import { uploadImageToBucket } from '../../utils';
 import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotificationsAndLocation';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 
 const { width } = Dimensions.get('window');
 const Tab = createBottomTabNavigator();
 
-// Importing logos
-const cameraLogo = require('../../assets/images/CameraLogo.png');
-const uploadLogo = require('../../assets/images/UploadLogo.png');
-const dayonesLogo = require('../../assets/images/1024.png'); // DayOnes logo
-
 const HHomePage = () => {
-  const [sliderValue, setSliderValue] = useState([100]); // Initial value
+  const [isMaxRange, setIsMaxRange] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState(null); // Store S3 URL
-  const [postType, setPostType] = useState('INVITE_PHOTO'); // Track whether it's an invite + photo or invite only
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
+  const [postType, setPostType] = useState('INVITE_PHOTO');
 
   const navigation = useNavigation();
   const route = useRoute();
@@ -152,7 +149,7 @@ const HHomePage = () => {
 
           const postData = {
             imageUrl: postImageUrl,
-            range: sliderValue[0],
+            range: isMaxRange ? 1000 : 100, // Post the current toggle value
             type: postType,
             latitude: latitude.toString(),
             longitude: longitude.toString(),
@@ -186,16 +183,6 @@ const HHomePage = () => {
     );
   };
 
-  const feetToMeters = feet => Math.round(feet * 0.3048);
-  const defaultSliderValues = [10, 50, 100, 500];
-
-  const handleSliderChange = value => {
-    const closestValue = defaultSliderValues.reduce((prev, curr) =>
-      Math.abs(curr - value[0]) < Math.abs(prev - value[0]) ? curr : prev
-    );
-    setSliderValue([closestValue]);
-  };
-
   return (
     <Tab.Navigator
       initialRouteName="Main"
@@ -218,10 +205,10 @@ const HHomePage = () => {
           }
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#FF0080',
+        tabBarActiveTintColor: '#FFF',
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
-          backgroundColor: '#0c002b',
+          backgroundColor: '#000',
           borderTopWidth: 0,
         },
         headerShown: false,
@@ -229,15 +216,15 @@ const HHomePage = () => {
     >
       <Tab.Screen name="Main" options={{ tabBarLabel: 'Home' }}>
         {() => (
-          <SafeAreaView style={{ flex: 1 }}>
+          <SafeAreaView style={{ flex: 1 }} color='000'>
             <View style={styles.container}>
               <ProfilePictureButton />
 
               <View style={styles.header}>
                 <Text style={styles.headerText}>Personal</Text>
-                <Image 
-                  source={dayonesLogo}  // Added back the DayOnes logo
-                  style={styles.logo} 
+                <Image
+                  source={require('../../assets/images/1024.png')}
+                  style={styles.logo}
                 />
                 <Text style={styles.headerText}>Media</Text>
               </View>
@@ -269,9 +256,11 @@ const HHomePage = () => {
                   style={styles.pictureButton}
                   onPress={takePicture}
                 >
-                  <Image
-                    source={cameraLogo} // Using the new CameraLogo
-                    style={styles.cameraLogo} // Style for the logo
+                  <FontAwesome5
+                    name="camera"
+                    size={35}
+                    color="#C0C0C0"
+                    style={styles.cameraIcon}
                   />
                   <Text style={styles.buttonText}>Take Picture</Text>
                 </TouchableOpacity>
@@ -279,9 +268,11 @@ const HHomePage = () => {
                   style={styles.pictureButton}
                   onPress={uploadFile}
                 >
-                  <Image
-                    source={uploadLogo} // Using the new UploadLogo
-                    style={styles.uploadLogo} // Style for the logo
+                  <FontAwesome5
+                    name="file-upload"
+                    size={35}
+                    color="#C0C0C0"
+                    style={styles.uploadIcon}
                   />
                   <Text style={styles.buttonText}>Upload File</Text>
                 </TouchableOpacity>
@@ -313,30 +304,21 @@ const HHomePage = () => {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.sliderContainer}>
-                <Text style={styles.sliderLabel}>Range</Text>
-
-                <Text style={styles.sliderValue}>
-                  {sliderValue[0]} feet ({feetToMeters(sliderValue[0])} meters)
+              <View style={styles.switchContainer}>
+                <Text style={styles.sliderLabel}>
+                  {isMaxRange ? 'Max (1000ft)' : 'Min (100ft)'}
                 </Text>
-
-                <MultiSlider
-                  values={sliderValue}
-                  sliderLength={width - 80}
-                  min={Math.min(...defaultSliderValues)}
-                  max={Math.max(...defaultSliderValues)}
-                  step={1}
-                  onValuesChange={handleSliderChange}
-                  selectedStyle={styles.sliderSelectedStyle}
-                  unselectedStyle={styles.sliderUnselectedStyle}
-                  trackStyle={styles.sliderTrackStyle}
-                  markerStyle={styles.sliderMarkerStyle}
+                <Switch
+                  value={isMaxRange}
+                  onValueChange={() => setIsMaxRange(!isMaxRange)}
+                  trackColor={{ false: '#FFF', true: '#E03FD8' }}
+                  thumbColor={isMaxRange ? '#FFF' : '#FFF'}
                 />
               </View>
 
               <View style={styles.sendButtonContainer}>
                 <LinearGradient
-                  colors={['#00E5FF', '#D500F9']} // Blue to pink gradient
+                  colors={['#00E5FF', '#D500F9']}
                   style={styles.sendButtonGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -365,7 +347,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    flexDirection: 'row', // Align the text and logo in a row
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
   },
@@ -373,14 +355,14 @@ const styles = StyleSheet.create({
     color: '#C0C0C0',
     fontSize: 14,
     fontWeight: 'bold',
-    marginHorizontal: -1, // Space between text and logo
+    marginHorizontal: -1,
     Vertical: 10,
   },
   logo: {
-    width: 50, // Adjust the size of the logo as needed
+    width: 50,
     height: 50,
     resizeMode: 'contain',
-    left:-2,
+    left: -2,
   },
   imageContainer: {
     width: '100%',
@@ -430,24 +412,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cameraLogo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    marginBottom: 1,
+  cameraIcon: {
+    marginBottom: 7,
+    
   },
-  uploadLogo: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    marginBottom: 1,
+  uploadIcon: {
+    marginBottom: 7,
   },
   buttonText: {
     color: '#C0C0C0',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  sliderContainer: {
+  switchContainer: {
     width: '100%',
     alignItems: 'center',
     marginBottom: 20,
@@ -457,37 +434,11 @@ const styles = StyleSheet.create({
     color: '#C0C0C0',
     marginBottom: 10,
   },
-  sliderValue: {
-    fontSize: 18,
-    color: '#C0C0C0',
-    marginBottom: -5,
-  },
-  sliderSelectedStyle: {
-    backgroundColor: '#FF00FF',
-    borderRadius: 10,
-  },
-  sliderUnselectedStyle: {
-    backgroundColor: '#555',
-    borderRadius: 10,
-  },
-  sliderTrackStyle: {
-    height:10,
-    borderRadius: 10,
-    backgroundColor: '#444',
-  },
-  sliderMarkerStyle: {
-    height: 20,
-    width: 20,
-    borderRadius: 10,
-    backgroundColor: '#FF00FF',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
   sendButtonContainer: {
     width: '100%',
     borderRadius: 10,
-    overflow: 'hidden', // Ensures the gradient follows the button shape
-    marginVertical: 0,
+    overflow: 'hidden',
+    marginVertical: 25,
   },
   sendButtonGradient: {
     paddingVertical: 15,
@@ -519,7 +470,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
     color: '#C0C0C0',
-    
   },
   radioLabel: {
     color: '#C0C0C0',

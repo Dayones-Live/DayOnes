@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   SafeAreaView,
   View,
@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   TouchableOpacity,
-  ScrollView,
+  FlatList,
   TextInput,
   Modal,
 } from 'react-native';
@@ -16,22 +16,25 @@ import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
+import Foundation from 'react-native-vector-icons/Foundation';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import AntDesign from 'react-native-vector-icons/AntDesign';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 const PostDetailPage = () => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [likedComments, setLikedComments] = useState([]);
-  const [commentsToShow, setCommentsToShow] = useState(10);
-  const [isModalVisible, setModalVisible] = useState(false); // For modal visibility
-  const [selectedImage, setSelectedImage] = useState(null); // Image picker state
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [commentsCollapsed, setCommentsCollapsed] = useState(true);
 
   const route = useRoute();
   const navigation = useNavigation();
   const { postId } = route.params;
   const accessToken = useSelector((state) => state.accessToken);
+  const commentsSectionRef = useRef(null);
 
   const fetchPostDetails = async () => {
     try {
@@ -42,13 +45,14 @@ const PostDetailPage = () => {
       const postData = response.data?.data?.post || {};
       const reactions = response.data?.data?.reactions || [];
       const reactionCount = reactions.length || 0;
-      const artistComments = response.data?.data?.artistComments || [];
+      const artistComments = response.data?.data?.artistComments?.reverse() || []; // Reversed to display new comments on top
       const comments = response.data?.data?.comments || [];
+
       const likedCommentsArray = comments
-        .filter((comment) => comment.commentReactionCount > 0) // Check if commentReactionCount is greater than 0
+        .filter((comment) => comment.commentReactionCount > 0)
         .map((comment) => comment.id);
 
-      setLikedComments(likedCommentsArray); // Pre-set liked comments based on API response
+      setLikedComments(likedCommentsArray);
       setPost({ ...postData, reactionCount, artistComments, comments });
     } catch (error) {
       console.error('Error fetching post:', error.response || error.message);
@@ -68,216 +72,27 @@ const PostDetailPage = () => {
 
   const handleCloseModal = () => {
     setModalVisible(false);
-    setSelectedImage(null); // Clear the selected image on close
+    setSelectedImage(null);
   };
 
-  const options = {
-    mediaType: 'photo',
-    includeBase64: false,
-  };
+  const handleSelectImage = () => {
+    const options = {
+      mediaType: 'photo',
+      quality: 1,
+    };
 
-  const takePicture = () => {
-    launchCamera(options, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else {
-        let { uri } = response.assets[0];
-        if (!uri.startsWith('file://')) {
-          uri = `file://${uri}`; // Add file:// prefix if missing
-        }
-        console.log('Captured image URI:', uri); // Log the URI to confirm
-        setSelectedImage(uri);
-      }
-    });
-  };
-
-
-  const uploadFile = () => {
     launchImageLibrary(options, (response) => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorCode) {
         console.log('ImagePicker Error: ', response.errorMessage);
       } else {
-        let { uri } = response.assets[0];
-        if (!uri.startsWith('file://')) {
-          uri = `file://${uri}`; // Add file:// prefix if missing
-        }
-        console.log('Selected image URI:', uri); // Log the URI to confirm
+        const { uri } = response.assets[0];
         setSelectedImage(uri);
       }
     });
   };
 
-
-
-  // Function to like a comment
-  const likeComment = async (commentId) => {
-    try {
-      await axios.post(
-        `${BASEURL}/api/v1/comment/like/${commentId}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-      setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
-      console.log(`Comment with ID: ${commentId} liked.`);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to like the comment.');
-    }
-  };
-
-  // Function to dislike a comment
-  const dislikeComment = async (commentId) => {
-    try {
-      await axios.post(
-        `${BASEURL}/api/v1/comment/dislike/${commentId}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-      setLikedComments((prevLikedComments) =>
-        prevLikedComments.filter((id) => id !== commentId)
-      );
-      console.log(`Comment with ID: ${commentId} disliked.`);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to dislike the comment.');
-    }
-  };
-
-  // Toggle like/dislike state
-  const toggleLikeComment = (commentId) => {
-    if (likedComments.includes(commentId)) {
-      dislikeComment(commentId); // If already liked, dislike it
-    } else {
-      likeComment(commentId); // If not liked, like it
-    }
-  };
-
-  const likeAllComments = async () => {
-    try {
-      const response = await axios.post(
-        `${BASEURL}/api/v1/comment/like-all/${postId}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-      if (response.status === 201 || response.status === 200) {
-        // Mark all comments as liked
-        const allCommentIds = post.comments.map(comment => comment.id);
-        setLikedComments(allCommentIds); // Set all comment IDs to liked
-        console.log("All comments liked successfully.");
-        Alert.alert('Success', 'All comments have been liked.');
-      } else {
-        console.error("Response status:", response.status);
-        console.error("Response data:", response.data);
-        Alert.alert('Error', 'Failed to like all comments.');
-      }
-    } catch (error) {
-      console.error("Error details:", error.response || error.message);
-      if (error.response) {
-        Alert.alert(
-          'Error',
-          `Failed to like all comments. Server returned status ${error.response.status}: ${error.response.data?.message || 'Unknown error'}`
-        );
-      } else {
-        Alert.alert('Error', 'Failed to like all comments due to a network or server issue.');
-      }
-    }
-  };
-
-  const checkForExistingConversation = async (receiverId) => {
-    try {
-      const response = await axios.get(
-        `${BASEURL}/api/v1/conversation?pageNo=1&pageSize=100`,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-  
-      const conversations = response.data?.data?.conversations || [];
-  
-      // Check if there's an existing conversation with the receiverId
-      const existingConversation = conversations.find(
-        (conv) => conv.reciever_id === receiverId || conv.sender_id === receiverId
-      );
-  
-      return existingConversation; // Return the conversation if found
-    } catch (error) {
-      console.error('Error fetching conversations:', error.message);
-      return null;
-    }
-  };
-  
-  // Function to create a conversation or navigate to an existing one
-  const createOrNavigateConversation = async (receiverId, initialMessage) => {
-    // First, check if a conversation already exists with the receiver
-    const existingConversation = await checkForExistingConversation(receiverId);
-  
-    if (existingConversation) {
-      console.log('Existing conversation found:', existingConversation);
-      // Navigate to the existing conversation
-      navigation.navigate('ConversationThread', { conversationId: existingConversation.id });
-    } else {
-      // No conversation found, so create a new one
-      await createConversation(receiverId, initialMessage);
-    }
-  };
-
-  const createConversation = async (receiverId, initialMessage) => {
-    try {
-      // Fetch existing conversations first
-      const conversationsResponse = await axios.get(`${BASEURL}/api/v1/conversation?pageNo=1&pageSize=50`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      
-      const existingConversations = conversationsResponse.data?.data?.conversations || [];
-      
-      // Check if a conversation with the receiverId already exists
-      const existingConversation = existingConversations.find(conversation => 
-        (conversation.reciever_id === receiverId || conversation.sender_reciever_code.includes(receiverId))
-      );
-  
-      if (existingConversation) {
-        // If conversation exists, navigate to the existing conversation
-        const conversationId = existingConversation.id;
-        console.log('Navigating to existing conversation:', conversationId);
-        navigation.navigate('ConversationThread', { conversationId });
-      } else {
-        // If no conversation exists, create a new one
-        const response = await axios.post(
-          `${BASEURL}/api/v1/conversation`,
-          {
-            recieverId: receiverId,  // Ensure the spelling matches the API requirement
-            lastMessage: initialMessage || "Hello!",  // A default initial message
-          },
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
-  
-        console.log('Conversation API response:', response.data);
-  
-        const conversationId = response.data?.data?.id;
-  
-        if (conversationId) {
-          console.log('Conversation created successfully');
-          // Navigate to the new ConversationThread screen with the conversationId
-          navigation.navigate('ConversationThread', { conversationId });
-        } else {
-          Alert.alert('Error', 'Failed to retrieve conversation ID.');
-        }
-      }
-    } catch (error) {
-      console.error('Error creating conversation:', error.response?.data || error.message);
-      Alert.alert('Error', 'An error occurred while creating the conversation.');
-    }
-  };
   const handleSendComment = async () => {
     if (!commentText.trim() && !selectedImage) {
       Alert.alert('Error', 'Comment or image is required.');
@@ -288,7 +103,7 @@ const PostDetailPage = () => {
       const commentData = { message: commentText };
 
       if (selectedImage) {
-        commentData.imageUrl = selectedImage; // Include the selected image URL in the comment
+        commentData.imageUrl = selectedImage;
       }
 
       const response = await axios.post(
@@ -302,9 +117,9 @@ const PostDetailPage = () => {
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Success', 'Your comment has been posted.');
         setCommentText('');
-        setSelectedImage(null);  // Clear the selected image after posting
+        setSelectedImage(null);
         setModalVisible(false);
-        fetchPostDetails();  // Refresh post details to show new comment
+        fetchPostDetails();
       } else {
         Alert.alert('Error', 'Failed to post the comment. Please try again.');
       }
@@ -314,16 +129,117 @@ const PostDetailPage = () => {
     }
   };
 
-  const loadMoreComments = () => {
-    const totalComments = post.artistComments.length + post.comments.length;
-
-    setCommentsToShow(prevCount => {
-      if (prevCount + 10 > totalComments) {
-        return totalComments; // Show all remaining comments
+  const likeComment = async (commentId) => {
+    try {
+      if (likedComments.includes(commentId)) {
+        await axios.post(
+          `${BASEURL}/api/v1/comment/dislike/${commentId}`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+        setLikedComments((prevLikedComments) =>
+          prevLikedComments.filter((id) => id !== commentId)
+        );
       } else {
-        return prevCount + 10; // Show 10 more comments
+        await axios.post(
+          `${BASEURL}/api/v1/comment/like/${commentId}`,
+          {},
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+        setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
       }
-    });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to like/dislike the comment.');
+    }
+  };
+
+  const deleteComment = async (commentId) => {
+    Alert.alert(
+      'Delete Comment',
+      'Are you sure you want to delete this comment?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await axios.delete(`${BASEURL}/api/v1/post/${postId}/comment/${commentId}`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              });
+              Alert.alert('Success', 'Comment deleted.');
+              fetchPostDetails();
+            } catch (error) {
+              console.error('Error deleting comment:', error.response || error.message);
+              Alert.alert('Error', 'Failed to delete comment. Please try again.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const toggleComments = () => {
+    setCommentsCollapsed((prevState) => !prevState);
+    setTimeout(() => {
+      if (!commentsCollapsed && commentsSectionRef.current) {
+        commentsSectionRef.current.scrollToOffset({ offset: 300, animated: true });
+      }
+    }, 100); // Delayed to ensure state update takes effect
+  };
+
+  const checkForExistingConversation = async (userId) => {
+    try {
+      const response = await axios.get(`${BASEURL}/api/v1/conversation?pageNo=1&pageSize=100`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const conversations = response.data?.data?.conversations || [];
+
+      return conversations.find(
+        (conversation) =>
+          (conversation.sender_id === userId || conversation.reciever_id === userId) &&
+          (conversation.reciever_id === userId || conversation.sender_id === userId)
+      );
+    } catch (error) {
+      console.error('Error fetching existing conversations:', error.message);
+      return null;
+    }
+  };
+
+  const createOrNavigateConversation = async (userId) => {
+    try {
+      const existingConversation = await checkForExistingConversation(userId);
+      if (existingConversation) {
+        console.log('Navigating to existing conversation with ID:', existingConversation.id);
+        navigation.navigate('ConversationThread', { conversationId: existingConversation.id });
+      } else {
+        console.log('Creating a new conversation as none exists.');
+        const response = await axios.post(
+          `${BASEURL}/api/v1/conversation`,
+          { recieverId: userId, lastMessage: 'Hello!' },
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+
+        const newConversationId = response.data?.data?.id;
+        if (newConversationId) {
+          console.log('New conversation created with ID:', newConversationId);
+          navigation.navigate('ConversationThread', { conversationId: newConversationId });
+        } else {
+          console.error('Error: Conversation ID not found in response:', response.data);
+          Alert.alert('Error', 'Failed to create conversation. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error creating or navigating conversation:', error.response || error.message);
+      Alert.alert('Error', 'An error occurred while handling the conversation request.');
+    }
   };
 
   if (loading) {
@@ -342,107 +258,129 @@ const PostDetailPage = () => {
     );
   }
 
-  const sortedComments = [
-    ...post.artistComments.map((comment) => ({ ...comment, role: 'ARTIST' })),
-    ...post.comments.map((comment) => ({ ...comment, role: 'FAN' })),
-  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-   .slice(0, commentsToShow);
-
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={[styles.scrollViewContainer, { paddingBottom: 100 }]}
-        style={{ flex: 1 }}
-      >
-        <View style={{ flexGrow: 1, justifyContent: 'flex-start' }}>
-          <View style={styles.headerContainer}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Icon name="arrow-left" size={24} color="#FFF" />
+      <FlatList
+        ref={commentsSectionRef}
+        data={[post]}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <AntDesign name="arrowleft" size={35} color="#FFF" />
             </TouchableOpacity>
             <Text style={styles.postTitle}>{post.locale || 'Unknown Location'}</Text>
-          </View>
-
-          {post.image_url ? (
-            <View>
-              {/* Message Group button placed above the image */}
-              <TouchableOpacity onPress={handleOpenModal} style={styles.messageGroupButton}>
-                <Text style={styles.messageGroupButtonText}>Message Group</Text>
-              </TouchableOpacity>
-              <Image source={{ uri: post.image_url }} style={styles.postImage} />
-            </View>
-          ) : (
-            <Text style={styles.errorText}></Text>
-          )}
-
-          <View style={styles.interactionContainer}>
-            <Text style={styles.interactionText}>❤️ {post.reactionCount}</Text>
-            <Text style={styles.interactionText}>
-              💬 {Array.isArray(sortedComments) ? post.comments.length : 0}
-            </Text>
-            <TouchableOpacity onPress={likeAllComments} style={styles.likeAllButton}>
-              <Text style={styles.likeAllButtonText}>Like All Comments</Text>
+            <TouchableOpacity onPress={handleOpenModal} style={styles.plusIcon}>
+              <AntDesign name="pluscircleo" size={35} color="#FFF" />
             </TouchableOpacity>
           </View>
-
-          <View style={styles.commentsContainer}>
-            {Array.isArray(sortedComments) &&
-              sortedComments.map((comment, index) => (
-                <View
-                  key={index}
-                  style={
-                    comment.role === 'ARTIST'
-                      ? styles.artistCommentContainer
-                      : styles.fanCommentContainer
-                  }
-                >
-                  <View style={styles.commentHeader}>
-                    <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
-                    <Text style={styles.commentAuthor}>{comment.user.full_name}</Text>
+        }
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <>
+            {item.artistComments && item.artistComments.length > 0 && (
+              <View>
+                {item.artistComments.map((artistComment) => (
+                  <View key={artistComment.id} style={styles.artistCommentContainer}>
+                    <View style={styles.userInfoContainer}>
+                      <Image source={{ uri: artistComment.user.avatar_url }} style={styles.avatar} />
+                      <View>
+                        <Text style={styles.userName}>{artistComment.user.full_name}</Text>
+                        <Text style={styles.userLocation}>{artistComment.user.location}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.commentText}>{artistComment.message}</Text>
+                    {artistComment.imageUrl && (
+                      <Image source={{ uri: artistComment.imageUrl }} style={styles.postImage} />
+                    )}
+                    <View style={styles.interactionRow}>
+                      <TouchableOpacity>
+                        <Foundation name="comments" size={24} color="#333" />
+                        <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity>
+                        <Foundation name="heart" size={24} color="#333" />
+                        <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => deleteComment(artistComment.id)}>
+                        <Icon name="trash" size={20} color="red" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <Text style={styles.commentText}>{comment.message}</Text>
+                ))}
+              </View>
+            )}
 
-                  {comment.role === 'FAN' && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <TouchableOpacity
-                        style={styles.heartButton}
-                        onPress={() => toggleLikeComment(comment.id)}
-                      >
+            <View style={styles.postCard}>
+              <View style={styles.userInfoContainer}>
+                <Image source={{ uri: item.user?.avatar_url }} style={styles.avatar} />
+                <View>
+                  <Text style={styles.userName}>{item.user?.full_name}</Text>
+                  <Text style={styles.userLocation}>{item.user?.location}</Text>
+                </View>
+              </View>
+
+              <Text style={styles.postText}>{item.message}</Text>
+
+              {item.image_url && (
+                <Image source={{ uri: item.image_url }} style={styles.postImage} />
+              )}
+
+              <View style={styles.interactionRow}>
+                <TouchableOpacity onPress={toggleComments}>
+                  <Foundation name="comments" size={24} color="#FFF" />
+                  <Text style={styles.iconText}>{item.comments.length}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity>
+                  <Foundation name="heart" size={24} color="#FFF" />
+                  <Text style={styles.iconText}>{item.reactionCount}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        )}
+        ListFooterComponent={
+          <View>
+            <TouchableOpacity onPress={toggleComments}>
+              <Text style={styles.collapseText}>
+                {commentsCollapsed ? ' ' : ' '}
+              </Text>
+            </TouchableOpacity>
+            {!commentsCollapsed && (
+              <FlatList
+                data={post.comments}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <View style={styles.commentContainer}>
+                    <View style={styles.userInfoContainer}>
+                      <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
+                      <View>
+                        <Text style={styles.userName}>{item.user.full_name}</Text>
+                        <Text style={styles.commentText}>{item.message}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.interactionRow}>
+                      <TouchableOpacity onPress={() => likeComment(item.id)}>
                         <Icon
                           name="heart"
                           size={20}
-                          color={likedComments.includes(comment.id) ? '#FF0080' : '#FFFFFF'}
+                          color={likedComments.includes(item.id) ? 'red' : '#333'}
                         />
                       </TouchableOpacity>
-
-                      {/* New DM icon */}
-                      <TouchableOpacity
-                        style={styles.dmButton}
-                        onPress={() => createConversation(comment.user.id, 'Hey, let’s chat!')}  // Passing user ID and a default message
-                      >
-                        <Icon
-                          name="paper-plane"
-                          size={20}
-                          color="#FFFFFF"
-                        />
+                      <TouchableOpacity onPress={() => createOrNavigateConversation(item.user.id)}>
+                        <Icon name="paper-plane" size={20} color="#333" />
                       </TouchableOpacity>
                     </View>
-                  )}
-                </View>
-              ))}
-
-            {post.comments.length + post.artistComments.length > commentsToShow && (
-              <TouchableOpacity onPress={loadMoreComments} style={styles.loadMoreButton}>
-                <Text style={styles.loadMoreText}>Load More Comments</Text>
-              </TouchableOpacity>
+                  </View>
+                )}
+              />
             )}
           </View>
-        </View>
-      </ScrollView>
+        }
+      />
 
-      {/* Modal for sending comment or image */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={isModalVisible}
         onRequestClose={handleCloseModal}
       >
@@ -458,21 +396,15 @@ const PostDetailPage = () => {
               multiline
             />
 
-{selectedImage && (
-  <>
-    {console.log("Displaying selected image with URI:", selectedImage)}
-    <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
-  </>
-)}
-
+            {selectedImage && (
+              <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
+            )}
 
             <View style={styles.iconRow}>
-              <TouchableOpacity onPress={uploadFile}>
+              <TouchableOpacity onPress={handleSelectImage}>
                 <Icon name="image" size={24} color="blue" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={takePicture}>
-                <Icon name="camera" size={24} color="blue" />
-              </TouchableOpacity>
+              <Icon name="camera" size={24} color="blue" />
             </View>
 
             <TouchableOpacity style={styles.postButton} onPress={handleSendComment}>
@@ -490,108 +422,115 @@ const PostDetailPage = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
+  container: { flex: 1, backgroundColor: '#000', padding: 16 },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0c002b' },
   errorText: { color: '#FFF', fontSize: 18 },
-  headerContainer: {
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    width: '100%',
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#000',
   },
-  backButton: { padding: 10 },
-  postTitle: { fontSize: 24, color: '#FFFFFF', fontWeight: 'bold', marginLeft: 10 },
-  postImage: { width: '100%', height: 400, marginVertical: 20, resizeMode: 'cover' },
-  interactionContainer: { flexDirection: 'row', justifyContent: 'flex-start', width: '100%', paddingBottom: 10 },
-  interactionText: { fontSize: 16, color: '#FF0080', marginRight: 10 },
-  commentsContainer: {
-    flexDirection: 'column',
-    paddingHorizontal: 10,
-    width: '100%',
-    paddingBottom: 10,
-  },
-  fanCommentContainer: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#333',
-    borderRadius: 8,
-    padding: 7,
-    marginVertical: 5,
-    maxWidth: '70%',
-    position: 'relative',
+  postTitle: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
+  plusIcon: { padding: 8 },
+  postCard: {
+    backgroundColor: '#000',
+    borderRadius: 10,
+    padding: 15,
+    marginVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   artistCommentContainer: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#FF0080',
+    backgroundColor: '#000',
+    padding: 10,
     borderRadius: 8,
-    padding: 7,
     marginVertical: 5,
-    maxWidth: '70%',
   },
-  commentHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
-  avatar: { width: 30, height: 30, borderRadius: 15, marginRight: 10 },
-  commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold' },
-  commentText: { fontSize: 14, color: '#FFF' },
-  heartButton: {
-    position: 'absolute',
-    right: -30,
-    top: '50%',
-    transform: [{ translateY: -10 }],
-  },
-  dmButton: {
-    position: 'absolute',
-    right: -60,
-    top: '50%',
-    transform: [{ translateY: -10 }],
-  },
-  loadMoreButton: {
-    marginTop: 10,
-    alignSelf: 'center',
-    backgroundColor: '#FF0080',
-    paddingHorizontal: 20,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  loadMoreText: { color: '#FFFFFF', fontSize: 14, textAlign: 'center' },
-  messageGroupButton: {
-    position: 'absolute',
-    right: 10,
-    top: -40, // Positioned above the image
-    backgroundColor: '#FF0080',
-    paddingVertical: 7,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    zIndex: 10,
-  },
-  messageGroupButtonText: { color: '#FFFFFF', fontWeight: 'bold' },
-  modalBackground: {
-    flex: 1,
-    justifyContent: 'center',
+  userInfoContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginVertical: 10,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  userName: { fontSize: 16, fontWeight: 'bold', color: '#FFF' },
+  userLocation: { fontSize: 13, color: '#666' },
+  postText: { fontSize: 14, color: '#FFF', marginVertical: 10 },
+  postImage: {
+    width: '100%',
+    height: 300,
+    borderRadius: 10,
+    marginVertical: 10,
+    backgroundColor: '#ddd',
+  },
+  interactionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 10,
+  },
+  iconText: { marginLeft: 5, fontSize: 14, color: '#FFF' },
+  commentContainer: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: 'white',
+    borderRadius: 8,
+  },
+  commentText: { color: '#333', marginTop: 5 },
+  modalBackground: {
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   modalContainer: {
-    width: '90%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
+    width: '90%', 
+    backgroundColor: 'white', 
+    borderRadius: 10, 
+    padding: 20, 
     alignItems: 'center',
   },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
-  textInput: { width: '100%', minHeight: 80, borderColor: '#ccc', borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 20, fontSize: 16 },
+  textInput: {
+    width: '100%', 
+    minHeight: 80, 
+    borderColor: '#ccc', 
+    borderWidth: 1, 
+    borderRadius: 10, 
+    padding: 10, 
+    marginBottom: 20, 
+    fontSize: 16, 
+    color: '#2c3e50', 
+    backgroundColor: '#f4f4f9',
+  },
   iconRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 20 },
-  postButton: { backgroundColor: '#FF0080', padding: 10, borderRadius: 10, width: '100%', alignItems: 'center', marginBottom: 10 },
+  postButton: {
+    backgroundColor: '#FF0080', 
+    padding: 10, 
+    borderRadius: 10, 
+    width: '100%', 
+    alignItems: 'center', 
+    marginBottom: 10,
+  },
   postButtonText: { color: 'white', fontWeight: 'bold' },
   closeButton: { marginTop: 10 },
   closeButtonText: { color: 'blue', fontWeight: 'bold' },
-  likeAllButton: {
-    backgroundColor: '#FF0080',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    marginLeft: 5,
+  collapseText: {
+    color: '#FFF',
+    textAlign: 'center',
+    marginVertical: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  likeAllButtonText: { color: '#FFFFFF', fontSize: 14 },
 });
 
 export default PostDetailPage;

@@ -3,7 +3,7 @@ import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Ima
 import { useSelector } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import AntDesign from 'react-native-vector-icons/AntDesign'; // Import AntDesign for the "plus" icon
 import { BASEURL } from '../../assets/constants';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
@@ -34,47 +34,25 @@ const ArtistPostsPage = () => {
     console.log("Set loading to true.");
 
     try {
-      // Construct the API URL with the page parameter
       const apiUrl = `${BASEURL}/api/v1/post?page=${pageNum}`;
-      console.log(`API Call: GET ${apiUrl}`);
-
-      // Print headers
       const headers = { Authorization: `Bearer ${accessToken}` };
-      console.log('Headers:', headers);
 
-      // Make the API call
       const response = await axios.get(apiUrl, { headers });
 
-      // Log the entire response data for inspection
-      console.log(`Received response from ${apiUrl}:`, response.data);
-
       const postsData = response.data?.data?.posts || [];
-      console.log(`Received ${postsData.length} posts from the API for page ${pageNum}.`);
-
-      // Log each post with its ID and created_at date
-      postsData.forEach((post, index) => {
-        console.log(`Post ${index + 1} from page ${pageNum}: ID=${post.id}, Created At=${post.created_at}`);
-      });
-
-      // Check if any post is a "Generic Post" and pin it
       const genericPost = postsData.find(post => post.type === 'GENERIC');
       const otherPosts = postsData.filter(post => post.type !== 'GENERIC');
 
       if (genericPost) {
         setPinnedPost(genericPost);
-        console.log("Pinned a generic post:", genericPost);
       }
 
       if (otherPosts.length === 0) {
         setHasMore(false);
-        console.log("No more posts to load. Setting hasMore to false.");
       } else {
         setPosts(prevPosts => {
           const newPosts = otherPosts.filter(post => !prevPosts.some(prevPost => prevPost.id === post.id));
-          const allPosts = [...prevPosts, ...newPosts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-          console.log(`Updated total number of posts in state: ${allPosts.length}`);
-          return allPosts;
+          return [...prevPosts, ...newPosts].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         });
       }
     } catch (error) {
@@ -82,30 +60,22 @@ const ArtistPostsPage = () => {
       Alert.alert('Error', 'An error occurred while fetching posts.');
     } finally {
       setLoading(false);
-      console.log("Set loading to false after fetching posts.");
     }
   };
 
-
-
   const handleDelete = async (postId) => {
     try {
-      console.log(`Attempting to delete post with ID: ${postId}`);
       const response = await axios.delete(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      console.log('Delete response:', response);
-
       if (response.status === 200 || response.status === 204 || response.status === 201) {
         Alert.alert('Success', 'The post has been deleted.');
         setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
-        console.log(`Deleted post with ID: ${postId}.`);
       } else {
         Alert.alert('Error', `Failed to delete post. Status code: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error deleting post:', error.response ? error.response.data : error.message);
       Alert.alert('Error', `An error occurred: ${error.response?.data?.message || error.message}`);
     }
   };
@@ -126,7 +96,6 @@ const ArtistPostsPage = () => {
       setPosts([]);
       setPage(1);
       setHasMore(true);
-      console.log("Reset state as user is not logged in.");
     } else {
       fetchArtistPosts(1);
     }
@@ -142,7 +111,6 @@ const ArtistPostsPage = () => {
     const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
     if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 20 && !loading && hasMore) {
       setPage(prevPage => prevPage + 1);
-      console.log(`Incrementing page to ${page + 1} in handleLoadMore`);
     }
   };
 
@@ -161,16 +129,11 @@ const ArtistPostsPage = () => {
 
   const takePicture = () => {
     launchCamera(options, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else {
+      if (!response.didCancel && !response.errorCode) {
         let { uri } = response.assets[0];
         if (!uri.startsWith('file://')) {
           uri = `file://${uri}`;
         }
-        console.log('Captured image URI:', uri);
         setSelectedImage(uri);
       }
     });
@@ -178,16 +141,11 @@ const ArtistPostsPage = () => {
 
   const uploadFile = () => {
     launchImageLibrary(options, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else {
+      if (!response.didCancel && !response.errorCode) {
         let { uri } = response.assets[0];
         if (!uri.startsWith('file://')) {
           uri = `file://${uri}`;
         }
-        console.log('Selected image URI:', uri);
         setSelectedImage(uri);
       }
     });
@@ -200,20 +158,11 @@ const ArtistPostsPage = () => {
     }
 
     try {
-      const postData = {
-        message: postText,
-        type: 'GENERIC',
-      };
-
-      if (selectedImage) {
-        postData.imageUrl = selectedImage;
-      }
+      const postData = { message: postText, type: 'GENERIC' };
+      if (selectedImage) postData.imageUrl = selectedImage;
 
       const response = await axios.post(`${BASEURL}/api/v1/post/generic`, postData, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       });
 
       if (response.status === 200 || response.status === 201) {
@@ -221,12 +170,10 @@ const ArtistPostsPage = () => {
         setPostText('');
         setSelectedImage(null);
         setModalVisible(false);
-        console.log("Posted a new message successfully.");
       } else {
         Alert.alert('Error', 'Failed to send the message. Please try again.');
       }
     } catch (error) {
-      console.error('Error sending post:', error.response?.data || error.message);
       Alert.alert('Error', `Failed to send post: ${error.response?.data?.message || 'An error occurred'}`);
     }
   };
@@ -264,8 +211,8 @@ const ArtistPostsPage = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <ProfilePictureButton />
-        <TouchableOpacity style={styles.messageAllButton} onPress={handleOpenModal}>
-          <Text style={styles.messageAllText}>Message All Fans</Text>
+        <TouchableOpacity style={styles.plusButton} onPress={handleOpenModal}>
+          <AntDesign name="pluscircleo" size={35} color="#FFFFFF" />
         </TouchableOpacity>
 
         <Text style={styles.pageTitle}>Posts</Text>
@@ -323,10 +270,10 @@ const ArtistPostsPage = () => {
               )}
               <View style={styles.iconRow}>
                 <TouchableOpacity onPress={uploadFile}>
-                  <Icon name="image" size={24} color="blue" />
+                  <AntDesign name="image" size={24} color="blue" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={takePicture}>
-                  <Icon name="camera" size={24} color="blue" />
+                  <AntDesign name="camera" size={24} color="blue" />
                 </TouchableOpacity>
               </View>
 
@@ -344,9 +291,10 @@ const ArtistPostsPage = () => {
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0c002b' },
-  container: { flex: 1, backgroundColor: '#0c002b', padding: 16 },
+  safeArea: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#000', padding: 16 },
   pageTitle: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 20 },
   scrollView: { flex: 1, marginBottom: 20 },
   postContainer: { marginBottom: 20, alignItems: 'center' },
@@ -355,8 +303,7 @@ const styles = StyleSheet.create({
   interactionContainer: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10 },
   interactionText: { fontSize: 16, color: '#FF0080' },
   postDate: { fontSize: 14, color: '#888', marginTop: 5 },
-  messageAllButton: { position: 'absolute', top: 25, right: 5, paddingVertical: 7, paddingHorizontal: 10, backgroundColor: '#FF0080', borderRadius: 25, zIndex: 10 },
-  messageAllText: { fontSize: 14, color: '#FFFFFF', fontWeight: 'bold' },
+  plusButton: { position: 'absolute', top: 20, right: 5, paddingVertical: 7, paddingHorizontal: 10,  borderRadius: 25, zIndex: 10 },
   loadingText: { color: '#FFFFFF', textAlign: 'center', marginVertical: 10 },
 
   // Modal styles
