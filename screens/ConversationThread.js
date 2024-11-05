@@ -52,7 +52,7 @@ const ConversationThread = () => {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
+    const interval = setInterval(fetchMessages, 50000);
 
     return () => clearInterval(interval);
   }, [accessToken, conversationId]);
@@ -85,22 +85,37 @@ const ConversationThread = () => {
   };
 
   const handleSendMessage = async () => {
-    if (newMessage.trim() === '' && !selectedImage) return;
+    if (!selectedImage && newMessage.trim() === '') return; // Ensure there is at least a message or an image
 
     try {
       let imageUrl = null;
+
+      // If an image is selected, upload it and get the URL
       if (selectedImage) {
         imageUrl = await handleImageUpload(selectedImage);
         if (!imageUrl) return;
       }
 
-      await sendMessage(conversationId, newMessage, imageUrl);
+      // Prepare the message body, including message, and conditionally include url and mediaType
+      const messageBody = {
+        conversationId,
+        message: newMessage.trim(),  // Always include the message field
+        ...(imageUrl && { url: imageUrl, mediaType: "PHOTO" }),  // Include url and mediaType only if imageUrl is available
+      };
 
+      // Log the message body for debugging
+      console.log("Sending message with body:", messageBody);
+
+      // Send the message using the new endpoint
+      const response = await sendMessage(messageBody);
+      console.log("Message sent successfully:", response);
+
+      // Append the sent message to the local state
       setMessages((prevMessages) => [
         ...prevMessages,
         {
           id: Date.now().toString(),
-          message: newMessage,
+          message: newMessage,  // Display the message in the local state
           imageUrl,
           sender_id: loggedInUserId,
           created_at: new Date().toISOString(),
@@ -108,12 +123,25 @@ const ConversationThread = () => {
         },
       ]);
 
+      // Reset the input fields
       setNewMessage('');
       setSelectedImage(null);
     } catch (error) {
-      console.error('Error sending message:', error);
+      // Log the error response for debugging
+      console.error("Error sending message:", error);
+      if (error.response) {
+        console.error("Error response data:", error.response.data);
+      }
+      Alert.alert("Error", "Failed to send the image. Please try again.");
     }
   };
+
+
+
+
+
+
+
 
   const renderMessage = ({ item }) => {
     const senderEmail = item.messageSender?.email || null;
