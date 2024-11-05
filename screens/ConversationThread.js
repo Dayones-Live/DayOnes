@@ -52,7 +52,7 @@ const ConversationThread = () => {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 50000);
+    const interval = setInterval(fetchMessages, 5000);
 
     return () => clearInterval(interval);
   }, [accessToken, conversationId]);
@@ -85,63 +85,36 @@ const ConversationThread = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!selectedImage && newMessage.trim() === '') return; // Ensure there is at least a message or an image
+    if (newMessage.trim() === '' && !selectedImage) return;
 
     try {
       let imageUrl = null;
-
-      // If an image is selected, upload it and get the URL
       if (selectedImage) {
         imageUrl = await handleImageUpload(selectedImage);
         if (!imageUrl) return;
       }
 
-      // Prepare the message body, including message, and conditionally include url and mediaType
-      const messageBody = {
-        conversationId,
-        message: newMessage.trim(),  // Always include the message field
-        ...(imageUrl && { url: imageUrl, mediaType: "PHOTO" }),  // Include url and mediaType only if imageUrl is available
-      };
+      await sendMessage(conversationId, newMessage, imageUrl);
 
-      // Log the message body for debugging
-      console.log("Sending message with body:", messageBody);
-
-      // Send the message using the new endpoint
-      const response = await sendMessage(messageBody);
-      console.log("Message sent successfully:", response);
-
-      // Append the sent message to the local state
       setMessages((prevMessages) => [
         ...prevMessages,
         {
           id: Date.now().toString(),
-          message: newMessage,  // Display the message in the local state
-          imageUrl,
+          message: newMessage,
+          url: imageUrl,
+          mediaType: imageUrl ? 'PHOTO' : null,
           sender_id: loggedInUserId,
           created_at: new Date().toISOString(),
           messageSender: { email: loggedInUserEmail },
         },
       ]);
 
-      // Reset the input fields
       setNewMessage('');
       setSelectedImage(null);
     } catch (error) {
-      // Log the error response for debugging
-      console.error("Error sending message:", error);
-      if (error.response) {
-        console.error("Error response data:", error.response.data);
-      }
-      Alert.alert("Error", "Failed to send the image. Please try again.");
+      console.error('Error sending message:', error);
     }
   };
-
-
-
-
-
-
-
 
   const renderMessage = ({ item }) => {
     const senderEmail = item.messageSender?.email || null;
@@ -151,8 +124,8 @@ const ConversationThread = () => {
     return (
       <View style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}>
         <View style={[styles.messageBubble, isSender ? styles.senderBubble : styles.receiverBubble]}>
-          {item.imageUrl && (
-            <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
+          {item.url && (
+            <Image source={{ uri: item.url }} style={styles.messageImage} />
           )}
           <Text style={styles.messageText}>{item.message}</Text>
           <Text style={styles.messageTimestamp}>{timestamp}</Text>
@@ -182,6 +155,14 @@ const ConversationThread = () => {
       />
 
       <View style={styles.inputContainer}>
+        {selectedImage && (
+          <View style={styles.previewContainer}>
+            <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+            <TouchableOpacity onPress={() => setSelectedImage(null)} style={styles.removeImageButton}>
+              <Icon name="close" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
         <TouchableOpacity onPress={handleTakePicture}>
           <Icon name="camera" size={24} color="#888" style={styles.icon} />
         </TouchableOpacity>
@@ -189,7 +170,7 @@ const ConversationThread = () => {
           value={newMessage}
           onChangeText={setNewMessage}
           placeholder="Message..."
-          style={styles.input}
+          style={[styles.input, selectedImage && styles.inputWithImage]}
           placeholderTextColor="#ccc"
           returnKeyType="send"
           onSubmitEditing={handleSendMessage}
@@ -290,6 +271,26 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     fontSize: 16,
     marginHorizontal: 10,
+  },
+  inputWithImage: {
+    marginLeft: 10,
+  },
+  previewContainer: {
+    position: 'relative',
+    marginRight: 10,
+  },
+  previewImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#000',
+    borderRadius: 10,
+    padding: 2,
   },
   sendButton: {
     backgroundColor: '#4e9af1',
