@@ -30,6 +30,11 @@ const PostDetailPage = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [commentsCollapsed, setCommentsCollapsed] = useState(true);
+  const [isReplyModalVisible, setReplyModalVisible] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [replyParentId, setReplyParentId] = useState(null);
+  const [showReplies, setShowReplies] = useState({});
+
 
   const route = useRoute();
   const navigation = useNavigation();
@@ -49,8 +54,8 @@ const PostDetailPage = () => {
       const artistComments = response.data?.data?.artistComments?.reverse() || [];
       const comments = response.data?.data?.comments || [];
 
-      // Log artistComments to inspect its structure
-      console.log("Artist Comments Data:", artistComments);
+      // Log the fan comments data with replies (if available)
+      console.log("Fetched fan comments data:", comments);
 
       const likedCommentsArray = comments
         .filter((comment) => comment.commentReactionCount > 0)
@@ -67,6 +72,7 @@ const PostDetailPage = () => {
   };
 
 
+
   useEffect(() => {
     fetchPostDetails();
   }, [postId, accessToken]);
@@ -80,6 +86,12 @@ const PostDetailPage = () => {
     setSelectedImage(null);
   };
 
+  const toggleReplies = (commentId) => {
+    setShowReplies((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
+  };
   const options = { mediaType: 'photo', includeBase64: false };
 
   const takePicture = () => {
@@ -250,6 +262,79 @@ const PostDetailPage = () => {
     }, 100); // Delayed to ensure state update takes effect
   };
 
+  // Opens the reply modal and sets the parent comment ID
+  const handleOpenReplyModal = (commentId) => {
+    setReplyParentId(commentId);
+    setReplyText('');
+    setReplyModalVisible(true);
+  };
+
+  // Closes the reply modal
+  const handleCloseReplyModal = () => {
+    setReplyModalVisible(false);
+    setReplyParentId(null);
+  };
+
+  // Handles sending the reply to the API
+  const handleSendReply = async () => {
+    console.log("Attempting to send reply...");
+
+    if (!replyText.trim()) {
+      Alert.alert('Error', 'Reply content cannot be empty.');
+      console.log("Reply content is empty, aborting.");
+      return;
+    }
+
+    console.log("Reply content:", replyText);
+    console.log("Parent comment ID:", replyParentId);
+
+    try {
+      const replyData = {
+        message: replyText,
+        parentCommentId: replyParentId,
+      };
+
+      console.log("Reply data to be sent:", replyData);
+
+      const response = await axios.post(
+        `${BASEURL}/api/v1/post/${postId}/comment`,
+        replyData,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      console.log("Reply response:", response);
+
+      if (response.status === 200 || response.status === 201) {
+        Alert.alert('Success', 'Your reply has been posted.');
+        console.log("Reply successfully posted.");
+        setReplyText('');
+        setReplyModalVisible(false);
+        fetchPostDetails();  // Fetch updated comments after the reply
+      } else {
+        Alert.alert('Error', 'Failed to post the reply. Please try again.');
+        console.warn("Unexpected response status:", response.status);
+      }
+    } catch (error) {
+      if (error.response) {
+        console.error("Error response from server:", error.response.data);
+        Alert.alert(
+          'Error',
+          `Failed to send reply: ${error.response.data?.message || 'Server error occurred.'}`
+        );
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+        Alert.alert('Error', 'No response from server. Please check your network connection and try again.');
+      } else {
+        console.error("Error setting up the request:", error.message);
+        Alert.alert('Error', `Unexpected error: ${error.message}`);
+      }
+    }
+  };
+
+
+
   const checkForExistingConversation = async (userId) => {
     try {
       const response = await axios.get(`${BASEURL}/api/v1/conversation?pageNo=1&pageSize=100`, {
@@ -334,41 +419,41 @@ const PostDetailPage = () => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <>
-{item.artistComments && item.artistComments.length > 0 && (
-  <View>
-    {item.artistComments.map((artistComment) => (
-      <View key={artistComment.id} style={styles.artistCommentContainer}>
-        <View style={styles.userInfoContainer}>
-          <Image source={{ uri: artistComment.user.avatar_url }} style={styles.avatar} />
-          <View>
-            <Text style={styles.userName}>{artistComment.user.full_name}</Text>
-            <Text style={styles.userLocation}>{artistComment.user.location}</Text>
-          </View>
-        </View>
-        <Text style={styles.commentText}>{artistComment.message}</Text>
+            {item.artistComments && item.artistComments.length > 0 && (
+              <View>
+                {item.artistComments.map((artistComment) => (
+                  <View key={artistComment.id} style={styles.artistCommentContainer}>
+                    <View style={styles.userInfoContainer}>
+                      <Image source={{ uri: artistComment.user.avatar_url }} style={styles.avatar} />
+                      <View>
+                        <Text style={styles.userName}>{artistComment.user.full_name}</Text>
+                        <Text style={styles.userLocation}>{artistComment.user.location}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.commentText}>{artistComment.message}</Text>
 
-        {/* Display artist comment image if url is present */}
-        {artistComment.url && artistComment.media_type === "PHOTO" && (
-          <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
-        )}
+                    {/* Display artist comment image if url is present */}
+                    {artistComment.url && artistComment.media_type === "PHOTO" && (
+                      <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
+                    )}
 
-        <View style={styles.interactionRow}>
-          <TouchableOpacity>
-            <Foundation name="comments" size={24} color="#333" />
-            <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Foundation name="heart" size={24} color="#333" />
-            <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => deleteComment(artistComment.id)}>
-            <Icon name="trash" size={20} color="red" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    ))}
-  </View>
-)}
+                    <View style={styles.interactionRow}>
+                      <TouchableOpacity>
+                        <Foundation name="comments" size={24} color="#333" />
+                        <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity>
+                        <Foundation name="heart" size={24} color="#333" />
+                        <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => deleteComment(artistComment.id)}>
+                        <Icon name="trash" size={20} color="red" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
 
 
 
@@ -410,38 +495,70 @@ const PostDetailPage = () => {
             </TouchableOpacity>
             {!commentsCollapsed && (
               <FlatList
-  data={post.comments}
-  keyExtractor={(item) => item.id.toString()}
-  renderItem={({ item }) => (
-    <View style={styles.commentContainer}>
-      <View style={styles.userInfoContainer}>
-        <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
-        <View>
-          <Text style={styles.userName}>{item.user.full_name}</Text>
-          <Text style={styles.commentText}>{item.message}</Text>
-        </View>
-      </View>
+                data={post.comments}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <View style={styles.commentContainer}>
+                    <View style={styles.userInfoContainer}>
+                      <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
+                      <View>
+                        <Text style={styles.userName}>{item.user.full_name}</Text>
+                        <Text style={styles.commentText}>{item.message}</Text>
+                      </View>
+                    </View>
 
-      {/* Display comment image if imageUrl is present */}
-      {item.imageUrl && (
-        <Image source={{ uri: item.imageUrl }} style={styles.commentImage} />
-      )}
+                    {/* Display comment image if imageUrl is present */}
+                    {item.imageUrl && (
+                      <Image source={{ uri: item.imageUrl }} style={styles.commentImage} />
+                    )}
 
-      <View style={styles.interactionRow}>
-        <TouchableOpacity onPress={() => likeComment(item.id)}>
-          <Icon
-            name="heart"
-            size={20}
-            color={likedComments.includes(item.id) ? 'red' : '#333'}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => createOrNavigateConversation(item.user.id)}>
-          <Icon name="paper-plane" size={20} color="#333" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  )}
-/>
+                    <View style={styles.interactionRow}>
+                      <TouchableOpacity onPress={() => likeComment(item.id)}>
+                        <Icon
+                          name="heart"
+                          size={20}
+                          color={likedComments.includes(item.id) ? 'red' : '#333'}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleOpenReplyModal(item.id)}>
+                        <AntDesign name="message1" size={20} color="#333" />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => createOrNavigateConversation(item.user.id)}>
+                        <Icon name="paper-plane" size={20} color="#333" />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Toggle View Replies */}
+                    {item.replies && item.replies.length > 0 && (
+                      <TouchableOpacity onPress={() => toggleReplies(item.id)} style={styles.dropdownButton}>
+                        <Text style={styles.dropdownText}>
+                          {showReplies[item.id] ? 'Hide Replies' : `View Replies (${item.replies.length})`}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {/* Display replies if showReplies for the comment is true */}
+                    {showReplies[item.id] && (
+                      <View style={styles.repliesContainer}>
+                        {item.replies.map((reply, index) => (
+                          <View key={index} style={styles.reply}>
+                            {/* Display reply message */}
+                            <Text style={styles.replyText}>{reply.message}</Text>
+
+                            {/* Display reply timestamp */}
+                            <Text style={styles.replyTimestamp}>
+                              {new Date(reply.created_at).toLocaleTimeString()}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+
+
+                  </View>
+                )}
+              />
 
             )}
           </View>
@@ -489,6 +606,35 @@ const PostDetailPage = () => {
           </View>
         </View>
       </Modal>
+      {/* Reply Modal */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={isReplyModalVisible}
+        onRequestClose={handleCloseReplyModal}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Reply to Comment</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Write your reply..."
+              placeholderTextColor="gray"
+              value={replyText}
+              onChangeText={setReplyText}
+              multiline
+            />
+            <TouchableOpacity style={styles.postButton} onPress={handleSendReply}>
+              <Text style={styles.postButtonText}>Reply</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.closeButton} onPress={handleCloseReplyModal}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -504,6 +650,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: '#000',
+  },
+  dropdownButton: {
+    paddingVertical: 5,
+    marginTop: 5,
+  },
+  dropdownText: {
+    color: '#FF0080', // Customize the color if needed
+    fontSize: 14,
+  },
+  repliesContainer: {
+    paddingLeft: 20,
+    marginTop: 10,
+  },
+  reply: {
+    marginBottom: 5,
+  },
+  replyText: {
+    color: '#000', // Customize as needed
+    fontSize: 14,
+  },
+  replyTimestamp: {
+    color: '#000', // Lighter color for timestamp
+    fontSize: 8,
   },
   artistCommentImage: {
     width: '100%',
