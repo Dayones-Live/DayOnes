@@ -23,23 +23,27 @@ const DMDetailPage = ({ route }) => {
       const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-
+  
       const postData = response.data?.data?.post || {};
       const reactions = response.data?.data?.reactions || [];
       const artistComments = response.data?.data?.artistComments || [];
       const comments = response.data?.data?.comments || [];
-
+  
+      console.log("Fetched initial post data:", postData);
+      console.log("Artist comments:", artistComments);
+      console.log("Fan comments:", comments);
+  
       const isPostLiked = reactions.some(reaction => reaction.user?.email === userEmail);
       setLiked(isPostLiked);
-
+  
       const likedArtistComments = artistComments
         .filter((comment) => comment.commentReactionCount > 0)
         .map((comment) => comment.id);
-
+  
       const likedFanComments = comments
         .filter((comment) => comment.commentReactionCount > 0)
         .map((comment) => comment.id);
-
+  
       setLikedComments([...likedArtistComments, ...likedFanComments]);
 
       // Accessing and flattening replies embedded in artist comments
