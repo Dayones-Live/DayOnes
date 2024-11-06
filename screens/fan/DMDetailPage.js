@@ -29,10 +29,6 @@ const DMDetailPage = ({ route }) => {
       const artistComments = response.data?.data?.artistComments || [];
       const comments = response.data?.data?.comments || [];
 
-      console.log("Fetched initial post data:", postData);
-      console.log("Artist comments:", artistComments);
-      console.log("Fan comments:", comments);
-
       const isPostLiked = reactions.some(reaction => reaction.user?.email === userEmail);
       setLiked(isPostLiked);
 
@@ -47,7 +43,7 @@ const DMDetailPage = ({ route }) => {
       setLikedComments([...likedArtistComments, ...likedFanComments]);
       setPost({ ...postData, artistComments, comments });
 
-      console.log("Post details fetched successfully with artist and fan comments");
+      console.log("Post details fetched successfully:", postData);
 
       // Fetch replies for artist comments
       await fetchCommentReplies(artistComments);
@@ -64,13 +60,12 @@ const DMDetailPage = ({ route }) => {
           const response = await axios.get(`${BASEURL}/api/v1/comment/${comment.id}/replies`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
-          console.log(`Fetched replies for artist comment ${comment.id}:`, response.data.data.replies || []);
           return response.data.data.replies || [];
         })
       );
 
       const repliesFlattened = allReplies.flat();
-      console.log("All fetched replies:", repliesFlattened);
+      console.log("Fetched replies:", repliesFlattened);
 
       // Merge replies into main comments
       setPost((prevPost) => ({
@@ -117,7 +112,6 @@ const DMDetailPage = ({ route }) => {
       Alert.alert("Error", "An unexpected error occurred.");
     }
   };
-  
   const userProfile = useSelector((state) => state.userProfile.data);
 
   const addComment = async () => {
@@ -132,11 +126,11 @@ const DMDetailPage = ({ route }) => {
         message: commentText,
         ...(latestArtistCommentId && { parentCommentId: latestArtistCommentId })
       };
-  
+
       console.log("Adding comment to post:", postId);
       console.log("Comment text:", commentText);
       console.log("Parent comment ID:", latestArtistCommentId);
-  
+
       const response = await axios.post(
         endpoint,
         body,
@@ -144,7 +138,6 @@ const DMDetailPage = ({ route }) => {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-  
       if (response.status === 200 || response.status === 201) {
         const newComment = {
           ...response.data.data,
@@ -153,7 +146,6 @@ const DMDetailPage = ({ route }) => {
             avatar_url: userProfile.avatar_url,
           },
         };
-        
         setPost((prevPost) => ({
           ...prevPost,
           comments: [newComment, ...prevPost.comments],
@@ -168,7 +160,6 @@ const DMDetailPage = ({ route }) => {
       Alert.alert("Error", "Failed to add comment.");
     }
   };
-  
   const likeComment = async (commentId) => {
     if (!commentId) {
       console.warn("No commentId provided to likeComment function.");
