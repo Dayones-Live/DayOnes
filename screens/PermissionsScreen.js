@@ -10,6 +10,8 @@ import {
   Platform,
   Linking,
   Image,
+  AppState,
+  ScrollView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -35,6 +37,17 @@ const PermissionsScreen = () => {
 
   useEffect(() => {
     checkAllPermissions();
+
+    // Listen to app state changes to refresh permissions when returning from settings
+    const appStateListener = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        checkAllPermissions();
+      }
+    });
+
+    return () => {
+      appStateListener.remove();
+    };
   }, []);
 
   const checkAllPermissions = async () => {
@@ -130,85 +143,87 @@ const PermissionsScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeAreaView}>
-      <View style={styles.container}>
-        <Text style={styles.headerText}>Permissions</Text>
-        <Image
-          source={require('../assets/images/1024.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <View style={styles.container}>
+          <Text style={styles.headerText}>Permissions</Text>
+          <Image
+            source={require('../assets/images/1024.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#ff8800" />
-        ) : (
-          <>
-            <PermissionItem
-              icon="camera"
-              title="Camera"
-              enabled={cameraPermission}
-              onPress={() =>
-                requestPermission(
-                  Platform.OS === 'ios'
-                    ? PERMISSIONS.IOS.CAMERA
-                    : PERMISSIONS.ANDROID.CAMERA,
-                  setCameraPermission,
-                )
-              }
-            />
-            <PermissionItem
-              icon="folder"
-              title="Library"
-              enabled={libraryPermission}
-              onPress={() =>
-                requestPermission(
-                  Platform.OS === 'ios'
-                    ? PERMISSIONS.IOS.PHOTO_LIBRARY
-                    : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
-                  setLibraryPermission,
-                )
-              }
-            />
-            <PermissionItem
-              icon="bell"
-              title="Push Notifications"
-              enabled={notificationsPermission}
-              onPress={async () => {
-                const notificationResult = await requestNotifications([
-                  'alert',
-                  'sound',
-                  'badge',
-                ]);
-                setNotificationsPermission(
-                  notificationResult.status === RESULTS.GRANTED,
-                );
-              }}
-            />
-            <PermissionItem
-              icon="map-marker"
-              title="Location"
-              enabled={locationPermission}
-              onPress={() =>
-                requestPermission(
-                  Platform.OS === 'ios'
-                    ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
-                    : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
-                  setLocationPermission,
-                )
-              }
-            />
+          {loading ? (
+            <ActivityIndicator size="large" color="#ff8800" />
+          ) : (
+            <>
+              <PermissionItem
+                icon="camera"
+                title="Camera"
+                enabled={cameraPermission}
+                onPress={() =>
+                  requestPermission(
+                    Platform.OS === 'ios'
+                      ? PERMISSIONS.IOS.CAMERA
+                      : PERMISSIONS.ANDROID.CAMERA,
+                    setCameraPermission,
+                  )
+                }
+              />
+              <PermissionItem
+                icon="folder"
+                title="Library"
+                enabled={libraryPermission}
+                onPress={() =>
+                  requestPermission(
+                    Platform.OS === 'ios'
+                      ? PERMISSIONS.IOS.PHOTO_LIBRARY
+                      : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+                    setLibraryPermission,
+                  )
+                }
+              />
+              <PermissionItem
+                icon="bell"
+                title="Push Notifications"
+                enabled={notificationsPermission}
+                onPress={async () => {
+                  const notificationResult = await requestNotifications([
+                    'alert',
+                    'sound',
+                    'badge',
+                  ]);
+                  setNotificationsPermission(
+                    notificationResult.status === RESULTS.GRANTED,
+                  );
+                }}
+              />
+              <PermissionItem
+                icon="map-marker"
+                title="Location"
+                enabled={locationPermission}
+                onPress={() =>
+                  requestPermission(
+                    Platform.OS === 'ios'
+                      ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
+                      : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+                    setLocationPermission,
+                  )
+                }
+              />
 
-            <LinearGradient
-              colors={['#00E5FF', '#D500F9']}
-              style={styles.continueButton}>
-              <TouchableOpacity
-                onPress={handleContinue}
-                style={styles.fullWidth}>
-                <Text style={styles.buttonText}>Continue</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </>
-        )}
-      </View>
+              <LinearGradient
+                colors={['#00E5FF', '#D500F9']}
+                style={styles.continueButton}>
+                <TouchableOpacity
+                  onPress={handleContinue}
+                  style={styles.fullWidth}>
+                  <Text style={styles.buttonText}>Continue</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -236,12 +251,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  container: {
-    flex: 1,
+  scrollViewContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 50, // Added extra top padding for spacing
+    paddingBottom: 50,
+  },
+  container: {
+    width: '100%',
+    alignItems: 'center',
   },
   logo: {
     width: 140,
@@ -264,7 +283,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: 'rgba(0,0,0,0.6)',
     borderRadius: 10,
-    marginBottom: 20, // Increased bottom margin for more spacing
+    marginBottom: 20,
   },
   permissionText: {
     color: '#fff',
@@ -287,7 +306,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     width: '100%',
     alignItems: 'center',
-    marginTop: 50, // Added extra top margin for spacing
+    marginTop: 50,
   },
   fullWidth: {
     width: '100%',

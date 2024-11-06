@@ -9,6 +9,7 @@ import {
   Image,
   SafeAreaView,
   Switch,
+  ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -27,8 +28,8 @@ import { BASEURL } from '../../assets/constants';
 import { uploadImageToBucket } from '../../utils';
 import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotificationsAndLocation';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 
-const { width } = Dimensions.get('window');
 const Tab = createBottomTabNavigator();
 
 const HHomePage = () => {
@@ -149,7 +150,7 @@ const HHomePage = () => {
 
           const postData = {
             imageUrl: postImageUrl,
-            range: isMaxRange ? 1000 : 100, // Post the current toggle value
+            range: isMaxRange ? 1000 : 100,
             type: postType,
             latitude: latitude.toString(),
             longitude: longitude.toString(),
@@ -216,20 +217,18 @@ const HHomePage = () => {
     >
       <Tab.Screen name="Main" options={{ tabBarLabel: 'Home' }}>
         {() => (
-          <SafeAreaView style={{ flex: 1 }} color='000'>
-            <View style={styles.container}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
+            <ScrollView contentContainerStyle={styles.container}>
               <ProfilePictureButton />
 
               <View style={styles.header}>
-  <Image
-    source={require('../../assets/images/1024.png')}
-    style={styles.logo}
-  />
-</View>
+                <Image
+                  source={require('../../assets/images/1024.png')}
+                  style={styles.logo}
+                />
+              </View>
 
-<Text style={styles.personalMediaText}>Personal Media</Text>
-
-
+              <Text style={styles.personalMediaText}>Personal Media</Text>
 
               <View style={styles.imageContainer}>
                 {selectedImage ? (
@@ -330,7 +329,7 @@ const HHomePage = () => {
                   </TouchableOpacity>
                 </LinearGradient>
               </View>
-            </View>
+            </ScrollView>
           </SafeAreaView>
         )}
       </Tab.Screen>
@@ -343,35 +342,36 @@ const HHomePage = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#000',
-    padding: 20,
+    padding: wp('1%'), // 5% of screen width for padding
     alignItems: 'center',
+    paddingBottom: hp('10%'), // 10% of screen height for bottom padding
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 0,
+    marginBottom: hp('1%'), // 2% of screen height
   },
   headerText: {
     color: '#C0C0C0',
-    fontSize: 14,
+    fontSize: wp('4%'), // 4% of screen width
     fontWeight: 'bold',
-    marginHorizontal: -1,
-    Vertical: 10,
+    marginHorizontal: wp('0.5%'), // 0.5% of screen width
+    marginVertical: hp('1%'), // 1% of screen height
   },
   logo: {
-    width: 50,
-    height: 50,
+    width: wp('12%'), // 12% of screen width
+    height: hp('6%'), // 6% of screen height
     resizeMode: 'contain',
-    left: -2,
+    left: wp('0%'),
   },
   imageContainer: {
     width: '100%',
-    height: 180,
+    height: hp('22%'), // 22% of screen height
     borderRadius: 20,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: hp('0%'), // 3% of screen height
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -392,21 +392,21 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: hp('1%'), // 1% of screen height
+    right: wp('2%'), // 2% of screen width
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    padding: 5,
+    padding: wp('1%'),
     borderRadius: 5,
   },
   pictureContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 30,
+    marginBottom: hp('3%'), // 3% of screen height
   },
   pictureButton: {
     width: '45%',
-    height: 110,
+    height: hp('13%'), // 13% of screen height
     backgroundColor: '#000',
     borderColor: '#000',
     borderWidth: 1,
@@ -415,35 +415,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cameraIcon: {
-    marginBottom: 7,
-
+    marginBottom: hp('1%'), // 1% of screen height
   },
   uploadIcon: {
-    marginBottom: 7,
+    marginBottom: hp('1%'), // 1% of screen height
   },
   buttonText: {
     color: '#C0C0C0',
-    fontSize: 16,
+    fontSize: wp('4%'), // 4% of screen width
     fontWeight: 'bold',
   },
   switchContainer: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: hp('1%'), // 3% of screen height
   },
   sliderLabel: {
-    fontSize: 18,
+    fontSize: wp('4%'), // 4% of screen width
     color: '#C0C0C0',
-    marginBottom: 10,
+    marginBottom: hp('1%'), // 1% of screen height
   },
   sendButtonContainer: {
     width: '100%',
     borderRadius: 10,
     overflow: 'hidden',
-    marginTop: 30, // Added margin to move the button down
-},
+    marginVertical: hp('3%'), // 3% of screen height
+  },
   sendButtonGradient: {
-    paddingVertical: 15,
+    paddingVertical: hp('2%'), // 2% of screen height
     borderRadius: 10,
     width: '100%',
     alignItems: 'center',
@@ -454,39 +453,38 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: wp('4.5%'), // 4.5% of screen width
     fontWeight: 'bold',
   },
   radioGroup: {
-    marginBottom: 20,
+    marginBottom: hp('3%'), // 3% of screen height
     alignItems: 'center',
     color: '#C0C0C0',
   },
   radioGroupLabel: {
-    fontSize: 18,
+    fontSize: wp('4%'), // 4% of screen width
     color: '#C0C0C0',
-    marginBottom: 10,
+    marginBottom: hp('1%'), // 1% of screen height
   },
   radioButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: hp('1%'), // 1% of screen height
     color: '#C0C0C0',
   },
   radioLabel: {
     color: '#C0C0C0',
-    marginLeft: 10,
-    fontSize: 16,
+    marginLeft: wp('2%'), // 2% of screen width
+    fontSize: wp('4%'), // 4% of screen width
   },
   personalMediaText: {
     color: '#C0C0C0',
-    fontSize: 18,
+    fontSize: wp('4.5%'), // 4.5% of screen width
     fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: -4, // Adjust this as needed for spacing
-    marginBottom: 40, // Ensure space below "Personal Media"
+    marginTop: hp('-1%'), // -1% of screen height
+    marginBottom: hp('4%'), // 4% of screen height
   },
-
 });
 
 export default HHomePage;

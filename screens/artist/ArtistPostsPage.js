@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
@@ -54,7 +54,6 @@ const ArtistPostsPage = () => {
       setLoading(false);
     }
   };
-
 
   const handleDelete = async (postId) => {
     try {
@@ -178,7 +177,6 @@ const ArtistPostsPage = () => {
     }
   };
 
-
   const renderPostItem = (post, index) => {
     const postDate = new Date(post.created_at).toLocaleString();
 
@@ -253,7 +251,10 @@ const ArtistPostsPage = () => {
           visible={isModalVisible}
           onRequestClose={handleCloseModal}
         >
-          <View style={styles.modalBackground}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.modalBackground}
+          >
             <View style={styles.modalContainer}>
               <Text style={styles.modalTitle}>Message All Fans</Text>
               <TextInput
@@ -284,7 +285,7 @@ const ArtistPostsPage = () => {
                 <Text style={styles.closeButtonText}>Close</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
       </View>
     </SafeAreaView>
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
   interactionContainer: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10 },
   interactionText: { fontSize: 16, color: '#FF0080' },
   postDate: { fontSize: 14, color: '#888', marginTop: 5 },
-  plusButton: { position: 'absolute', top: 20, right: 5, paddingVertical: 7, paddingHorizontal: 10,  borderRadius: 25, zIndex: 10 },
+  plusButton: { position: 'absolute', top: 8, right: 5, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 25, zIndex: 10 },
   loadingText: { color: '#FFFFFF', textAlign: 'center', marginVertical: 10 },
 
   // Modal styles

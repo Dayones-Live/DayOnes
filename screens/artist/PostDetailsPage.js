@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
   },
-  userName: { fontSize: 16, fontWeight: 'bold', color: '#FFF' },
+  userName: { fontSize: 16, fontWeight: 'bold', color: '#000' },
   userLocation: { fontSize: 13, color: '#666' },
   postText: { fontSize: 14, color: '#FFF', marginVertical: 10 },
   postImage: {

@@ -223,6 +223,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     marginBottom: 10,
+    fontFamily:'Verdana'
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -235,6 +236,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     borderRadius: 5,
     alignItems: 'center',
+    
   },
   confirmButton: {
     backgroundColor: '#4CAF50',
