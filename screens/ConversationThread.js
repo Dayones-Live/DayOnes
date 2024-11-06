@@ -7,6 +7,7 @@ import useSendMessage from '../assets/hooks/useSendMessage';
 import { getMessages } from '../assets/services/apiService';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../utils';
+import { uploadVideoToBucket } from '../utils/videoUploadService';
 import Video from 'react-native-video';
 
 const formatTime = (date) => {
@@ -54,14 +55,19 @@ const ConversationThread = () => {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
+    const interval = setInterval(fetchMessages, 50000);
 
     return () => clearInterval(interval);
   }, [accessToken, conversationId]);
 
   const handleMediaUpload = async (uri) => {
     try {
-      const s3Url = await uploadImageToBucket(uri, 'message-media', accessToken);
+      let s3Url;
+      if (mediaType === 'PHOTO') {
+        s3Url = await uploadImageToBucket(uri, 'message-media', accessToken);
+      } else if (mediaType === 'VIDEO') {
+        s3Url = await uploadVideoToBucket(uri, 'message-media', accessToken);
+      }
       return s3Url;
     } catch (error) {
       console.error('Failed to upload media:', error);
@@ -122,6 +128,7 @@ const ConversationThread = () => {
       console.error('Error sending message:', error);
     }
   };
+
 
   const renderMessage = ({ item }) => {
     const senderEmail = item.messageSender?.email || null;
