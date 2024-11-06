@@ -23,50 +23,67 @@ const DMDetailPage = ({ route }) => {
       const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-
+  
       const postData = response.data?.data?.post || {};
       const reactions = response.data?.data?.reactions || [];
       const artistComments = response.data?.data?.artistComments || [];
       const comments = response.data?.data?.comments || [];
-
+  
+      console.log("Fetched initial post data:", postData);
+      console.log("Artist comments:", artistComments);
+      console.log("Fan comments:", comments);
+  
       const isPostLiked = reactions.some(reaction => reaction.user?.email === userEmail);
       setLiked(isPostLiked);
-
+  
       const likedArtistComments = artistComments
         .filter((comment) => comment.commentReactionCount > 0)
         .map((comment) => comment.id);
-
+  
       const likedFanComments = comments
         .filter((comment) => comment.commentReactionCount > 0)
         .map((comment) => comment.id);
-
+  
       setLikedComments([...likedArtistComments, ...likedFanComments]);
       setPost({ ...postData, artistComments, comments });
-
-      console.log("Post details fetched successfully:", postData);
-
-      // Fetch replies for artist comments
+  
+      console.log("Post details fetched successfully with artist and fan comments");
+  
+      // Fetch replies for artist comments and include them with main comments
       await fetchCommentReplies(artistComments);
     } catch (error) {
       console.error('Error fetching post details:', error.response || error.message);
       Alert.alert('Error', 'Could not load post details.');
     }
   };
-
+  
   const fetchCommentReplies = async (artistComments) => {
     try {
       const allReplies = await Promise.all(
         artistComments.map(async (comment) => {
-          const response = await axios.get(`${BASEURL}/api/v1/comment/${comment.id}/replies`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          });
-          return response.data.data.replies || [];
+          try {
+            console.log(`Fetching replies for artist comment ID: ${comment.id}`);
+            const response = await axios.get(`${BASEURL}/api/v1/comment/${comment.id}/replies`, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            
+            console.log(`Fetched replies for artist comment ${comment.id}:`, response.data.data.replies || []);
+            return response.data.data.replies || [];
+          } catch (error) {
+            if (error.response && error.response.status === 404) {
+              console.warn(`No replies found for comment ID ${comment.id} (404)`);
+              return []; // Return empty array if no replies found
+            } else {
+              console.error(`Error fetching replies for comment ID ${comment.id}:`, error);
+              throw error; // Re-throw if it’s an error other than 404
+            }
+          }
         })
       );
-
+  
       const repliesFlattened = allReplies.flat();
-      console.log("Fetched replies:", repliesFlattened);
-
+      console.log("All fetched replies (excluding 404 errors):", repliesFlattened);
+  
       // Merge replies into main comments
       setPost((prevPost) => ({
         ...prevPost,
@@ -77,6 +94,8 @@ const DMDetailPage = ({ route }) => {
       Alert.alert("Error", "Could not load comment replies.");
     }
   };
+  
+  
 
   useEffect(() => {
     fetchPostDetails();
