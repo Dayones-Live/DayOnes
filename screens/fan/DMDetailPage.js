@@ -102,7 +102,6 @@ const DMDetailPage = ({ route }) => {
       Alert.alert("Error", "An unexpected error occurred.");
     }
   };
-
   const userProfile = useSelector((state) => state.userProfile.data);
 
   const addComment = async () => {
@@ -129,7 +128,6 @@ const DMDetailPage = ({ route }) => {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-
       if (response.status === 200 || response.status === 201) {
         const newComment = {
           ...response.data.data,
@@ -138,7 +136,6 @@ const DMDetailPage = ({ route }) => {
             avatar_url: userProfile.avatar_url,
           },
         };
-
         setPost((prevPost) => ({
           ...prevPost,
           comments: [newComment, ...prevPost.comments],
@@ -153,7 +150,6 @@ const DMDetailPage = ({ route }) => {
       Alert.alert("Error", "Failed to add comment.");
     }
   };
-
   const likeComment = async (commentId) => {
     if (!commentId) {
       console.warn("No commentId provided to likeComment function.");
