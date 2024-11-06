@@ -45,61 +45,36 @@ const DMDetailPage = ({ route }) => {
         .map((comment) => comment.id);
   
       setLikedComments([...likedArtistComments, ...likedFanComments]);
-      setPost({ ...postData, artistComments, comments });
-  
-      console.log("Post details fetched successfully with artist and fan comments");
-  
-      // Fetch replies for artist comments and include them with main comments
-      await fetchCommentReplies(artistComments);
+
+      // Accessing and flattening replies embedded in artist comments
+      const artistReplies = artistComments.reduce((allReplies, comment) => {
+        if (comment.replies && comment.replies.length > 0) {
+          console.log(`Replies for artist comment ID ${comment.id}:`, comment.replies);
+          return [...allReplies, ...comment.replies];
+        }
+        return allReplies;
+      }, []);
+
+      setPost({ ...postData, artistComments, comments, artistReplies });
+
+      console.log("Post details with comments and artist replies set in state:", {
+        ...postData,
+        artistComments,
+        comments,
+        artistReplies
+      });
     } catch (error) {
       console.error('Error fetching post details:', error.response || error.message);
       Alert.alert('Error', 'Could not load post details.');
     }
   };
-  
-  const fetchCommentReplies = async (artistComments) => {
-    try {
-      const allReplies = await Promise.all(
-        artistComments.map(async (comment) => {
-          try {
-            console.log(`Fetching replies for artist comment ID: ${comment.id}`);
-            const response = await axios.get(`${BASEURL}/api/v1/comment/${comment.id}/replies`, {
-              headers: { Authorization: `Bearer ${accessToken}` },
-            });
-            
-            console.log(`Fetched replies for artist comment ${comment.id}:`, response.data.data.replies || []);
-            return response.data.data.replies || [];
-          } catch (error) {
-            if (error.response && error.response.status === 404) {
-              console.warn(`No replies found for comment ID ${comment.id} (404)`);
-              return []; // Return empty array if no replies found
-            } else {
-              console.error(`Error fetching replies for comment ID ${comment.id}:`, error);
-              throw error; // Re-throw if it’s an error other than 404
-            }
-          }
-        })
-      );
-  
-      const repliesFlattened = allReplies.flat();
-      console.log("All fetched replies (excluding 404 errors):", repliesFlattened);
-  
-      // Merge replies into main comments
-      setPost((prevPost) => ({
-        ...prevPost,
-        comments: [...prevPost.comments, ...repliesFlattened]
-      }));
-    } catch (error) {
-      console.error("Error fetching comment replies:", error);
-      Alert.alert("Error", "Could not load comment replies.");
-    }
-  };
-  
-  
 
   useEffect(() => {
+    console.log("Post ID has changed or component mounted, fetching post details...");
     fetchPostDetails();
   }, [postId]);
+
+
 
   const toggleLike = async () => {
     try {
@@ -258,43 +233,59 @@ const DMDetailPage = ({ route }) => {
           </View>
 
           <View style={styles.commentsContainer}>
-            {post.artistComments.map((comment, index) => (
-              <View key={index} style={styles.commentWrapper}>
-                {comment.user && comment.user.avatar_url && (
-                  <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
-                )}
-                <View style={styles.commentTextContainer}>
-                  <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
-                  <Text style={styles.commentText}>{comment.message}</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => likedComments.includes(comment.id) ? dislikeComment(comment.id) : likeComment(comment.id)}
-                  style={styles.heartIconOutside}
+            {post.artistComments
+              .map(comment => ({ ...comment, isArtistComment: true })) // Mark artist comments
+              .concat(post.comments, post.artistReplies) // Combine all comments and replies
+              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) // Sort by date
+              .map((comment, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.commentCard, // Card style for each comment
+                    comment.isArtistComment ? styles.artistCommentContainer : styles.fanCommentContainer,
+                    { alignSelf: comment.isArtistComment ? 'flex-start' : 'flex-end' }, // Align based on artist or fan
+                  ]}
                 >
-                  <EvilIcons
-                    name="heart"
-                    size={28}
-                    color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'}
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
+                  {comment.user && comment.user.avatar_url && (
+                    <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
+                  )}
+                  <View style={styles.commentTextContainer}>
+                    <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
+                    <Text style={styles.commentText}>{comment.message}</Text>
 
-            {post.comments?.map((comment, index) => (
-              <View key={index} style={styles.fanCommentContainer}>
-                {comment.user && comment.user.avatar_url && (
-                  <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
-                )}
-                <View style={styles.commentTextContainer}>
-                  <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
-                  <Text style={styles.commentText}>{comment.message}</Text>
+                    {/* Display image if it exists for artist comments */}
+                    {comment.isArtistComment && comment.url && (
+                      <Image source={{ uri: comment.url }} style={styles.commentImage} />
+                    )}
+                  </View>
+
+                  {/* Like button for artist comments only */}
+                  {comment.isArtistComment ? (
+                    <TouchableOpacity
+                      onPress={() =>
+                        likedComments.includes(comment.id)
+                          ? dislikeComment(comment.id)
+                          : likeComment(comment.id)
+                      }
+                      style={styles.heartIconOutside}
+                    >
+                      <EvilIcons
+                        name="heart"
+                        size={28}
+                        color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'}
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    likedComments.includes(comment.id) && (
+                      <EvilIcons name="heart" size={20} color="#FF0000" />
+                    )
+                  )}
                 </View>
-                {likedComments.includes(comment.id) && (
-                  <EvilIcons name="heart" size={20} color="#FF0000" />
-                )}
-              </View>
-            ))}
+              ))}
           </View>
+
+
+
         </KeyboardAwareScrollView>
 
         <View style={styles.commentInputContainer}>
@@ -337,9 +328,33 @@ const styles = StyleSheet.create({
   fanCommentContainer: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#333', padding: 10, borderRadius: 8, marginVertical: 5, alignSelf: 'flex-end', maxWidth: '75%' },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
   commentTextContainer: { flexShrink: 1 },
-  commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold' },
-  commentText: { fontSize: 16, color: '#FFF' },
-  heartIconOutside: { marginLeft: 8 },
+  commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold', },
+  commentText: { fontSize: 16, color: '#FFF', marginRight: 85 },
+  heartIconOutside: { marginLeft: -40 },
+  commentCard: {
+    backgroundColor: '#1e1e1e', // Dark background for contrast
+    borderRadius: 10,
+    padding: 15,
+    marginVertical: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+    maxWidth: '75%',
+  },
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between', // Ensures like button stays to the right
+    marginBottom: 5,
+  },
+  commentImage: {
+    width: 150, // Adjust width as needed
+    height: 150, // Adjust height as needed
+    borderRadius: 8,
+    marginTop: 5,
+  },
   commentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
