@@ -1,136 +1,351 @@
-const fetchPostDetails = async () => {
-  console.log(`Fetching post details for postId: ${postId}`);
-  try {
-    const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+import React, { useState, useEffect } from 'react';
+import { SafeAreaView, View, Text, Image, TouchableOpacity, StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import EvilIcons from 'react-native-vector-icons/EvilIcons';
+import axios from 'axios';
+import { BASEURL } from '../../assets/constants';
+import { useSelector } from 'react-redux';
 
-    const postData = response.data?.data?.post || {};
-    const reactions = response.data?.data?.reactions || [];
-    const artistComments = response.data?.data?.artistComments || [];
-    const comments = response.data?.data?.comments || [];
+const MAX_COMMENT_LENGTH = 200;
 
-    console.log("Post details fetched successfully:", postData);
-    console.log("Artist comments fetched:", artistComments);
-    console.log("Fan comments fetched:", comments);
+const DMDetailPage = ({ route }) => {
+  const { postId } = route.params;
+  const [post, setPost] = useState(null);
+  const [commentText, setCommentText] = useState('');
+  const [liked, setLiked] = useState(false);
+  const [likedComments, setLikedComments] = useState([]);
+  const accessToken = useSelector((state) => state.accessToken);
+  const userEmail = useSelector((state) => state.userProfile.data.email);
 
-    const isPostLiked = reactions.some(reaction => reaction.user?.email === userEmail);
-    setLiked(isPostLiked);
+  const fetchPostDetails = async () => {
+    console.log(`Fetching post details for postId: ${postId}`);
+    try {
+      const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
-    const likedArtistComments = artistComments
-      .filter((comment) => comment.commentReactionCount > 0)
-      .map((comment) => comment.id);
+      const postData = response.data?.data?.post || {};
+      const reactions = response.data?.data?.reactions || [];
+      const artistComments = response.data?.data?.artistComments || [];
+      const comments = response.data?.data?.comments || [];
 
-    const likedFanComments = comments
-      .filter((comment) => comment.commentReactionCount > 0)
-      .map((comment) => comment.id);
+      const isPostLiked = reactions.some(reaction => reaction.user?.email === userEmail);
+      setLiked(isPostLiked);
 
-    setLikedComments([...likedArtistComments, ...likedFanComments]);
-    setPost({ ...postData, artistComments, comments });
+      const likedArtistComments = artistComments
+        .filter((comment) => comment.commentReactionCount > 0)
+        .map((comment) => comment.id);
 
-    // Fetch replies for artist comments
-    await fetchCommentReplies(artistComments);
-  } catch (error) {
-    console.error('Error fetching post details:', error.response || error.message);
-    Alert.alert('Error', 'Could not load post details.');
-  }
-};
+      const likedFanComments = comments
+        .filter((comment) => comment.commentReactionCount > 0)
+        .map((comment) => comment.id);
 
-const fetchCommentReplies = async (artistComments) => {
-  try {
-    console.log("Fetching replies for artist comments:", artistComments.map(comment => comment.id));
-    const allReplies = await Promise.all(
-      artistComments.map(async (comment) => {
-        const response = await axios.get(`${BASEURL}/api/v1/comment/${comment.id}/replies`, {
+      setLikedComments([...likedArtistComments, ...likedFanComments]);
+      setPost({ ...postData, artistComments, comments });
+
+      console.log("Post details fetched successfully:", postData);
+
+      // Fetch replies for artist comments
+      await fetchCommentReplies(artistComments);
+    } catch (error) {
+      console.error('Error fetching post details:', error.response || error.message);
+      Alert.alert('Error', 'Could not load post details.');
+    }
+  };
+
+  const fetchCommentReplies = async (artistComments) => {
+    try {
+      const allReplies = await Promise.all(
+        artistComments.map(async (comment) => {
+          const response = await axios.get(`${BASEURL}/api/v1/comment/${comment.id}/replies`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          return response.data.data.replies || [];
+        })
+      );
+
+      const repliesFlattened = allReplies.flat();
+      console.log("Fetched replies:", repliesFlattened);
+
+      // Merge replies into main comments
+      setPost((prevPost) => ({
+        ...prevPost,
+        comments: [...prevPost.comments, ...repliesFlattened]
+      }));
+    } catch (error) {
+      console.error("Error fetching comment replies:", error);
+      Alert.alert("Error", "Could not load comment replies.");
+    }
+  };
+
+  useEffect(() => {
+    fetchPostDetails();
+  }, [postId]);
+
+  const toggleLike = async () => {
+    try {
+      if (!liked) {
+        console.log("Attempting to like the post:", postId);
+        const response = await axios.post(`${BASEURL}/api/v1/post/${postId}/likes`, {}, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
-        const replies = response.data.data.replies || [];
-        console.log(`Fetched ${replies.length} replies for comment ID ${comment.id}`);
-        return replies;
-      })
-    );
-
-    const repliesFlattened = allReplies.flat();
-    console.log("All fetched replies:", repliesFlattened);
-
-    // Merge replies into main comments
-    setPost((prevPost) => {
-      const updatedComments = [...prevPost.comments, ...repliesFlattened];
-      console.log("Merged comments and replies. Total comments now:", updatedComments.length);
-      return { ...prevPost, comments: updatedComments };
-    });
-  } catch (error) {
-    console.error("Error fetching comment replies:", error);
-    Alert.alert("Error", "Could not load comment replies.");
-  }
-};
-
-const addComment = async () => {
-  if (!commentText.trim()) {
-    Alert.alert("Error", "Comment cannot be empty.");
-    return;
-  }
-  try {
-    const endpoint = `${BASEURL}/api/v1/post/${postId}/comment`;
-    const latestArtistCommentId = post?.artistComments?.[post.artistComments.length - 1]?.id;
-    const body = {
-      message: commentText,
-      ...(latestArtistCommentId && { parentCommentId: latestArtistCommentId })
-    };
-
-    console.log("Adding comment to post:", postId);
-    console.log("Comment text:", commentText);
-    console.log("Parent comment ID:", latestArtistCommentId);
-
-    const response = await axios.post(endpoint, body, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (response.status === 200 || response.status === 201) {
-      const newComment = {
-        ...response.data.data,
-        user: {
-          full_name: userProfile.full_name,
-          avatar_url: userProfile.avatar_url,
-        },
-      };
-      
-      setPost((prevPost) => {
-        const updatedComments = [newComment, ...prevPost.comments];
-        console.log("Comment added successfully:", newComment);
-        console.log("Total comments after addition:", updatedComments.length);
-        return { ...prevPost, comments: updatedComments };
-      });
-      setCommentText('');
-    } else {
-      Alert.alert("Error", "Unexpected response from the server.");
+        if (response.status === 200 || response.status === 201) {
+          setLiked(true);
+          console.log("Post liked successfully.");
+        } else {
+          Alert.alert("Error", "Failed to like the post.");
+        }
+      } else {
+        console.log("Attempting to unlike the post:", postId);
+        const response = await axios.delete(`${BASEURL}/api/v1/post/${postId}/likes`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (response.status === 200 || response.status === 204) {
+          setLiked(false);
+          console.log("Post unliked successfully.");
+        } else {
+          Alert.alert("Error", "Failed to unlike the post.");
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      Alert.alert("Error", "An unexpected error occurred.");
     }
-  } catch (error) {
-    console.error("Error adding comment:", error);
-    Alert.alert("Error", "Failed to add comment.");
+  };
+
+  const userProfile = useSelector((state) => state.userProfile.data);
+
+  const addComment = async () => {
+    if (!commentText.trim()) {
+      Alert.alert("Error", "Comment cannot be empty.");
+      return;
+    }
+    try {
+      const endpoint = `${BASEURL}/api/v1/post/${postId}/comment`;
+      const latestArtistCommentId = post?.artistComments?.[post.artistComments.length - 1]?.id;
+      const body = {
+        message: commentText,
+        ...(latestArtistCommentId && { parentCommentId: latestArtistCommentId })
+      };
+
+      console.log("Adding comment to post:", postId);
+      console.log("Comment text:", commentText);
+      console.log("Parent comment ID:", latestArtistCommentId);
+
+      const response = await axios.post(
+        endpoint,
+        body,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        const newComment = {
+          ...response.data.data,
+          user: {
+            full_name: userProfile.full_name,
+            avatar_url: userProfile.avatar_url,
+          },
+        };
+
+        setPost((prevPost) => ({
+          ...prevPost,
+          comments: [newComment, ...prevPost.comments],
+        }));
+        setCommentText('');
+        console.log("Comment added successfully:", newComment);
+      } else {
+        Alert.alert("Error", "Unexpected response from the server.");
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      Alert.alert("Error", "Failed to add comment.");
+    }
+  };
+
+  const likeComment = async (commentId) => {
+    if (!commentId) {
+      console.warn("No commentId provided to likeComment function.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${BASEURL}/api/v1/comment/like/${commentId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
+        console.log("Comment liked successfully:", commentId);
+      } else {
+        Alert.alert("Error", "Unexpected response from the server.");
+      }
+    } catch (error) {
+      console.error("Error liking comment:", error);
+      Alert.alert("Error", "An unexpected error occurred while liking the comment.");
+    }
+  };
+
+  const dislikeComment = async (commentId) => {
+    try {
+      await axios.post(
+        `${BASEURL}/api/v1/comment/dislike/${commentId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      setLikedComments((prevLikedComments) =>
+        prevLikedComments.filter((id) => id !== commentId)
+      );
+      console.log("Comment disliked successfully:", commentId);
+    } catch (error) {
+      console.error("Error disliking comment:", error);
+      Alert.alert('Error', 'Failed to dislike the comment.');
+    }
+  };
+
+  if (!post) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
   }
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <SafeAreaView style={styles.container}>
+        <KeyboardAwareScrollView contentContainerStyle={styles.scrollViewContainer} extraScrollHeight={80}>
+          {post.user && post.user.avatar_url && (
+            <View style={styles.userInfoContainer}>
+              <Image source={{ uri: post.user.avatar_url }} style={styles.userAvatar} />
+              <Text style={styles.userName}>{post.user.full_name}</Text>
+            </View>
+          )}
+
+          {post.image_url && (
+            <Image source={{ uri: post.image_url }} style={styles.postImage} />
+          )}
+
+          <View style={styles.interactionContainer}>
+            <TouchableOpacity onPress={toggleLike}>
+              <EvilIcons name="heart" size={30} color={liked ? '#FF0000' : '#FFFFFF'} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.commentsContainer}>
+            {post.artistComments.map((comment, index) => (
+              <View key={index} style={styles.commentWrapper}>
+                {comment.user && comment.user.avatar_url && (
+                  <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
+                )}
+                <View style={styles.commentTextContainer}>
+                  <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
+                  <Text style={styles.commentText}>{comment.message}</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => likedComments.includes(comment.id) ? dislikeComment(comment.id) : likeComment(comment.id)}
+                  style={styles.heartIconOutside}
+                >
+                  <EvilIcons
+                    name="heart"
+                    size={28}
+                    color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'}
+                  />
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {post.comments?.map((comment, index) => (
+              <View key={index} style={styles.fanCommentContainer}>
+                {comment.user && comment.user.avatar_url && (
+                  <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
+                )}
+                <View style={styles.commentTextContainer}>
+                  <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
+                  <Text style={styles.commentText}>{comment.message}</Text>
+                </View>
+                {likedComments.includes(comment.id) && (
+                  <EvilIcons name="heart" size={20} color="#FF0000" />
+                )}
+              </View>
+            ))}
+          </View>
+        </KeyboardAwareScrollView>
+
+        <View style={styles.commentInputContainer}>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Write a comment..."
+            placeholderTextColor="#aaa"
+            value={commentText}
+            onChangeText={(text) => setCommentText(text.slice(0, MAX_COMMENT_LENGTH))}
+            multiline
+          />
+          <Text style={styles.characterCounter}>
+            {commentText.length}/{MAX_COMMENT_LENGTH}
+          </Text>
+          <TouchableOpacity
+            style={[styles.sendButton, { backgroundColor: commentText.trim() ? '#FF0080' : '#555' }]}
+            onPress={addComment}
+            disabled={!commentText.trim()}
+          >
+            <EvilIcons name="sc-telegram" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
+  );
 };
 
-return (
-  // Existing JSX...
-  <View style={styles.commentsContainer}>
-    {post.artistComments.length > 0 && (
-      <Text style={styles.sectionTitle}>Artist Comments ({post.artistComments.length})</Text>
-    )}
-    {post.artistComments.map((comment, index) => (
-      <View key={index} style={styles.commentWrapper}>
-        {/* Existing rendering logic for artist comments */}
-      </View>
-    ))}
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000', padding: 16 },
+  scrollViewContainer: { flexGrow: 1, paddingBottom: 100 },
+  loadingText: { fontSize: 20, color: '#ffffff' },
+  userInfoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  userAvatar: { width: 50, height: 50, borderRadius: 25, marginRight: 10 },
+  userName: { fontSize: 18, color: '#ffffff' },
+  postImage: { width: '100%', height: 300, borderRadius: 10, marginBottom: 10 },
+  interactionContainer: { flexDirection: 'row', marginTop: 10, marginBottom: 20, justifyContent: 'center' },
+  commentsContainer: { marginTop: 20 },
+  commentWrapper: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
+  artistCommentContainer: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#000', padding: 10, borderRadius: 8, maxWidth: '75%' },
+  fanCommentContainer: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#333', padding: 10, borderRadius: 8, marginVertical: 5, alignSelf: 'flex-end', maxWidth: '75%' },
+  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
+  commentTextContainer: { flexShrink: 1 },
+  commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold' },
+  commentText: { fontSize: 16, color: '#FFF' },
+  heartIconOutside: { marginLeft: 8 },
+  commentInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    width: '100%',
+  },
+  commentInput: {
+    flex: 1,
+    color: '#ffffff',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#555',
+    borderRadius: 25,
+    backgroundColor: 'rgba(51, 51, 51, 0.6)',
+    fontSize: 16,
+  },
+  characterCounter: { color: '#aaa', marginLeft: 10, fontSize: 12 },
+  sendButton: { marginLeft: 10, padding: 10, borderRadius: 25, backgroundColor: '#FF0080' },
+});
 
-    {post.comments?.length > 0 && (
-      <Text style={styles.sectionTitle}>Fan Comments ({post.comments.length})</Text>
-    )}
-    {post.comments?.map((comment, index) => (
-      <View key={index} style={styles.fanCommentContainer}>
-        {/* Existing rendering logic for fan comments */}
-      </View>
-    ))}
-  </View>
-  // Remaining JSX...
-);
+export default DMDetailPage;
