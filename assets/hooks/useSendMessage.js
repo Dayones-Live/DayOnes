@@ -1,31 +1,34 @@
 import { useState } from 'react';
 import axios from 'axios';
-import socket from '../services/socket'; // Import the WebSocket connection
+import socket from '../services/socket';
 import { Alert } from 'react-native';
+import { BASE_URL } from '../../config/config';
 
 const useSendMessage = (accessToken) => {
   const [error, setError] = useState(null);
 
   // Send Message Function
-  const sendMessage = async (conversationId, message) => {
+  const sendMessage = async (conversationId, message, url = null, mediaType = null) => {
     if (!accessToken) {
       Alert.alert('Error', 'User is not authenticated');
       return;
     }
 
-    const baseUrl = 'http://44.202.63.106:3000'; // WebSocket base URL
-
     try {
-      // Define message payload
+      // Define message payload with conditional url and mediaType
       const payload = {
         conversationId: conversationId,
         message: message,
+        ...(url && { url, mediaType }), // Only include url and mediaType if url is provided
       };
+
+      // Log the payload for verification
+      console.log('Payload being sent:', payload);
 
       // Send message using axios (API call)
       const response = await axios({
         method: 'POST',
-        url: `${baseUrl}/api/v1/message/send`,
+        url: `${BASE_URL}/api/v1/message/send`,
         data: payload,
         headers: {
           Authorization: `Bearer ${accessToken}`,

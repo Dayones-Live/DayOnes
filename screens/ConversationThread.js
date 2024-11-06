@@ -7,6 +7,8 @@ import useSendMessage from '../assets/hooks/useSendMessage';
 import { getMessages } from '../assets/services/apiService';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../utils';
+import { uploadVideoToBucket } from '../utils/videoUploadService';
+import Video from 'react-native-video';
 
 const formatTime = (date) => {
   const options = { hour: 'numeric', minute: 'numeric' };
@@ -28,7 +30,8 @@ const formatDateLabel = (date) => {
 const ConversationThread = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mediaType, setMediaType] = useState(null); // NEW: track whether it's a photo or video
   const route = useRoute();
   const navigation = useNavigation();
   const { conversationId, profilePicture, username } = route.params;
@@ -52,56 +55,66 @@ const ConversationThread = () => {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
+    const interval = setInterval(fetchMessages, 50000);
 
     return () => clearInterval(interval);
   }, [accessToken, conversationId]);
 
-  const handleImageUpload = async (imageUri) => {
+  const handleMediaUpload = async (uri) => {
     try {
-      const s3Url = await uploadImageToBucket(imageUri, 'message-images', accessToken);
+      let s3Url;
+      if (mediaType === 'PHOTO') {
+        s3Url = await uploadImageToBucket(uri, 'message-media', accessToken);
+      } else if (mediaType === 'VIDEO') {
+        s3Url = await uploadVideoToBucket(uri, 'message-media', accessToken);
+      }
       return s3Url;
     } catch (error) {
-      console.error('Failed to upload image:', error);
-      Alert.alert('Error', 'Image upload failed. Please try again.');
+      console.error('Failed to upload media:', error);
+      Alert.alert('Error', 'Media upload failed. Please try again.');
       return null;
     }
   };
 
-  const handleSelectImage = () => {
-    launchImageLibrary({ mediaType: 'photo' }, (response) => {
+  const handleSelectMedia = () => {
+    launchImageLibrary({ mediaType: 'mixed' }, (response) => {
       if (response.assets && response.assets.length > 0) {
-        setSelectedImage(response.assets[0].uri);
+        const asset = response.assets[0];
+        setSelectedMedia(asset.uri);
+        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
       }
     });
   };
 
-  const handleTakePicture = () => {
-    launchCamera({ mediaType: 'photo' }, (response) => {
+  const handleTakeMedia = () => {
+    launchCamera({ mediaType: 'mixed' }, (response) => {
       if (response.assets && response.assets.length > 0) {
-        setSelectedImage(response.assets[0].uri);
+        const asset = response.assets[0];
+        setSelectedMedia(asset.uri);
+        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
       }
     });
   };
 
   const handleSendMessage = async () => {
-    if (newMessage.trim() === '' && !selectedImage) return;
+    if (newMessage.trim() === '' && !selectedMedia) return;
 
     try {
-      let imageUrl = null;
-      if (selectedImage) {
-        imageUrl = await handleImageUpload(selectedImage);
-        if (!imageUrl) return;
+      let mediaUrl = null;
+      if (selectedMedia) {
+        mediaUrl = await handleMediaUpload(selectedMedia);
+        if (!mediaUrl) return;
       }
 
-      await sendMessage(conversationId, newMessage, imageUrl);
+      await sendMessage(conversationId, newMessage, mediaUrl, mediaType);
 
       setMessages((prevMessages) => [
         ...prevMessages,
         {
           id: Date.now().toString(),
           message: newMessage,
-          imageUrl,
+          url: mediaUrl,
+          mediaType: mediaType,
           sender_id: loggedInUserId,
           created_at: new Date().toISOString(),
           messageSender: { email: loggedInUserEmail },
@@ -109,29 +122,51 @@ const ConversationThread = () => {
       ]);
 
       setNewMessage('');
-      setSelectedImage(null);
+      setSelectedMedia(null);
+      setMediaType(null);
     } catch (error) {
       console.error('Error sending message:', error);
     }
   };
+
 
   const renderMessage = ({ item }) => {
     const senderEmail = item.messageSender?.email || null;
     const isSender = senderEmail === loggedInUserEmail;
     const timestamp = formatDateLabel(item.created_at);
 
+
     return (
       <View style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}>
         <View style={[styles.messageBubble, isSender ? styles.senderBubble : styles.receiverBubble]}>
-          {item.imageUrl && (
-            <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
+
+          {/* Display image if mediaType is PHOTO */}
+          {item.media_type === 'PHOTO' && item.url && (
+            <Image source={{ uri: item.url }} style={styles.messageImage} />
           )}
-          <Text style={styles.messageText}>{item.message}</Text>
+
+          {/* Display video if mediaType is VIDEO */}
+          {item.media_type === 'VIDEO' && item.url && (
+            <Video
+              source={{ uri: item.url }}
+              style={styles.messageVideo}
+              paused={true} // Prevent autoplay
+              resizeMode="contain"
+              controls // Allow video controls
+            />
+          )}
+
+          {/* Display the text message if present */}
+          {item.message && (
+            <Text style={styles.messageText}>{item.message}</Text>
+          )}
           <Text style={styles.messageTimestamp}>{timestamp}</Text>
         </View>
       </View>
     );
   };
+
+
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -150,23 +185,40 @@ const ConversationThread = () => {
         renderItem={renderMessage}
         style={styles.messageList}
         inverted={true}
-        contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }} // Adds space between last message and bottom bar
+        contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
       />
 
       <View style={styles.inputContainer}>
-        <TouchableOpacity onPress={handleTakePicture}>
+        {selectedMedia && (
+          <View style={styles.previewContainer}>
+            {mediaType === 'PHOTO' ? (
+              <Image source={{ uri: selectedMedia }} style={styles.previewImage} />
+            ) : (
+              <Video
+                source={{ uri: selectedMedia }}
+                style={styles.previewVideo}
+                resizeMode="cover"
+                paused={true}
+              />
+            )}
+            <TouchableOpacity onPress={() => setSelectedMedia(null)} style={styles.removeMediaButton}>
+              <Icon name="close" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+        <TouchableOpacity onPress={handleTakeMedia}>
           <Icon name="camera" size={24} color="#888" style={styles.icon} />
         </TouchableOpacity>
         <TextInput
           value={newMessage}
           onChangeText={setNewMessage}
           placeholder="Message..."
-          style={styles.input}
+          style={[styles.input, selectedMedia && styles.inputWithImage]}
           placeholderTextColor="#ccc"
           returnKeyType="send"
           onSubmitEditing={handleSendMessage}
         />
-        <TouchableOpacity onPress={handleSelectImage} style={styles.iconSpacing}>
+        <TouchableOpacity onPress={handleSelectMedia} style={styles.iconSpacing}>
           <Icon name="image" size={24} color="#888" style={styles.icon} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
@@ -245,6 +297,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 5,
   },
+  messageVideo: {
+    width: 200,
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 5,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,6 +320,31 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     fontSize: 16,
     marginHorizontal: 10,
+  },
+  inputWithImage: {
+    marginLeft: 10,
+  },
+  previewContainer: {
+    position: 'relative',
+    marginRight: 10,
+  },
+  previewImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+  },
+  previewVideo: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+  },
+  removeMediaButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#000',
+    borderRadius: 10,
+    padding: 2,
   },
   sendButton: {
     backgroundColor: '#4e9af1',
