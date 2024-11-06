@@ -7,6 +7,7 @@ import useSendMessage from '../assets/hooks/useSendMessage';
 import { getMessages } from '../assets/services/apiService';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../utils';
+import Video from 'react-native-video';
 
 const formatTime = (date) => {
   const options = { hour: 'numeric', minute: 'numeric' };
@@ -28,7 +29,8 @@ const formatDateLabel = (date) => {
 const ConversationThread = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mediaType, setMediaType] = useState(null); // NEW: track whether it's a photo or video
   const route = useRoute();
   const navigation = useNavigation();
   const { conversationId, profilePicture, username } = route.params;
@@ -57,52 +59,56 @@ const ConversationThread = () => {
     return () => clearInterval(interval);
   }, [accessToken, conversationId]);
 
-  const handleImageUpload = async (imageUri) => {
+  const handleMediaUpload = async (uri) => {
     try {
-      const s3Url = await uploadImageToBucket(imageUri, 'message-images', accessToken);
+      const s3Url = await uploadImageToBucket(uri, 'message-media', accessToken);
       return s3Url;
     } catch (error) {
-      console.error('Failed to upload image:', error);
-      Alert.alert('Error', 'Image upload failed. Please try again.');
+      console.error('Failed to upload media:', error);
+      Alert.alert('Error', 'Media upload failed. Please try again.');
       return null;
     }
   };
 
-  const handleSelectImage = () => {
-    launchImageLibrary({ mediaType: 'photo' }, (response) => {
+  const handleSelectMedia = () => {
+    launchImageLibrary({ mediaType: 'mixed' }, (response) => {
       if (response.assets && response.assets.length > 0) {
-        setSelectedImage(response.assets[0].uri);
+        const asset = response.assets[0];
+        setSelectedMedia(asset.uri);
+        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
       }
     });
   };
 
-  const handleTakePicture = () => {
-    launchCamera({ mediaType: 'photo' }, (response) => {
+  const handleTakeMedia = () => {
+    launchCamera({ mediaType: 'mixed' }, (response) => {
       if (response.assets && response.assets.length > 0) {
-        setSelectedImage(response.assets[0].uri);
+        const asset = response.assets[0];
+        setSelectedMedia(asset.uri);
+        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
       }
     });
   };
 
   const handleSendMessage = async () => {
-    if (newMessage.trim() === '' && !selectedImage) return;
+    if (newMessage.trim() === '' && !selectedMedia) return;
 
     try {
-      let imageUrl = null;
-      if (selectedImage) {
-        imageUrl = await handleImageUpload(selectedImage);
-        if (!imageUrl) return;
+      let mediaUrl = null;
+      if (selectedMedia) {
+        mediaUrl = await handleMediaUpload(selectedMedia);
+        if (!mediaUrl) return;
       }
 
-      await sendMessage(conversationId, newMessage, imageUrl);
+      await sendMessage(conversationId, newMessage, mediaUrl, mediaType);
 
       setMessages((prevMessages) => [
         ...prevMessages,
         {
           id: Date.now().toString(),
           message: newMessage,
-          url: imageUrl,
-          mediaType: imageUrl ? 'PHOTO' : null,
+          url: mediaUrl,
+          mediaType: mediaType,
           sender_id: loggedInUserId,
           created_at: new Date().toISOString(),
           messageSender: { email: loggedInUserEmail },
@@ -110,7 +116,8 @@ const ConversationThread = () => {
       ]);
 
       setNewMessage('');
-      setSelectedImage(null);
+      setSelectedMedia(null);
+      setMediaType(null);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -121,18 +128,38 @@ const ConversationThread = () => {
     const isSender = senderEmail === loggedInUserEmail;
     const timestamp = formatDateLabel(item.created_at);
 
+
     return (
       <View style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}>
         <View style={[styles.messageBubble, isSender ? styles.senderBubble : styles.receiverBubble]}>
-          {item.url && (
+
+          {/* Display image if mediaType is PHOTO */}
+          {item.media_type === 'PHOTO' && item.url && (
             <Image source={{ uri: item.url }} style={styles.messageImage} />
           )}
-          <Text style={styles.messageText}>{item.message}</Text>
+
+          {/* Display video if mediaType is VIDEO */}
+          {item.media_type === 'VIDEO' && item.url && (
+            <Video
+              source={{ uri: item.url }}
+              style={styles.messageVideo}
+              paused={true} // Prevent autoplay
+              resizeMode="contain"
+              controls // Allow video controls
+            />
+          )}
+
+          {/* Display the text message if present */}
+          {item.message && (
+            <Text style={styles.messageText}>{item.message}</Text>
+          )}
           <Text style={styles.messageTimestamp}>{timestamp}</Text>
         </View>
       </View>
     );
   };
+
+
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -151,31 +178,40 @@ const ConversationThread = () => {
         renderItem={renderMessage}
         style={styles.messageList}
         inverted={true}
-        contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }} // Adds space between last message and bottom bar
+        contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
       />
 
       <View style={styles.inputContainer}>
-        {selectedImage && (
+        {selectedMedia && (
           <View style={styles.previewContainer}>
-            <Image source={{ uri: selectedImage }} style={styles.previewImage} />
-            <TouchableOpacity onPress={() => setSelectedImage(null)} style={styles.removeImageButton}>
+            {mediaType === 'PHOTO' ? (
+              <Image source={{ uri: selectedMedia }} style={styles.previewImage} />
+            ) : (
+              <Video
+                source={{ uri: selectedMedia }}
+                style={styles.previewVideo}
+                resizeMode="cover"
+                paused={true}
+              />
+            )}
+            <TouchableOpacity onPress={() => setSelectedMedia(null)} style={styles.removeMediaButton}>
               <Icon name="close" size={16} color="#fff" />
             </TouchableOpacity>
           </View>
         )}
-        <TouchableOpacity onPress={handleTakePicture}>
+        <TouchableOpacity onPress={handleTakeMedia}>
           <Icon name="camera" size={24} color="#888" style={styles.icon} />
         </TouchableOpacity>
         <TextInput
           value={newMessage}
           onChangeText={setNewMessage}
           placeholder="Message..."
-          style={[styles.input, selectedImage && styles.inputWithImage]}
+          style={[styles.input, selectedMedia && styles.inputWithImage]}
           placeholderTextColor="#ccc"
           returnKeyType="send"
           onSubmitEditing={handleSendMessage}
         />
-        <TouchableOpacity onPress={handleSelectImage} style={styles.iconSpacing}>
+        <TouchableOpacity onPress={handleSelectMedia} style={styles.iconSpacing}>
           <Icon name="image" size={24} color="#888" style={styles.icon} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
@@ -254,6 +290,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 5,
   },
+  messageVideo: {
+    width: 200,
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 5,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -284,7 +326,12 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 10,
   },
-  removeImageButton: {
+  previewVideo: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+  },
+  removeMediaButton: {
     position: 'absolute',
     top: -5,
     right: -5,
