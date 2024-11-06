@@ -24,7 +24,7 @@ export const uploadVideoToBucket = async (uri, keyPath, accessToken, mimeType) =
         console.log(`Requesting signed URL for path: ${path} with MIME type: ${mimeType}`);
         const awsData = await getAWSsignedUrl(path, file.type, accessToken);
         const signedUrl = awsData?.data?.signedUrl;
-        const res = await uploadVideoToS3(signedUrl, file.uri, file);
+        const res = await uploadVideoToS3(signedUrl, videoBody); // Pass videoBody, the blob
         console.log('Uploaded URL:', res);
         return res;
     } catch (error) {
@@ -61,15 +61,15 @@ const getAWSsignedUrl = async (path, fileMimeType, accessToken) => {
 
 
 // Function to upload the video file to S3 using the signed URL
-const uploadVideoToS3 = async (signedUrl, file) => {
+const uploadVideoToS3 = async (signedUrl, videoBlob) => {
     try {
         const myHeaders = new Headers();
-        myHeaders.append('Content-Type', file.type);
+        myHeaders.append('Content-Type', videoBlob.type); // Use blob's MIME type
 
         const requestOptions = {
             method: 'PUT',
             headers: myHeaders,
-            body: file,
+            body: videoBlob, // Use the blob directly
             redirect: 'follow',
         };
 
