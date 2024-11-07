@@ -444,7 +444,7 @@ const PostDetailPage = () => {
 
                     {/* Display artist comment image if url is present */}
                     {artistComment.url && artistComment.media_type === "PHOTO" && (
-                      <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
+                      <Image source={{ uri: artistComment.url || undefined }} style={styles.artistCommentImage} />
                     )}
 
                     {artistComment.media_type === 'VIDEO' && artistComment.url && (
@@ -480,7 +480,9 @@ const PostDetailPage = () => {
 
             <View style={styles.postCard}>
               <View style={styles.userInfoContainer}>
-                <Image source={{ uri: item.user?.avatar_url }} style={styles.avatar} />
+                {item.user?.avatar_url && (
+                  <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
+                )}
                 <View>
                   <Text style={styles.userName}>{item.user?.full_name}</Text>
                   <Text style={styles.userLocation}>{item.user?.location}</Text>
@@ -520,7 +522,10 @@ const PostDetailPage = () => {
                 renderItem={({ item }) => (
                   <View style={styles.commentContainer}>
                     <View style={styles.userInfoContainer}>
-                      <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
+                      {item.user.avatar_url && (
+                        <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
+                      )}
+
                       <View>
                         <Text style={styles.userName}>{item.user.full_name}</Text>
                         <Text style={styles.commentText}>{item.message}</Text>
