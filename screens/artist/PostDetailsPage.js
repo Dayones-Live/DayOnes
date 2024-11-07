@@ -21,6 +21,8 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../../utils';
+import { uploadVideoToBucket } from '../../utils/videoUploadService';
+import Video from 'react-native-video';
 
 const PostDetailPage = () => {
   const [post, setPost] = useState(null);
@@ -34,6 +36,8 @@ const PostDetailPage = () => {
   const [replyText, setReplyText] = useState('');
   const [replyParentId, setReplyParentId] = useState(null);
   const [showReplies, setShowReplies] = useState({});
+  const [mediaType, setMediaType] = useState(null); // NEW: track whether it's a photo or video
+
 
 
   const route = useRoute();
@@ -56,6 +60,7 @@ const PostDetailPage = () => {
 
       // Log the fan comments data with replies (if available)
       console.log("Fetched fan comments data:", comments);
+      console.log(artistComments)
 
       const likedCommentsArray = comments
         .filter((comment) => comment.commentReactionCount > 0)
@@ -92,36 +97,41 @@ const PostDetailPage = () => {
       [commentId]: !prev[commentId],
     }));
   };
-  const options = { mediaType: 'photo', includeBase64: false };
 
-  const takePicture = () => {
-    launchCamera(options, (response) => {
-      if (!response.didCancel && !response.errorCode) {
-        const { uri } = response.assets[0];
-        setSelectedImage(uri.startsWith('file://') ? uri : `file://${uri}`);
-      }
-    });
-  };
-
-  const uploadFile = () => {
-    launchImageLibrary(options, (response) => {
-      if (!response.didCancel && !response.errorCode) {
-        const { uri } = response.assets[0];
-        setSelectedImage(uri.startsWith('file://') ? uri : `file://${uri}`);
-      }
-    });
-  };
-
-  const handleImageUpload = async (imageUri) => {
+  const handleMediaUpload = async (uri) => {
     try {
-      const s3Url = await uploadImageToBucket(imageUri, 'comment-images', accessToken);
-      console.log('Image uploaded to S3:', s3Url);
-      return s3Url; // Return the S3 URL to be used in the comment data
+      let s3Url;
+      if (mediaType === 'PHOTO') {
+        s3Url = await uploadImageToBucket(uri, 'message-media', accessToken);
+      } else if (mediaType === 'VIDEO') {
+        s3Url = await uploadVideoToBucket(uri, 'message-media', accessToken);
+      }
+      return s3Url;
     } catch (error) {
-      console.error('Failed to upload image:', error);
-      Alert.alert('Error', 'Image upload failed. Please try again.');
-      return null; // Return null if the upload fails
+      console.error('Failed to upload media:', error);
+      Alert.alert('Error', 'Media upload failed. Please try again.');
+      return null;
     }
+  };
+
+  const handleSelectMedia = () => {
+    launchImageLibrary({ mediaType: 'mixed' }, (response) => {
+      if (response.assets && response.assets.length > 0) {
+        const asset = response.assets[0];
+        setSelectedImage(asset.uri);
+        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
+      }
+    });
+  };
+
+  const handleTakeMedia = () => {
+    launchCamera({ mediaType: 'mixed' }, (response) => {
+      if (response.assets && response.assets.length > 0) {
+        const asset = response.assets[0];
+        setSelectedImage(asset.uri);
+        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
+      }
+    });
   };
 
   const handleSendComment = async () => {
@@ -135,7 +145,7 @@ const PostDetailPage = () => {
     // Check if selectedImage is a local URI (i.e., not yet uploaded to S3)
     if (selectedImage && !selectedImage.startsWith('https://')) {
       try {
-        s3Url = await handleImageUpload(selectedImage); // Upload to S3 and get the URL
+        s3Url = await handleMediaUpload(selectedImage); // Upload to S3 and get the URL
         if (!s3Url) {
           throw new Error('Image upload failed');
         }
@@ -437,6 +447,16 @@ const PostDetailPage = () => {
                       <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
                     )}
 
+                    {artistComment.media_type === 'VIDEO' && artistComment.url && (
+                      <Video
+                        source={{ uri: artistComment.url }}
+                        style={styles.messageVideo}
+                        paused={true} // Prevent autoplay
+                        resizeMode="contain"
+                        controls // Allow video controls
+                      />
+                    )}
+
                     <View style={styles.interactionRow}>
                       <TouchableOpacity>
                         <Foundation name="comments" size={24} color="#333" />
@@ -588,10 +608,10 @@ const PostDetailPage = () => {
             )}
 
             <View style={styles.iconRow}>
-              <TouchableOpacity onPress={uploadFile}>
+              <TouchableOpacity onPress={handleSelectMedia}>
                 <Icon name="image" size={24} color="blue" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={takePicture}>
+              <TouchableOpacity onPress={handleTakeMedia}>
                 <Icon name="camera" size={24} color="blue" />
               </TouchableOpacity>
             </View>
@@ -658,6 +678,12 @@ const styles = StyleSheet.create({
   dropdownText: {
     color: '#FF0080', // Customize the color if needed
     fontSize: 14,
+  },
+  messageVideo: {
+    width: 200,
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 5,
   },
   repliesContainer: {
     paddingLeft: 20,
