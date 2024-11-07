@@ -34,7 +34,13 @@ const PostDetailPage = () => {
   const [replyText, setReplyText] = useState('');
   const [replyParentId, setReplyParentId] = useState(null);
   const [showReplies, setShowReplies] = useState({});
+  const [showArtistReplies, setShowArtistReplies] = useState({}); // Track artist comment replies
 
+  const options = {
+    mediaType: 'photo',
+    quality: 1, // You can adjust the quality (1 is the highest)
+  };
+  
 
   const route = useRoute();
   const navigation = useNavigation();
@@ -42,36 +48,66 @@ const PostDetailPage = () => {
   const accessToken = useSelector((state) => state.accessToken);
   const commentsSectionRef = useRef(null);
 
+  const structureCommentsWithReplies = (comments) => {
+    const commentMap = {};
+    const structuredComments = [];
+  
+    comments.forEach((comment) => {
+      comment.replies = [];
+      commentMap[comment.id] = comment;
+  
+      if (comment.parentCommentId) {
+        if (commentMap[comment.parentCommentId]) {
+          commentMap[comment.parentCommentId].replies.push(comment);
+        }
+      } else {
+        structuredComments.push(comment);
+      }
+    });
+  
+    return structuredComments;
+  };
+  
   const fetchPostDetails = async () => {
+    console.log("Fetching post details for post ID:", postId);
     try {
-      const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
+      // Step 1: Fetch basic post data from the detail endpoint
+      const detailResponse = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-
-      const postData = response.data?.data?.post || {};
-      const reactions = response.data?.data?.reactions || [];
-      const reactionCount = reactions.length || 0;
-      const artistComments = response.data?.data?.artistComments?.reverse() || [];
-      const comments = response.data?.data?.comments || [];
-
-      // Log the fan comments data with replies (if available)
-      console.log("Fetched fan comments data:", comments);
-
-      const likedCommentsArray = comments
-        .filter((comment) => comment.commentReactionCount > 0)
-        .map((comment) => comment.id);
-
-      setLikedComments(likedCommentsArray);
-      setPost({ ...postData, reactionCount, artistComments, comments });
+      const postData = detailResponse.data?.data?.post || {};
+      const artistComments = detailResponse.data?.data?.artistComments?.reverse() || [];
+      const comments = detailResponse.data?.data?.comments || [];
+      const structuredComments = structureCommentsWithReplies(comments);
+  
+      // Step 2: Fetch reaction count from the main feed endpoint
+      const feedResponse = await axios.get(`${BASEURL}/api/v1/post?pageNo=1&pageSize=50`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const posts = feedResponse.data?.data?.posts || [];
+      const postFromFeed = posts.find((post) => post.id === postId);
+  
+      // Step 3: Combine data from both responses
+      const combinedPostData = {
+        ...postData,
+        reactionCount: postFromFeed?.reactionCount || 0, // Use reactionCount from the feed endpoint
+        artistComments,
+        comments: structuredComments,
+      };
+  
+      // Update the state with the combined data
+      setPost(combinedPostData);
     } catch (error) {
-      console.error('Error fetching post:', error.response || error.message);
+      console.error('Error fetching post details:', error.response || error.message);
       Alert.alert('Error', 'Could not load post details.');
     } finally {
       setLoading(false);
     }
   };
-
-
+  
+  
+  
+  
 
   useEffect(() => {
     fetchPostDetails();
@@ -92,7 +128,13 @@ const PostDetailPage = () => {
       [commentId]: !prev[commentId],
     }));
   };
-  const options = { mediaType: 'photo', includeBase64: false };
+
+  const toggleArtistReplies = (commentId) => {
+    setShowArtistReplies((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
+  };
 
   const takePicture = () => {
     launchCamera(options, (response) => {
@@ -102,7 +144,7 @@ const PostDetailPage = () => {
       }
     });
   };
-
+  
   const uploadFile = () => {
     launchImageLibrary(options, (response) => {
       if (!response.didCancel && !response.errorCode) {
@@ -111,16 +153,15 @@ const PostDetailPage = () => {
       }
     });
   };
+  
 
   const handleImageUpload = async (imageUri) => {
     try {
       const s3Url = await uploadImageToBucket(imageUri, 'comment-images', accessToken);
-      console.log('Image uploaded to S3:', s3Url);
-      return s3Url; // Return the S3 URL to be used in the comment data
+      return s3Url;
     } catch (error) {
-      console.error('Failed to upload image:', error);
       Alert.alert('Error', 'Image upload failed. Please try again.');
-      return null; // Return null if the upload fails
+      return null;
     }
   };
 
@@ -131,94 +172,48 @@ const PostDetailPage = () => {
     }
 
     let s3Url = selectedImage;
-
-    // Check if selectedImage is a local URI (i.e., not yet uploaded to S3)
     if (selectedImage && !selectedImage.startsWith('https://')) {
-      try {
-        s3Url = await handleImageUpload(selectedImage); // Upload to S3 and get the URL
-        if (!s3Url) {
-          throw new Error('Image upload failed');
-        }
-      } catch (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        Alert.alert('Error', 'Image upload failed. Please try again.');
-        return;
-      }
+      s3Url = await handleImageUpload(selectedImage);
+      if (!s3Url) return;
     }
 
+    const commentData = {
+      message: commentText.trim(),
+      ...(s3Url && { url: s3Url, mediaType: 'PHOTO' }),
+    };
+
     try {
-      // Construct the comment data
-      const commentData = {
-        message: commentText.trim(),
-        ...(s3Url && { url: s3Url, mediaType: 'PHOTO' }), // Include url and mediaType only if s3Url exists
-      };
-
-      // Log the comment data for debugging
-      console.log("Sending comment with data:", commentData);
-
       const response = await axios.post(
         `${BASEURL}/api/v1/post/${postId}/comment`,
         commentData,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
 
-      // Check if the response status indicates success
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Success', 'Your comment has been posted.');
         setCommentText('');
         setSelectedImage(null);
         setModalVisible(false);
         fetchPostDetails();
-      } else {
-        console.warn('Unexpected response status:', response.status);
-        Alert.alert('Error', 'Failed to post the comment. Unexpected response from server.');
       }
     } catch (error) {
-      // Enhanced error handling
-      if (error.response) {
-        // The request was made, and the server responded with a status code outside of the 2xx range
-        console.error('Error response status:', error.response.status);
-        console.error('Error response data:', error.response.data);
-        Alert.alert(
-          'Error',
-          `Failed to send comment: ${error.response.data?.message || 'Server error occurred.'}`
-        );
-      } else if (error.request) {
-        // The request was made, but no response was received
-        console.error('No response received:', error.request);
-        Alert.alert('Error', 'No response from server. Please check your network connection and try again.');
-      } else {
-        // Something happened in setting up the request that triggered an error
-        console.error('Error setting up the request:', error.message);
-        Alert.alert('Error', `Unexpected error: ${error.message}`);
-      }
+      Alert.alert('Error', 'Failed to post the comment.');
     }
   };
-
 
   const likeComment = async (commentId) => {
     try {
       if (likedComments.includes(commentId)) {
-        await axios.post(
-          `${BASEURL}/api/v1/comment/dislike/${commentId}`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
+        await axios.post(`${BASEURL}/api/v1/comment/dislike/${commentId}`, {}, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
         setLikedComments((prevLikedComments) =>
           prevLikedComments.filter((id) => id !== commentId)
         );
       } else {
-        await axios.post(
-          `${BASEURL}/api/v1/comment/like/${commentId}`,
-          {},
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
+        await axios.post(`${BASEURL}/api/v1/comment/like/${commentId}`, {}, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
         setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
       }
     } catch (error) {
@@ -243,8 +238,7 @@ const PostDetailPage = () => {
               Alert.alert('Success', 'Comment deleted.');
               fetchPostDetails();
             } catch (error) {
-              console.error('Error deleting comment:', error.response || error.message);
-              Alert.alert('Error', 'Failed to delete comment. Please try again.');
+              Alert.alert('Error', 'Failed to delete comment.');
             }
           },
         },
@@ -259,81 +253,48 @@ const PostDetailPage = () => {
       if (!commentsCollapsed && commentsSectionRef.current) {
         commentsSectionRef.current.scrollToOffset({ offset: 300, animated: true });
       }
-    }, 100); // Delayed to ensure state update takes effect
+    }, 100);
   };
 
-  // Opens the reply modal and sets the parent comment ID
   const handleOpenReplyModal = (commentId) => {
     setReplyParentId(commentId);
     setReplyText('');
     setReplyModalVisible(true);
   };
 
-  // Closes the reply modal
   const handleCloseReplyModal = () => {
     setReplyModalVisible(false);
     setReplyParentId(null);
   };
 
-  // Handles sending the reply to the API
   const handleSendReply = async () => {
-    console.log("Attempting to send reply...");
-
     if (!replyText.trim()) {
       Alert.alert('Error', 'Reply content cannot be empty.');
-      console.log("Reply content is empty, aborting.");
       return;
     }
 
-    console.log("Reply content:", replyText);
-    console.log("Parent comment ID:", replyParentId);
+    const replyData = {
+      message: replyText,
+      parentCommentId: replyParentId,
+    };
 
     try {
-      const replyData = {
-        message: replyText,
-        parentCommentId: replyParentId,
-      };
-
-      console.log("Reply data to be sent:", replyData);
-
       const response = await axios.post(
         `${BASEURL}/api/v1/post/${postId}/comment`,
         replyData,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-
-      console.log("Reply response:", response);
 
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Success', 'Your reply has been posted.');
-        console.log("Reply successfully posted.");
         setReplyText('');
         setReplyModalVisible(false);
-        fetchPostDetails();  // Fetch updated comments after the reply
-      } else {
-        Alert.alert('Error', 'Failed to post the reply. Please try again.');
-        console.warn("Unexpected response status:", response.status);
+        fetchPostDetails();
       }
     } catch (error) {
-      if (error.response) {
-        console.error("Error response from server:", error.response.data);
-        Alert.alert(
-          'Error',
-          `Failed to send reply: ${error.response.data?.message || 'Server error occurred.'}`
-        );
-      } else if (error.request) {
-        console.error("No response received:", error.request);
-        Alert.alert('Error', 'No response from server. Please check your network connection and try again.');
-      } else {
-        console.error("Error setting up the request:", error.message);
-        Alert.alert('Error', `Unexpected error: ${error.message}`);
-      }
+      Alert.alert('Error', 'Failed to post the reply.');
     }
   };
-
-
 
   const checkForExistingConversation = async (userId) => {
     try {
@@ -341,14 +302,12 @@ const PostDetailPage = () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const conversations = response.data?.data?.conversations || [];
-
       return conversations.find(
         (conversation) =>
           (conversation.sender_id === userId || conversation.reciever_id === userId) &&
           (conversation.reciever_id === userId || conversation.sender_id === userId)
       );
     } catch (error) {
-      console.error('Error fetching existing conversations:', error.message);
       return null;
     }
   };
@@ -357,29 +316,22 @@ const PostDetailPage = () => {
     try {
       const existingConversation = await checkForExistingConversation(userId);
       if (existingConversation) {
-        console.log('Navigating to existing conversation with ID:', existingConversation.id);
         navigation.navigate('ConversationThread', { conversationId: existingConversation.id });
       } else {
-        console.log('Creating a new conversation as none exists.');
         const response = await axios.post(
           `${BASEURL}/api/v1/conversation`,
           { recieverId: userId, lastMessage: 'Hello!' },
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
+          { headers: { Authorization: `Bearer ${accessToken}` } }
         );
 
         const newConversationId = response.data?.data?.id;
         if (newConversationId) {
-          console.log('New conversation created with ID:', newConversationId);
           navigation.navigate('ConversationThread', { conversationId: newConversationId });
         } else {
-          console.error('Error: Conversation ID not found in response:', response.data);
           Alert.alert('Error', 'Failed to create conversation. Please try again.');
         }
       }
     } catch (error) {
-      console.error('Error creating or navigating conversation:', error.response || error.message);
       Alert.alert('Error', 'An error occurred while handling the conversation request.');
     }
   };
@@ -431,33 +383,60 @@ const PostDetailPage = () => {
                       </View>
                     </View>
                     <Text style={styles.commentText}>{artistComment.message}</Text>
-
-                    {/* Display artist comment image if url is present */}
                     {artistComment.url && artistComment.media_type === "PHOTO" && (
                       <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
                     )}
-
                     <View style={styles.interactionRow}>
-                      <TouchableOpacity>
-                        <Foundation name="comments" size={24} color="#333" />
-                        <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity>
-                        <Foundation name="heart" size={24} color="#333" />
-                        <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => deleteComment(artistComment.id)}>
-                        <Icon name="trash" size={20} color="red" />
-                      </TouchableOpacity>
-                    </View>
+  
+                    <TouchableOpacity onPress={() => toggleArtistReplies(artistComment.id)}>
+                    <Foundation name="comments" size={24} color="#333" />
+                    <Text style={styles.iconText}>{artistComment.replies?.length || 0}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => likeComment(artistComment.id)}>
+                    <Foundation name="heart" size={24} color="#333" />
+                    <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => deleteComment(artistComment.id)}>
+                    <Icon name="trash" size={20} color="red" />
+                  </TouchableOpacity>
+                </View>
+
+
+                    {/* Display replies if the toggle is open */}
+                    {showArtistReplies[artistComment.id] && artistComment.replies && artistComment.replies.length > 0 && (
+                      <View style={styles.repliesContainer}>
+                        {artistComment.replies.map((reply) => (
+                          <View key={reply.id} style={[styles.commentContainer, { marginLeft: 20 }]}>
+                            <View style={styles.userInfoContainer}>
+                              <Image source={{ uri: reply.user.avatar_url }} style={styles.avatar} />
+                              <View>
+                                <Text style={styles.userName}>{reply.user.full_name}</Text>
+                                <Text style={styles.commentText}>{reply.message}</Text>
+                              </View>
+                            </View>
+                            <View style={styles.interactionRow}>
+                              <TouchableOpacity onPress={() => likeComment(reply.id)}>
+                                <Icon
+                                  name="heart"
+                                  size={20}
+                                  color={likedComments.includes(reply.id) ? 'red' : '#333'}
+                                />
+                              </TouchableOpacity>
+                              <TouchableOpacity onPress={() => handleOpenReplyModal(reply.id)}>
+                                <AntDesign name="message1" size={20} color="#333" />
+                              </TouchableOpacity>
+                              <TouchableOpacity onPress={() => createOrNavigateConversation(reply.user.id)}>
+                                <Icon name="paper-plane" size={20} color="#333" />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
                   </View>
                 ))}
               </View>
             )}
-
-
-
-
             <View style={styles.postCard}>
               <View style={styles.userInfoContainer}>
                 <Image source={{ uri: item.user?.avatar_url }} style={styles.avatar} />
@@ -466,13 +445,10 @@ const PostDetailPage = () => {
                   <Text style={styles.userLocation}>{item.user?.location}</Text>
                 </View>
               </View>
-
               <Text style={styles.postText}>{item.message}</Text>
-
               {item.image_url && (
                 <Image source={{ uri: item.image_url }} style={styles.postImage} />
               )}
-
               <View style={styles.interactionRow}>
                 <TouchableOpacity onPress={toggleComments}>
                   <Foundation name="comments" size={24} color="#FFF" />
@@ -506,12 +482,9 @@ const PostDetailPage = () => {
                         <Text style={styles.commentText}>{item.message}</Text>
                       </View>
                     </View>
-
-                    {/* Display comment image if imageUrl is present */}
                     {item.imageUrl && (
                       <Image source={{ uri: item.imageUrl }} style={styles.commentImage} />
                     )}
-
                     <View style={styles.interactionRow}>
                       <TouchableOpacity onPress={() => likeComment(item.id)}>
                         <Icon
@@ -527,8 +500,6 @@ const PostDetailPage = () => {
                         <Icon name="paper-plane" size={20} color="#333" />
                       </TouchableOpacity>
                     </View>
-
-                    {/* Toggle View Replies */}
                     {item.replies && item.replies.length > 0 && (
                       <TouchableOpacity onPress={() => toggleReplies(item.id)} style={styles.dropdownButton}>
                         <Text style={styles.dropdownText}>
@@ -536,16 +507,15 @@ const PostDetailPage = () => {
                         </Text>
                       </TouchableOpacity>
                     )}
-
-                    {/* Display replies if showReplies for the comment is true */}
                     {showReplies[item.id] && (
                       <View style={styles.repliesContainer}>
                         {item.replies.map((reply, index) => (
                           <View key={index} style={styles.reply}>
-                            {/* Display reply message */}
+                            <View style={styles.userInfoContainer}>
+                              <Image source={{ uri: reply.user.avatar_url }} style={styles.avatar} />
+                              <Text style={styles.userName}>{reply.user.full_name}</Text>
+                            </View>
                             <Text style={styles.replyText}>{reply.message}</Text>
-
-                            {/* Display reply timestamp */}
                             <Text style={styles.replyTimestamp}>
                               {new Date(reply.created_at).toLocaleTimeString()}
                             </Text>
@@ -553,18 +523,13 @@ const PostDetailPage = () => {
                         ))}
                       </View>
                     )}
-
-
-
                   </View>
                 )}
               />
-
             )}
           </View>
         }
       />
-
       <Modal
         animationType="slide"
         transparent
@@ -582,11 +547,9 @@ const PostDetailPage = () => {
               onChangeText={setCommentText}
               multiline
             />
-
             {selectedImage && (
               <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
             )}
-
             <View style={styles.iconRow}>
               <TouchableOpacity onPress={uploadFile}>
                 <Icon name="image" size={24} color="blue" />
@@ -595,18 +558,15 @@ const PostDetailPage = () => {
                 <Icon name="camera" size={24} color="blue" />
               </TouchableOpacity>
             </View>
-
             <TouchableOpacity style={styles.postButton} onPress={handleSendComment}>
               <Text style={styles.postButtonText}>Send</Text>
             </TouchableOpacity>
-
             <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-      {/* Reply Modal */}
       <Modal
         animationType="slide"
         transparent
@@ -627,14 +587,12 @@ const PostDetailPage = () => {
             <TouchableOpacity style={styles.postButton} onPress={handleSendReply}>
               <Text style={styles.postButtonText}>Reply</Text>
             </TouchableOpacity>
-
             <TouchableOpacity style={styles.closeButton} onPress={handleCloseReplyModal}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 };
@@ -651,35 +609,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#000',
   },
-  dropdownButton: {
-    paddingVertical: 5,
-    marginTop: 5,
-  },
-  dropdownText: {
-    color: '#FF0080', // Customize the color if needed
-    fontSize: 14,
-  },
-  repliesContainer: {
-    paddingLeft: 20,
-    marginTop: 10,
-  },
-  reply: {
-    marginBottom: 5,
-  },
-  replyText: {
-    color: '#000', // Customize as needed
-    fontSize: 14,
-  },
-  replyTimestamp: {
-    color: '#000', // Lighter color for timestamp
-    fontSize: 8,
-  },
-  artistCommentImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 10,
-    marginVertical: 10,
-  },
+  dropdownButton: { paddingVertical: 5, marginTop: 5 },
+  dropdownText: { color: '#FF0080', fontSize: 14 },
+  repliesContainer: { paddingLeft: 20, marginTop: 10 },
+  reply: { marginBottom: 5 },
+  replyText: { color: '#000', fontSize: 14 },
+  replyTimestamp: { color: '#000', fontSize: 8 },
+  artistCommentImage: { width: '100%', height: 200, borderRadius: 10, marginVertical: 10 },
   postTitle: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
   plusIcon: { padding: 8 },
   postCard: {
@@ -693,65 +629,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  commentImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 10,
-    marginVertical: 10,
-  },
-  artistCommentContainer: {
-    backgroundColor: '#000',
-    padding: 10,
-    borderRadius: 8,
-    marginVertical: 5,
-  },
-  userInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
+  commentImage: { width: '100%', height: 200, borderRadius: 10, marginVertical: 10 },
+  artistCommentContainer: { backgroundColor: '#000', padding: 10, borderRadius: 8, marginVertical: 5 },
+  userInfoContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 10 },
+  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
   userName: { fontSize: 16, fontWeight: 'bold', color: '#000' },
   userLocation: { fontSize: 13, color: '#666' },
   postText: { fontSize: 14, color: '#FFF', marginVertical: 10 },
-  postImage: {
-    width: '100%',
-    height: 300,
-    borderRadius: 10,
-    marginVertical: 10,
-    backgroundColor: '#ddd',
-  },
-  interactionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
+  postImage: { width: '100%', height: 300, borderRadius: 10, marginVertical: 10, backgroundColor: '#ddd' },
+  interactionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
   iconText: { marginLeft: 5, fontSize: 14, color: '#FFF' },
-  commentContainer: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: 'white',
-    borderRadius: 8,
-  },
+  commentContainer: { marginTop: 10, padding: 10, backgroundColor: 'white', borderRadius: 8 },
   commentText: { color: '#333', marginTop: 5 },
-  modalBackground: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  modalContainer: {
-    width: '90%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-  },
+  modalBackground: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
+  modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
   textInput: {
     width: '100%',
@@ -777,13 +668,7 @@ const styles = StyleSheet.create({
   postButtonText: { color: 'white', fontWeight: 'bold' },
   closeButton: { marginTop: 10 },
   closeButtonText: { color: 'blue', fontWeight: 'bold' },
-  collapseText: {
-    color: '#FFF',
-    textAlign: 'center',
-    marginVertical: 10,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  collapseText: { color: '#FFF', textAlign: 'center', marginVertical: 10, fontSize: 16, fontWeight: 'bold' },
 });
 
 export default PostDetailPage;

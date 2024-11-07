@@ -25,28 +25,35 @@ const ArtistPostsPage = () => {
   const fetchArtistPosts = async (pageNum = 1) => {
     if (loading || !hasMore) return;
     setLoading(true);
-
+  
     try {
       const apiUrl = `${BASEURL}/api/v1/post?pageNo=${pageNum}&pageSize=25`;
       const response = await axios.get(apiUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-
+  
+      // Log the entire response for inspection
+      console.log("Fetched Posts Response:", response.data);
+  
       const postsData = response.data?.data?.posts || [];
       const genericPost = postsData.find(post => post.type === 'GENERIC');
       const otherPosts = postsData.filter(post => post.type !== 'GENERIC');
-
+  
+      // Log the generic post and other posts for clarity
+      console.log("Pinned (Generic) Post Data:", genericPost);
+      console.log("Other Posts Data:", otherPosts);
+  
       if (genericPost) setPinnedPost(genericPost);
       if (otherPosts.length < 10) setHasMore(false);
-
+  
       // Sort posts by date (most recent first)
       otherPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
+  
       setPosts(prevPosts => {
         const newPosts = otherPosts.filter(post => !prevPosts.some(prevPost => prevPost.id === post.id));
         return pageNum === 1 ? newPosts : [...prevPosts, ...newPosts];
       });
-
+  
       setPage(pageNum + 1);
     } catch (error) {
       Alert.alert('Error', 'An error occurred while fetching posts.');
@@ -54,6 +61,7 @@ const ArtistPostsPage = () => {
       setLoading(false);
     }
   };
+  
 
   const handleDelete = async (postId) => {
     try {

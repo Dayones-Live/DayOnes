@@ -16,53 +16,40 @@ const DMDetailPage = ({ route }) => {
   const [likedComments, setLikedComments] = useState([]);
   const accessToken = useSelector((state) => state.accessToken);
   const userEmail = useSelector((state) => state.userProfile.data.email);
+  const userProfile = useSelector((state) => state.userProfile.data);
 
   const fetchPostDetails = async () => {
-    console.log(`Fetching post details for postId: ${postId}`);
     try {
       const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-  
+
       const postData = response.data?.data?.post || {};
       const reactions = response.data?.data?.reactions || [];
       const artistComments = response.data?.data?.artistComments || [];
       const comments = response.data?.data?.comments || [];
-  
-      console.log("Fetched initial post data:", postData);
-      console.log("Artist comments:", artistComments);
-      console.log("Fan comments:", comments);
-  
+
       const isPostLiked = reactions.some(reaction => reaction.user?.email === userEmail);
       setLiked(isPostLiked);
-  
+
       const likedArtistComments = artistComments
         .filter((comment) => comment.commentReactionCount > 0)
         .map((comment) => comment.id);
-  
+
       const likedFanComments = comments
         .filter((comment) => comment.commentReactionCount > 0)
         .map((comment) => comment.id);
-  
+
       setLikedComments([...likedArtistComments, ...likedFanComments]);
 
-      // Accessing and flattening replies embedded in artist comments
       const artistReplies = artistComments.reduce((allReplies, comment) => {
         if (comment.replies && comment.replies.length > 0) {
-          console.log(`Replies for artist comment ID ${comment.id}:`, comment.replies);
           return [...allReplies, ...comment.replies];
         }
         return allReplies;
       }, []);
-
+      
       setPost({ ...postData, artistComments, comments, artistReplies });
-
-      console.log("Post details with comments and artist replies set in state:", {
-        ...postData,
-        artistComments,
-        comments,
-        artistReplies
-      });
     } catch (error) {
       console.error('Error fetching post details:', error.response || error.message);
       Alert.alert('Error', 'Could not load post details.');
@@ -70,90 +57,82 @@ const DMDetailPage = ({ route }) => {
   };
 
   useEffect(() => {
-    console.log("Post ID has changed or component mounted, fetching post details...");
     fetchPostDetails();
   }, [postId]);
 
-
-
-  const toggleLike = async () => {
-    try {
-      if (!liked) {
-        console.log("Attempting to like the post:", postId);
-        const response = await axios.post(`${BASEURL}/api/v1/post/${postId}/likes`, {}, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        if (response.status === 200 || response.status === 201) {
-          setLiked(true);
-          console.log("Post liked successfully.");
-        } else {
-          Alert.alert("Error", "Failed to like the post.");
-        }
-      } else {
-        console.log("Attempting to unlike the post:", postId);
-        const response = await axios.delete(`${BASEURL}/api/v1/post/${postId}/likes`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        if (response.status === 200 || response.status === 204) {
-          setLiked(false);
-          console.log("Post unliked successfully.");
-        } else {
-          Alert.alert("Error", "Failed to unlike the post.");
-        }
-      }
-    } catch (error) {
-      console.error("Error toggling like:", error);
-      Alert.alert("Error", "An unexpected error occurred.");
-    }
-  };
-  const userProfile = useSelector((state) => state.userProfile.data);
-
-  const addComment = async () => {
-    if (!commentText.trim()) {
-      Alert.alert("Error", "Comment cannot be empty.");
-      return;
-    }
-    try {
-      const endpoint = `${BASEURL}/api/v1/post/${postId}/comment`;
-      const latestArtistCommentId = post?.artistComments?.[post.artistComments.length - 1]?.id;
-      const body = {
-        message: commentText,
-        ...(latestArtistCommentId && { parentCommentId: latestArtistCommentId })
-      };
-
-      console.log("Adding comment to post:", postId);
-      console.log("Comment text:", commentText);
-      console.log("Parent comment ID:", latestArtistCommentId);
-
-      const response = await axios.post(
-        endpoint,
-        body,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
+ const toggleLike = async () => {
+  try {
+    if (!liked) {
+      const response = await axios.post(`${BASEURL}/api/v1/post/${postId}/likes`, {}, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       if (response.status === 200 || response.status === 201) {
-        const newComment = {
-          ...response.data.data,
-          user: {
-            full_name: userProfile.full_name,
-            avatar_url: userProfile.avatar_url,
-          },
-        };
-        setPost((prevPost) => ({
-          ...prevPost,
-          comments: [newComment, ...prevPost.comments],
-        }));
-        setCommentText('');
-        console.log("Comment added successfully:", newComment);
+        setLiked(true);
       } else {
-        Alert.alert("Error", "Unexpected response from the server.");
+        Alert.alert("Error", "Failed to like the post.");
       }
-    } catch (error) {
-      console.error("Error adding comment:", error);
-      Alert.alert("Error", "Failed to add comment.");
+    } else {
+      const response = await axios.delete(`${BASEURL}/api/v1/post/${postId}/likes`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (response.status === 200 || response.status === 204) {
+        setLiked(false);
+      } else {
+        Alert.alert("Error", "Failed to unlike the post.");
+      }
     }
-  };
+  } catch (error) {
+    console.error("Error toggling like on post:", error);
+    Alert.alert("Error", "An unexpected error occurred.");
+  }
+};
+
+
+const addComment = async () => {
+  
+  if (!commentText.trim()) {
+    Alert.alert("Error", "Comment cannot be empty.");
+    return;
+  }
+  
+  try {
+    const endpoint = `${BASEURL}/api/v1/post/${postId}/comment`;
+    const latestArtistCommentId = post?.artistComments?.[post.artistComments.length - 1]?.id;
+    const body = {
+      message: commentText,
+      ...(latestArtistCommentId && { parentCommentId: latestArtistCommentId })
+    };
+    
+    const response = await axios.post(endpoint, body, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    
+    if (response.status === 200 || response.status === 201) {
+      const newComment = {
+        ...response.data.data,
+        user: {
+          full_name: userProfile?.full_name || 'Unknown User',  // Fallback if userProfile is missing
+          avatar_url: userProfile?.avatar_url || '', // Default to empty if avatar_url is missing
+        },
+      };
+      
+      setPost((prevPost) => ({
+        ...prevPost,
+        comments: [newComment, ...prevPost.comments],
+      }));
+      
+      setCommentText('');
+    } else {
+      Alert.alert("Error", "Unexpected response from the server.");
+    }
+  } catch (error) {
+    console.error("Error adding comment:", error.response?.data || error.message);
+    Alert.alert("Error", "Failed to add comment.");
+  }
+};
+
+
+
   const likeComment = async (commentId) => {
     if (!commentId) {
       console.warn("No commentId provided to likeComment function.");
@@ -161,17 +140,11 @@ const DMDetailPage = ({ route }) => {
     }
 
     try {
-      const response = await axios.post(
-        `${BASEURL}/api/v1/comment/like/${commentId}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-
+      const response = await axios.post(`${BASEURL}/api/v1/comment/like/${commentId}`, {}, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       if (response.status === 200 || response.status === 201) {
         setLikedComments((prevLikedComments) => [...prevLikedComments, commentId]);
-        console.log("Comment liked successfully:", commentId);
       } else {
         Alert.alert("Error", "Unexpected response from the server.");
       }
@@ -183,17 +156,10 @@ const DMDetailPage = ({ route }) => {
 
   const dislikeComment = async (commentId) => {
     try {
-      await axios.post(
-        `${BASEURL}/api/v1/comment/dislike/${commentId}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-      setLikedComments((prevLikedComments) =>
-        prevLikedComments.filter((id) => id !== commentId)
-      );
-      console.log("Comment disliked successfully:", commentId);
+      await axios.post(`${BASEURL}/api/v1/comment/dislike/${commentId}`, {}, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      setLikedComments((prevLikedComments) => prevLikedComments.filter((id) => id !== commentId));
     } catch (error) {
       console.error("Error disliking comment:", error);
       Alert.alert('Error', 'Failed to dislike the comment.');
@@ -209,10 +175,7 @@ const DMDetailPage = ({ route }) => {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SafeAreaView style={styles.container}>
         <KeyboardAwareScrollView contentContainerStyle={styles.scrollViewContainer} extraScrollHeight={80}>
           {post.user && post.user.avatar_url && (
@@ -234,16 +197,16 @@ const DMDetailPage = ({ route }) => {
 
           <View style={styles.commentsContainer}>
             {post.artistComments
-              .map(comment => ({ ...comment, isArtistComment: true })) // Mark artist comments
-              .concat(post.comments, post.artistReplies) // Combine all comments and replies
-              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) // Sort by date
+              .map(comment => ({ ...comment, isArtistComment: true }))
+              .concat(post.comments, post.artistReplies)
+              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
               .map((comment, index) => (
                 <View
                   key={index}
                   style={[
-                    styles.commentCard, // Card style for each comment
+                    styles.commentCard,
                     comment.isArtistComment ? styles.artistCommentContainer : styles.fanCommentContainer,
-                    { alignSelf: comment.isArtistComment ? 'flex-start' : 'flex-end' }, // Align based on artist or fan
+                    { alignSelf: comment.isArtistComment ? 'flex-start' : 'flex-end' },
                   ]}
                 >
                   {comment.user && comment.user.avatar_url && (
@@ -253,14 +216,12 @@ const DMDetailPage = ({ route }) => {
                     <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
                     <Text style={styles.commentText}>{comment.message}</Text>
 
-                    {/* Display image if it exists for artist comments */}
                     {comment.isArtistComment && comment.url && (
                       <Image source={{ uri: comment.url }} style={styles.commentImage} />
                     )}
                   </View>
 
-                  {/* Like button for artist comments only */}
-                  {comment.isArtistComment ? (
+                  {(comment.isArtistComment || likedComments.includes(comment.id)) && (
                     <TouchableOpacity
                       onPress={() =>
                         likedComments.includes(comment.id)
@@ -275,17 +236,10 @@ const DMDetailPage = ({ route }) => {
                         color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'}
                       />
                     </TouchableOpacity>
-                  ) : (
-                    likedComments.includes(comment.id) && (
-                      <EvilIcons name="heart" size={20} color="#FF0000" />
-                    )
                   )}
                 </View>
               ))}
           </View>
-
-
-
         </KeyboardAwareScrollView>
 
         <View style={styles.commentInputContainer}>
@@ -323,16 +277,18 @@ const styles = StyleSheet.create({
   postImage: { width: '100%', height: 300, borderRadius: 10, marginBottom: 10 },
   interactionContainer: { flexDirection: 'row', marginTop: 10, marginBottom: 20, justifyContent: 'center' },
   commentsContainer: { marginTop: 20 },
-  commentWrapper: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
   artistCommentContainer: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#000', padding: 10, borderRadius: 8, maxWidth: '75%' },
   fanCommentContainer: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#333', padding: 10, borderRadius: 8, marginVertical: 5, alignSelf: 'flex-end', maxWidth: '75%' },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
   commentTextContainer: { flexShrink: 1 },
   commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold', },
   commentText: { fontSize: 16, color: '#FFF', marginRight: 85 },
-  heartIconOutside: { marginLeft: -40 },
+  heartIconOutside: { 
+    marginTop: 10, 
+    alignSelf: 'center', 
+  },
   commentCard: {
-    backgroundColor: '#1e1e1e', // Dark background for contrast
+    backgroundColor: '#1e1e1e',
     borderRadius: 10,
     padding: 15,
     marginVertical: 5,
@@ -342,16 +298,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
     maxWidth: '75%',
+    paddingBottom: 20,
   },
   userInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Ensures like button stays to the right
+    justifyContent: 'space-between',
     marginBottom: 5,
   },
   commentImage: {
-    width: 150, // Adjust width as needed
-    height: 150, // Adjust height as needed
+    width: 150,
+    height: 150,
     borderRadius: 8,
     marginTop: 5,
   },

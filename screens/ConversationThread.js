@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  SafeAreaView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -9,6 +21,7 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../utils';
 import { uploadVideoToBucket } from '../utils/videoUploadService';
 import Video from 'react-native-video';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const formatTime = (date) => {
   const options = { hour: 'numeric', minute: 'numeric' };
@@ -129,103 +142,97 @@ const ConversationThread = () => {
     }
   };
 
-
   const renderMessage = ({ item }) => {
     const senderEmail = item.messageSender?.email || null;
     const isSender = senderEmail === loggedInUserEmail;
     const timestamp = formatDateLabel(item.created_at);
 
-
     return (
       <View style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}>
         <View style={[styles.messageBubble, isSender ? styles.senderBubble : styles.receiverBubble]}>
-
-          {/* Display image if mediaType is PHOTO */}
           {item.media_type === 'PHOTO' && item.url && (
             <Image source={{ uri: item.url }} style={styles.messageImage} />
           )}
-
-          {/* Display video if mediaType is VIDEO */}
           {item.media_type === 'VIDEO' && item.url && (
             <Video
               source={{ uri: item.url }}
               style={styles.messageVideo}
-              paused={true} // Prevent autoplay
+              paused={true}
               resizeMode="contain"
-              controls // Allow video controls
+              controls
             />
           )}
-
-          {/* Display the text message if present */}
-          {item.message && (
-            <Text style={styles.messageText}>{item.message}</Text>
-          )}
+          {item.message && <Text style={styles.messageText}>{item.message}</Text>}
           <Text style={styles.messageTimestamp}>{timestamp}</Text>
         </View>
       </View>
     );
   };
 
-
-
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      {/* Header with profile picture, name, and back button */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={24} color="#fff" style={styles.backButton} />
-        </TouchableOpacity>
-        <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
-        <Text style={styles.username}>{username}</Text>
-      </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <SafeAreaView style={styles.safeContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={24} color="#fff" style={styles.backButton} />
+          </TouchableOpacity>
+          <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
+          <Text style={styles.username}>{username}</Text>
+        </View>
 
-      <FlatList
-        data={[...messages].reverse()}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderMessage}
-        style={styles.messageList}
-        inverted={true}
-        contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
-      />
+        <KeyboardAwareScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <FlatList
+            data={[...messages].reverse()}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderMessage}
+            style={styles.messageList}
+            inverted={true}
+            contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
+          />
+        </KeyboardAwareScrollView>
 
-      <View style={styles.inputContainer}>
-        {selectedMedia && (
-          <View style={styles.previewContainer}>
-            {mediaType === 'PHOTO' ? (
-              <Image source={{ uri: selectedMedia }} style={styles.previewImage} />
-            ) : (
-              <Video
-                source={{ uri: selectedMedia }}
-                style={styles.previewVideo}
-                resizeMode="cover"
-                paused={true}
-              />
-            )}
-            <TouchableOpacity onPress={() => setSelectedMedia(null)} style={styles.removeMediaButton}>
-              <Icon name="close" size={16} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        )}
-        <TouchableOpacity onPress={handleTakeMedia}>
-          <Icon name="camera" size={24} color="#888" style={styles.icon} />
-        </TouchableOpacity>
-        <TextInput
-          value={newMessage}
-          onChangeText={setNewMessage}
-          placeholder="Message..."
-          style={[styles.input, selectedMedia && styles.inputWithImage]}
-          placeholderTextColor="#ccc"
-          returnKeyType="send"
-          onSubmitEditing={handleSendMessage}
-        />
-        <TouchableOpacity onPress={handleSelectMedia} style={styles.iconSpacing}>
-          <Icon name="image" size={24} color="#888" style={styles.icon} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-          <Icon name="send" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+        <View style={styles.inputContainer}>
+          {selectedMedia && (
+            <View style={styles.previewContainer}>
+              {mediaType === 'PHOTO' ? (
+                <Image source={{ uri: selectedMedia }} style={styles.previewImage} />
+              ) : (
+                <Video
+                  source={{ uri: selectedMedia }}
+                  style={styles.previewVideo}
+                  resizeMode="cover"
+                  paused={true}
+                />
+              )}
+              <TouchableOpacity onPress={() => setSelectedMedia(null)} style={styles.removeMediaButton}>
+                <Icon name="close" size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity onPress={handleTakeMedia}>
+            <Icon name="camera" size={24} color="#888" style={styles.icon} />
+          </TouchableOpacity>
+          <TextInput
+            value={newMessage}
+            onChangeText={setNewMessage}
+            placeholder="Message..."
+            style={[styles.input, selectedMedia && styles.inputWithImage]}
+            placeholderTextColor="#ccc"
+            returnKeyType="send"
+            onSubmitEditing={handleSendMessage}
+          />
+          <TouchableOpacity onPress={handleSelectMedia} style={styles.iconSpacing}>
+            <Icon name="image" size={24} color="#888" style={styles.icon} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+            <Icon name="send" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 
