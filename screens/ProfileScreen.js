@@ -126,7 +126,7 @@ const ProfileScreen = () => {
 
   return (
     <>
-      <StatusBar backgroundColor="#0c002b" barStyle="light-content" />
+      <StatusBar backgroundColor="#000" barStyle="light-content" />
       <View style={styles.container}>
         <TouchableOpacity style={styles.homeButton} onPress={handleNavigateHome}>
           <Icon name="home" size={24} color="#FFF" />
