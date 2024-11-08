@@ -17,44 +17,55 @@ const DMDetailPage = ({ route }) => {
   const accessToken = useSelector((state) => state.accessToken);
   const userEmail = useSelector((state) => state.userProfile.data.email);
   const userProfile = useSelector((state) => state.userProfile.data);
+  const [latestArtistCommentId, setLatestArtistCommentId] = useState(null);
 
   const fetchPostDetails = async () => {
     try {
       const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-
+  
       const postData = response.data?.data?.post || {};
       const reactions = response.data?.data?.reactions || [];
-      const artistComments = response.data?.data?.artistComments || [];
+      let artistComments = response.data?.data?.artistComments || [];
       const comments = response.data?.data?.comments || [];
-
+  
+      // Set post liked state
       const isPostLiked = reactions.some(reaction => reaction.user?.email === userEmail);
       setLiked(isPostLiked);
-
+  
+      // Get IDs of liked artist and fan comments
       const likedArtistComments = artistComments
-        .filter((comment) => comment.commentReactionCount > 0)
-        .map((comment) => comment.id);
-
+        .filter(comment => comment.commentReactionCount > 0)
+        .map(comment => comment.id);
       const likedFanComments = comments
-        .filter((comment) => comment.commentReactionCount > 0)
-        .map((comment) => comment.id);
-
+        .filter(comment => comment.commentReactionCount > 0)
+        .map(comment => comment.id);
+  
       setLikedComments([...likedArtistComments, ...likedFanComments]);
-
+  
+      // Sort artist comments by creation date to ensure the latest comment is last
+      artistComments = artistComments.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  
+      // Set the latest artist comment ID to the ID of the most recent comment
+      if (artistComments.length > 0) {
+        const latestArtistComment = artistComments[artistComments.length - 1];
+        setLatestArtistCommentId(latestArtistComment.id);
+      } else {
+        setLatestArtistCommentId(null); // Clear if no artist comments
+      }
+  
+      // Flatten artist replies and set post data
       const artistReplies = artistComments.reduce((allReplies, comment) => {
-        if (comment.replies && comment.replies.length > 0) {
-          return [...allReplies, ...comment.replies];
-        }
-        return allReplies;
+        return comment.replies ? [...allReplies, ...comment.replies] : allReplies;
       }, []);
-      
       setPost({ ...postData, artistComments, comments, artistReplies });
     } catch (error) {
-      console.error('Error fetching post details:', error.response || error.message);
+      console.error('Error fetching post details:', error);
       Alert.alert('Error', 'Could not load post details.');
     }
   };
+  
 
   useEffect(() => {
     fetchPostDetails();
@@ -89,38 +100,35 @@ const DMDetailPage = ({ route }) => {
 
 
 const addComment = async () => {
-  
   if (!commentText.trim()) {
     Alert.alert("Error", "Comment cannot be empty.");
     return;
   }
-  
+
   try {
     const endpoint = `${BASEURL}/api/v1/post/${postId}/comment`;
-    const latestArtistCommentId = post?.artistComments?.[post.artistComments.length - 1]?.id;
     const body = {
       message: commentText,
-      ...(latestArtistCommentId && { parentCommentId: latestArtistCommentId })
+      ...(latestArtistCommentId && { parentCommentId: latestArtistCommentId }),
     };
-    
+
     const response = await axios.post(endpoint, body, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    
+
     if (response.status === 200 || response.status === 201) {
       const newComment = {
         ...response.data.data,
         user: {
-          full_name: userProfile?.full_name || 'Unknown User',  // Fallback if userProfile is missing
-          avatar_url: userProfile?.avatar_url || '', // Default to empty if avatar_url is missing
+          full_name: userProfile?.full_name || 'Unknown User',
+          avatar_url: userProfile?.avatar_url || '',
         },
       };
-      
+
       setPost((prevPost) => ({
         ...prevPost,
         comments: [newComment, ...prevPost.comments],
       }));
-      
       setCommentText('');
     } else {
       Alert.alert("Error", "Unexpected response from the server.");

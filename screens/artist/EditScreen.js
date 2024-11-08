@@ -196,8 +196,8 @@ const EditScreen = ({ route, navigation }) => {
       <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
         <Icon name="times" size={24} color="#fff" />
       </TouchableOpacity>
-      <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }} style={styles.viewShot}>
-        <Image source={{ uri: selectedImage.uri }} style={styles.image} />
+      <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }} style={styles.viewShot}>
+        <Image source={{ uri: selectedImage.uri }} style={styles.image} resizeMode="cover" />
         {selectedSignature && (
           <Animated.View
             style={[styles.signatureContainer, draggedSignaturePosition.getLayout()]}
@@ -218,7 +218,13 @@ const EditScreen = ({ route, navigation }) => {
                 >
                   {signatureColor.startsWith('gradient') ? (
                     <LinearGradient
-                      colors={signatureColor === 'gradient1' ? ['#00FFFF', '#FFA5FF'] : signatureColor === 'gradient2' ? ['#FFDFA5', '#FF00EE'] : ['#01882D', '#FCDE03', '#D5002C']}
+                      colors={
+                        signatureColor === 'gradient1'
+                          ? ['#00FFFF', '#FFA5FF']
+                          : signatureColor === 'gradient2'
+                          ? ['#FFDFA5', '#FF00EE']
+                          : ['#01882D', '#FCDE03', '#D5002C']
+                      }
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={signatureSize}
@@ -232,7 +238,7 @@ const EditScreen = ({ route, navigation }) => {
           </Animated.View>
         )}
       </ViewShot>
-
+  
       <View style={styles.tabContainer}>
         <TouchableOpacity style={[styles.tabButton, activeTab === 0 && styles.activeTab]} onPress={() => setActiveTab(0)}>
           <Text style={styles.tabText}>Signatures</Text>
@@ -244,10 +250,11 @@ const EditScreen = ({ route, navigation }) => {
           <Text style={styles.tabText}>Save</Text>
         </TouchableOpacity>
       </View>
-
+  
       {renderTabContent()}
     </View>
   );
+  
 };
 
 const styles = StyleSheet.create({

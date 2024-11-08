@@ -21,8 +21,6 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../../utils';
-import { uploadVideoToBucket } from '../../utils/videoUploadService';
-import Video from 'react-native-video';
 
 const PostDetailPage = () => {
   const [post, setPost] = useState(null);
@@ -36,8 +34,7 @@ const PostDetailPage = () => {
   const [replyText, setReplyText] = useState('');
   const [replyParentId, setReplyParentId] = useState(null);
   const [showReplies, setShowReplies] = useState({});
-  const [mediaType, setMediaType] = useState(null); // NEW: track whether it's a photo or video
-
+  const [showArtistReplies, setShowArtistReplies] = useState({}); // Track artist comment replies
 
   const options = {
     mediaType: 'photo',
@@ -78,23 +75,28 @@ const PostDetailPage = () => {
       const detailResponse = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-
-      const postData = response.data?.data?.post || {};
-      const reactions = response.data?.data?.reactions || [];
-      const reactionCount = reactions.length || 0;
-      const artistComments = response.data?.data?.artistComments?.reverse() || [];
-      const comments = response.data?.data?.comments || [];
-
-      // Log the fan comments data with replies (if available)
-      console.log("Fetched fan comments data:", comments);
-      console.log(artistComments)
-
-      const likedCommentsArray = comments
-        .filter((comment) => comment.commentReactionCount > 0)
-        .map((comment) => comment.id);
-
-      setLikedComments(likedCommentsArray);
-      setPost({ ...postData, reactionCount, artistComments, comments });
+      const postData = detailResponse.data?.data?.post || {};
+      const artistComments = detailResponse.data?.data?.artistComments?.reverse() || [];
+      const comments = detailResponse.data?.data?.comments || [];
+      const structuredComments = structureCommentsWithReplies(comments);
+  
+      // Step 2: Fetch reaction count from the main feed endpoint
+      const feedResponse = await axios.get(`${BASEURL}/api/v1/post?pageNo=1&pageSize=50`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const posts = feedResponse.data?.data?.posts || [];
+      const postFromFeed = posts.find((post) => post.id === postId);
+  
+      // Step 3: Combine data from both responses
+      const combinedPostData = {
+        ...postData,
+        reactionCount: postFromFeed?.reactionCount || 0, // Use reactionCount from the feed endpoint
+        artistComments,
+        comments: structuredComments,
+      };
+  
+      // Update the state with the combined data
+      setPost(combinedPostData);
     } catch (error) {
       console.error('Error fetching post details:', error.response || error.message);
       Alert.alert('Error', 'Could not load post details.');
@@ -127,40 +129,40 @@ const PostDetailPage = () => {
     }));
   };
 
-  const handleMediaUpload = async (uri) => {
-    try {
-      let s3Url;
-      if (mediaType === 'PHOTO') {
-        s3Url = await uploadImageToBucket(uri, 'message-media', accessToken);
-      } else if (mediaType === 'VIDEO') {
-        s3Url = await uploadVideoToBucket(uri, 'message-media', accessToken);
+  const toggleArtistReplies = (commentId) => {
+    setShowArtistReplies((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
+  };
+
+  const takePicture = () => {
+    launchCamera(options, (response) => {
+      if (!response.didCancel && !response.errorCode) {
+        const { uri } = response.assets[0];
+        setSelectedImage(uri.startsWith('file://') ? uri : `file://${uri}`);
       }
+    });
+  };
+  
+  const uploadFile = () => {
+    launchImageLibrary(options, (response) => {
+      if (!response.didCancel && !response.errorCode) {
+        const { uri } = response.assets[0];
+        setSelectedImage(uri.startsWith('file://') ? uri : `file://${uri}`);
+      }
+    });
+  };
+  
+
+  const handleImageUpload = async (imageUri) => {
+    try {
+      const s3Url = await uploadImageToBucket(imageUri, 'comment-images', accessToken);
       return s3Url;
     } catch (error) {
-      console.error('Failed to upload media:', error);
-      Alert.alert('Error', 'Media upload failed. Please try again.');
+      Alert.alert('Error', 'Image upload failed. Please try again.');
       return null;
     }
-  };
-
-  const handleSelectMedia = () => {
-    launchImageLibrary({ mediaType: 'mixed' }, (response) => {
-      if (response.assets && response.assets.length > 0) {
-        const asset = response.assets[0];
-        setSelectedImage(asset.uri);
-        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
-      }
-    });
-  };
-
-  const handleTakeMedia = () => {
-    launchCamera({ mediaType: 'mixed' }, (response) => {
-      if (response.assets && response.assets.length > 0) {
-        const asset = response.assets[0];
-        setSelectedImage(asset.uri);
-        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
-      }
-    });
   };
 
   const handleSendComment = async () => {
@@ -171,16 +173,8 @@ const PostDetailPage = () => {
 
     let s3Url = selectedImage;
     if (selectedImage && !selectedImage.startsWith('https://')) {
-      try {
-        s3Url = await handleMediaUpload(selectedImage); // Upload to S3 and get the URL
-        if (!s3Url) {
-          throw new Error('Image upload failed');
-        }
-      } catch (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        Alert.alert('Error', 'Image upload failed. Please try again.');
-        return;
-      }
+      s3Url = await handleImageUpload(selectedImage);
+      if (!s3Url) return;
     }
 
     const commentData = {
@@ -390,17 +384,7 @@ const PostDetailPage = () => {
                     </View>
                     <Text style={styles.commentText}>{artistComment.message}</Text>
                     {artistComment.url && artistComment.media_type === "PHOTO" && (
-                      <Image source={{ uri: artistComment.url || undefined }} style={styles.artistCommentImage} />
-                    )}
-
-                    {artistComment.media_type === 'VIDEO' && artistComment.url && (
-                      <Video
-                        source={{ uri: artistComment.url }}
-                        style={styles.messageVideo}
-                        paused={true} // Prevent autoplay
-                        resizeMode="contain"
-                        controls // Allow video controls
-                      />
+                      <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
                     )}
                     <View style={styles.interactionRow}>
   
@@ -455,9 +439,7 @@ const PostDetailPage = () => {
             )}
             <View style={styles.postCard}>
               <View style={styles.userInfoContainer}>
-                {item.user?.avatar_url && (
-                  <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
-                )}
+                <Image source={{ uri: item.user?.avatar_url }} style={styles.avatar} />
                 <View>
                   <Text style={styles.userName}>{item.user?.full_name}</Text>
                   <Text style={styles.userLocation}>{item.user?.location}</Text>
@@ -494,10 +476,7 @@ const PostDetailPage = () => {
                 renderItem={({ item }) => (
                   <View style={styles.commentContainer}>
                     <View style={styles.userInfoContainer}>
-                      {item.user.avatar_url && (
-                        <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
-                      )}
-
+                      <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
                       <View>
                         <Text style={styles.userName}>{item.user.full_name}</Text>
                         <Text style={styles.commentText}>{item.message}</Text>
@@ -572,10 +551,10 @@ const PostDetailPage = () => {
               <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
             )}
             <View style={styles.iconRow}>
-              <TouchableOpacity onPress={handleSelectMedia}>
+              <TouchableOpacity onPress={uploadFile}>
                 <Icon name="image" size={24} color="blue" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleTakeMedia}>
+              <TouchableOpacity onPress={takePicture}>
                 <Icon name="camera" size={24} color="blue" />
               </TouchableOpacity>
             </View>
@@ -630,41 +609,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#000',
   },
-  dropdownButton: {
-    paddingVertical: 5,
-    marginTop: 5,
-  },
-  dropdownText: {
-    color: '#FF0080', // Customize the color if needed
-    fontSize: 14,
-  },
-  messageVideo: {
-    width: 200,
-    height: 200,
-    borderRadius: 10,
-    marginBottom: 5,
-  },
-  repliesContainer: {
-    paddingLeft: 20,
-    marginTop: 10,
-  },
-  reply: {
-    marginBottom: 5,
-  },
-  replyText: {
-    color: '#000', // Customize as needed
-    fontSize: 14,
-  },
-  replyTimestamp: {
-    color: '#000', // Lighter color for timestamp
-    fontSize: 8,
-  },
-  artistCommentImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 10,
-    marginVertical: 10,
-  },
+  dropdownButton: { paddingVertical: 5, marginTop: 5 },
+  dropdownText: { color: '#FF0080', fontSize: 14 },
+  repliesContainer: { paddingLeft: 20, marginTop: 10 },
+  reply: { marginBottom: 5 },
+  replyText: { color: '#000', fontSize: 14 },
+  replyTimestamp: { color: '#000', fontSize: 8 },
+  artistCommentImage: { width: '100%', height: 200, borderRadius: 10, marginVertical: 10 },
   postTitle: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
   plusIcon: { padding: 8 },
   postCard: {

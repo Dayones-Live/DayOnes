@@ -1,13 +1,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
-import AntDesign from 'react-native-vector-icons/AntDesign'; // Import AntDesign for the "plus" icon
+import AntDesign from 'react-native-vector-icons/AntDesign';
 import { BASEURL } from '../../assets/constants';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../../utils';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import Ionicons from 'react-native-vector-icons/Ionicons'
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -21,6 +23,15 @@ const ArtistPostsPage = () => {
   const accessToken = useSelector(state => state.accessToken);
   const isLoggedIn = useSelector(state => state.isLoggedIn);
   const navigation = useNavigation();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchArtistPosts(1); // Fetch the first page again
+    setRefreshing(false);
+  };
+  console.log(onRefresh)
+  
 
   const fetchArtistPosts = async (pageNum = 1) => {
     if (loading || !hasMore) return;
@@ -32,21 +43,15 @@ const ArtistPostsPage = () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
   
-      // Log the entire response for inspection
       console.log("Fetched Posts Response:", response.data);
   
       const postsData = response.data?.data?.posts || [];
       const genericPost = postsData.find(post => post.type === 'GENERIC');
       const otherPosts = postsData.filter(post => post.type !== 'GENERIC');
   
-      // Log the generic post and other posts for clarity
-      console.log("Pinned (Generic) Post Data:", genericPost);
-      console.log("Other Posts Data:", otherPosts);
-  
       if (genericPost) setPinnedPost(genericPost);
       if (otherPosts.length < 10) setHasMore(false);
   
-      // Sort posts by date (most recent first)
       otherPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   
       setPosts(prevPosts => {
@@ -56,11 +61,29 @@ const ArtistPostsPage = () => {
   
       setPage(pageNum + 1);
     } catch (error) {
+      console.error("Error fetching posts:", error.message || "Unknown error");
       Alert.alert('Error', 'An error occurred while fetching posts.');
     } finally {
       setLoading(false);
     }
   };
+  
+  const fetchPostDetails = async (postId) => {
+    try {
+      console.log(`Fetching post details for post ID: ${postId}`);
+      const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+  
+      console.log("Fetched Post Details Response:", response.data);
+      const postData = response.data?.data?.post || {};
+      setPost(postData);
+    } catch (error) {
+      console.error("Error fetching post details:", error.message || "Unknown error");
+      Alert.alert('Error', 'Could not load post details.');
+    }
+  };
+  
   
 
   const handleDelete = async (postId) => {
@@ -76,7 +99,8 @@ const ArtistPostsPage = () => {
         Alert.alert('Error', `Failed to delete post. Status code: ${response.status}`);
       }
     } catch (error) {
-      Alert.alert('Error', `An error occurred: ${error.response?.data?.message || error.message}`);
+      console.error("Error deleting post:", error.message || error);
+      Alert.alert('Error', `An error occurred: ${error.response?.data?.message || error.message || 'Unknown error'}`);
     }
   };
 
@@ -141,11 +165,11 @@ const ArtistPostsPage = () => {
     try {
       const s3Url = await uploadImageToBucket(imageUri, 'profile-pictures', accessToken);
       setSelectedImage(s3Url);
-      return s3Url; // Return the S3 URL to be used in handleSendPost
+      return s3Url;
     } catch (error) {
-      console.error('Failed to upload image:', error);
+      console.error('Failed to upload image:', error.message || error);
       Alert.alert('Error', 'Image upload failed. Please try again.');
-      return null; // Return null if the upload fails
+      return null;
     }
   };
 
@@ -157,9 +181,8 @@ const ArtistPostsPage = () => {
 
     let s3Url = selectedImage;
 
-    // Check if selectedImage is a local URI (i.e., not yet uploaded to S3)
     if (selectedImage && !selectedImage.startsWith('https://')) {
-      s3Url = await handleImageUpload(selectedImage); // Upload to S3 and get the URL
+      s3Url = await handleImageUpload(selectedImage);
       if (!s3Url) {
         Alert.alert('Error', 'Image upload failed. Please try again.');
         return;
@@ -181,6 +204,7 @@ const ArtistPostsPage = () => {
         Alert.alert('Error', 'Failed to send the message. Please try again.');
       }
     } catch (error) {
+      console.error("Failed to send post:", error.message || error);
       Alert.alert('Error', `Failed to send post: ${error.response?.data?.message || 'An error occurred'}`);
     }
   };
@@ -219,38 +243,44 @@ const ArtistPostsPage = () => {
         <TouchableOpacity style={styles.plusButton} onPress={handleOpenModal}>
           <AntDesign name="pluscircleo" size={35} color="#FFFFFF" />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.personbutton} onPress={handleOpenModal}>
+          <Ionicons name="person" size={25} color="#FFFFFF" />
+          <Text style={styles.persontext}> 1.5mil</Text>
+        </TouchableOpacity>
 
         <Text style={styles.pageTitle}>Posts</Text>
         <ScrollView
-          style={styles.scrollView}
-          onScroll={handleLoadMore}
-          scrollEventThrottle={400}
-        >
-          {pinnedPost && (
-            <TouchableOpacity
-              key={pinnedPost.id}
-              style={styles.postContainer}
-              onPress={() => navigation.navigate('PostDetailPage', { postId: pinnedPost.id })}
-              onLongPress={() => confirmDelete(pinnedPost.id)}
-            >
-              <Text style={styles.postUser}>My DayOnes</Text>
-              {pinnedPost.image_url ? (
-                <Image source={{ uri: pinnedPost.image_url }} style={styles.postImage} />
-              ) : (
-                <View style={styles.inviteOnlyBox}>
-                  <Text style={styles.inviteOnlyText}>Invite Only</Text>
-                </View>
-              )}
-              <View style={styles.interactionContainer}>
-                <Text style={styles.interactionText}>❤️ {pinnedPost.reactionCount || 0}</Text>
-                <Text style={styles.interactionText}>💬 {pinnedPost.commentsCount || 0}</Text>
-              </View>
-              <Text style={styles.postDate}>{new Date(pinnedPost.created_at).toLocaleString()}</Text>
-            </TouchableOpacity>
-          )}
+  style={styles.scrollView}
+  onScroll={handleLoadMore}
+  scrollEventThrottle={400}
+  refreshControl={
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+  }
+>
+{pinnedPost && (
+  <TouchableOpacity
+    key={pinnedPost.id}
+    style={styles.postContainer}
+    onPress={() => navigation.navigate('PostDetailPage', { postId: pinnedPost.id })}
+    onLongPress={() => confirmDelete(pinnedPost.id)}
+  >
+    <Text style={styles.postUser}>My DayOnes</Text>
+    <Image
+      source={require('../../assets/images/Untitled_design-2.jpg')}
+      style={styles.postImage}
+    />
+    <View style={styles.interactionContainer}>
+      <Text style={styles.interactionText}>❤️ {pinnedPost.reactionCount || 0}</Text>
+      <Text style={styles.interactionText}>💬 {pinnedPost.commentsCount || 0}</Text>
+    </View>
+    <Text style={styles.postDate}>{new Date(pinnedPost.created_at).toLocaleString()}</Text>
+  </TouchableOpacity>
+)}
 
-          {posts.map((post, index) => renderPostItem(post, index))}
-        </ScrollView>
+
+  {posts.map((post, index) => renderPostItem(post, index))}
+</ScrollView>
+
         {loading && <Text style={styles.loadingText}>Loading more posts...</Text>}
 
         <Modal
@@ -278,7 +308,7 @@ const ArtistPostsPage = () => {
               )}
               <View style={styles.iconRow}>
                 <TouchableOpacity onPress={uploadFile}>
-                  <AntDesign name="image" size={24} color="blue" />
+                  <FontAwesome5 name="file-upload" size={24} color="blue" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={takePicture}>
                   <AntDesign name="camera" size={24} color="blue" />
@@ -313,14 +343,15 @@ const styles = StyleSheet.create({
   postDate: { fontSize: 14, color: '#888', marginTop: 5 },
   plusButton: { position: 'absolute', top: 8, right: 5, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 25, zIndex: 10 },
   loadingText: { color: '#FFFFFF', textAlign: 'center', marginVertical: 10 },
-
-  // Modal styles
+  personbutton: { position: 'absolute', top: 10, right: 70, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 25, zIndex: 10 },
+  
   modalBackground: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
+  
   modalContainer: {
     width: '90%',
     backgroundColor: 'white',

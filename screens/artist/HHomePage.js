@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   Switch,
   ScrollView,
+  Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -37,6 +38,8 @@ const HHomePage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
   const [postType, setPostType] = useState('INVITE_PHOTO');
+  const [scaleValue] = useState(new Animated.Value(1));
+
 
   const navigation = useNavigation();
   const route = useRoute();
@@ -70,6 +73,22 @@ const HHomePage = () => {
     mediaType: 'photo',
     includeBase64: false,
   };
+
+  const animateButton = () => {
+    Animated.sequence([
+      Animated.timing(scaleValue, {
+        toValue: 1.1, // Scale up
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleValue, {
+        toValue: 1, // Scale back to original size
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+  
 
   const takePicture = () => {
     launchCamera(options, response => {
@@ -131,23 +150,24 @@ const HHomePage = () => {
   };
 
   const createPost = async () => {
+    animateButton();
     if (postType === 'INVITE_PHOTO' && !selectedImage) {
       Alert.alert('Warning', 'You must select a photo when choosing "Invite + Photo."');
       return;
     }
-
+  
     let postImageUrl = null;
     if (postType === 'INVITE_PHOTO') {
       postImageUrl = uploadedImageUrl;
     }
-
+  
     Geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-
+  
         try {
           const locale = await getLocale(latitude, longitude);
-
+  
           const postData = {
             imageUrl: postImageUrl,
             range: isMaxRange ? 1000 : 100,
@@ -156,7 +176,7 @@ const HHomePage = () => {
             longitude: longitude.toString(),
             locale: locale,
           };
-
+  
           const response = await fetch(`${BASEURL}/api/v1/post/`, {
             method: 'POST',
             headers: {
@@ -165,11 +185,12 @@ const HHomePage = () => {
             },
             body: JSON.stringify(postData),
           });
-
+  
           const jsonResponse = await response.json();
-
+  
           if (response.ok) {
             Alert.alert('Success', 'Post created successfully!');
+            clearSelectedImage(); // Clear the image after successful post
           } else {
             Alert.alert('Error', `Failed to create post: ${jsonResponse.message || 'Unknown error'}`);
           }
@@ -183,6 +204,7 @@ const HHomePage = () => {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
   };
+  
 
   return (
     <Tab.Navigator
@@ -231,26 +253,32 @@ const HHomePage = () => {
               <Text style={styles.personalMediaText}>Personal Media</Text>
 
               <View style={styles.imageContainer}>
-                {selectedImage ? (
-                  <View style={styles.selectedImageContainer}>
-                    <Image
-                      source={{ uri: selectedImage.uri }}
-                      style={styles.selectedImage}
-                    />
-                    <TouchableOpacity
-                      style={styles.clearButton}
-                      onPress={clearSelectedImage}
-                    >
-                      <Icon name="times" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <Image
-                    source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
-                    style={styles.placeholderImage}
-                  />
-                )}
-              </View>
+  {selectedImage ? (
+    <View style={styles.selectedImageContainer}>
+      <Image
+        source={{ uri: selectedImage.uri }}
+        style={styles.selectedImage}
+      />
+      <TouchableOpacity
+        style={styles.clearButton}
+        onPress={clearSelectedImage}
+      >
+        <Icon name="times" size={20} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  ) : (
+    <View style={styles.placeholderContainer}>
+      <Image
+        source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
+        style={styles.placeholderImage}
+      />
+      <View style={styles.overlayTextContainer}>
+        <Text style={styles.overlayText}>Unleash Your Reach </Text>
+      </View>
+    </View>
+  )}
+</View>
+
 
               <View style={styles.pictureContainer}>
                 <TouchableOpacity
@@ -318,17 +346,20 @@ const HHomePage = () => {
               </View>
 
               <View style={styles.sendButtonContainer}>
-                <LinearGradient
-                  colors={['#00E5FF', '#D500F9']}
-                  style={styles.sendButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <TouchableOpacity style={styles.sendButton} onPress={createPost}>
-                    <Text style={styles.sendButtonText}>Send Invite</Text>
-                  </TouchableOpacity>
-                </LinearGradient>
-              </View>
+  <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+    <LinearGradient
+      colors={['#00E5FF', '#D500F9']}
+      style={styles.sendButtonGradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+    >
+      <TouchableOpacity style={styles.sendButton} onPress={createPost}>
+        <Text style={styles.sendButtonText}>Send Invite</Text>
+      </TouchableOpacity>
+    </LinearGradient>
+  </Animated.View>
+</View>
+
             </ScrollView>
           </SafeAreaView>
         )}
@@ -484,6 +515,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: hp('-1%'), // -1% of screen height
     marginBottom: hp('4%'), // 4% of screen height
+  },
+  placeholderContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  overlayTextContainer: {
+    position: 'absolute',
+    top: '30%',
+    left: '38%',
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlayText: {
+    color: '#C0C0C0',
+    fontSize: wp('5%'), // Adjust font size as needed
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
