@@ -11,6 +11,9 @@ import {
   FlatList,
   TextInput,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
@@ -531,68 +534,75 @@ const PostDetailPage = () => {
         }
       />
       <Modal
-        animationType="slide"
-        transparent
-        visible={isModalVisible}
-        onRequestClose={handleCloseModal}
-      >
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Message Group</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Write a message..."
-              placeholderTextColor="gray"
-              value={commentText}
-              onChangeText={setCommentText}
-              multiline
-            />
-            {selectedImage && (
-              <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
-            )}
-            <View style={styles.iconRow}>
-              <TouchableOpacity onPress={uploadFile}>
-                <Icon name="image" size={24} color="blue" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={takePicture}>
-                <Icon name="camera" size={24} color="blue" />
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.postButton} onPress={handleSendComment}>
-              <Text style={styles.postButtonText}>Send</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-      <Modal
-        animationType="slide"
-        transparent
-        visible={isReplyModalVisible}
-        onRequestClose={handleCloseReplyModal}
-      >
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Reply to Comment</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Write your reply..."
-              placeholderTextColor="gray"
-              value={replyText}
-              onChangeText={setReplyText}
-              multiline
-            />
-            <TouchableOpacity style={styles.postButton} onPress={handleSendReply}>
-              <Text style={styles.postButtonText}>Reply</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.closeButton} onPress={handleCloseReplyModal}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+  animationType="slide"
+  transparent
+  visible={isModalVisible}
+  onRequestClose={handleCloseModal}
+>
+  <KeyboardAvoidingView
+    style={styles.modalBackground}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  >
+    <View style={styles.modalContainer}>
+      <Text style={styles.modalTitle}>Message Group</Text>
+      <TextInput
+        style={styles.textInput}
+        placeholder="Write a message..."
+        placeholderTextColor="gray"
+        value={commentText}
+        onChangeText={setCommentText}
+        multiline
+      />
+      {selectedImage && (
+        <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
+      )}
+      <View style={styles.iconRow}>
+        <TouchableOpacity onPress={uploadFile}>
+          <Icon name="image" size={24} color="blue" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={takePicture}>
+          <Icon name="camera" size={24} color="blue" />
+        </TouchableOpacity>
+      </View>
+      <TouchableOpacity style={styles.postButton} onPress={handleSendComment}>
+        <Text style={styles.postButtonText}>Send</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
+        <Text style={styles.closeButtonText}>Close</Text>
+      </TouchableOpacity>
+    </View>
+  </KeyboardAvoidingView>
+</Modal>
+
+<Modal
+  animationType="slide"
+  transparent
+  visible={isReplyModalVisible}
+  onRequestClose={handleCloseReplyModal}
+>
+  <KeyboardAvoidingView
+    style={styles.modalBackground}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  >
+    <View style={styles.modalContainer}>
+      <Text style={styles.modalTitle}>Reply to Comment</Text>
+      <TextInput
+        style={styles.textInput}
+        placeholder="Write your reply..."
+        placeholderTextColor="gray"
+        value={replyText}
+        onChangeText={setReplyText}
+        multiline
+      />
+      <TouchableOpacity style={styles.postButton} onPress={handleSendReply}>
+        <Text style={styles.postButtonText}>Reply</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.closeButton} onPress={handleCloseReplyModal}>
+        <Text style={styles.closeButtonText}>Close</Text>
+      </TouchableOpacity>
+    </View>
+  </KeyboardAvoidingView>
+</Modal>
     </SafeAreaView>
   );
 };
