@@ -11,6 +11,9 @@ import {
   FlatList,
   TextInput,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
@@ -611,7 +614,10 @@ const PostDetailPage = () => {
         visible={isModalVisible}
         onRequestClose={handleCloseModal}
       >
-        <View style={styles.modalBackground}>
+        <KeyboardAvoidingView
+          style={styles.modalBackground}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Message Group</Text>
             <TextInput
@@ -640,15 +646,19 @@ const PostDetailPage = () => {
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
+
       <Modal
         animationType="slide"
         transparent
         visible={isReplyModalVisible}
         onRequestClose={handleCloseReplyModal}
       >
-        <View style={styles.modalBackground}>
+        <KeyboardAvoidingView
+          style={styles.modalBackground}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Reply to Comment</Text>
             <TextInput
@@ -666,7 +676,7 @@ const PostDetailPage = () => {
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
