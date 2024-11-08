@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, RefreshControl } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
@@ -9,7 +9,7 @@ import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../../utils';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
-import Ionicons from 'react-native-vector-icons/Ionicons'
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -23,42 +23,31 @@ const ArtistPostsPage = () => {
   const accessToken = useSelector(state => state.accessToken);
   const isLoggedIn = useSelector(state => state.isLoggedIn);
   const navigation = useNavigation();
-  const [refreshing, setRefreshing] = useState(false);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchArtistPosts(1); // Fetch the first page again
-    setRefreshing(false);
-  };
-  console.log(onRefresh)
   
 
   const fetchArtistPosts = async (pageNum = 1) => {
     if (loading || !hasMore) return;
     setLoading(true);
-  
+
     try {
       const apiUrl = `${BASEURL}/api/v1/post?pageNo=${pageNum}&pageSize=25`;
       const response = await axios.get(apiUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-  
-      console.log("Fetched Posts Response:", response.data);
-  
+
       const postsData = response.data?.data?.posts || [];
       const genericPost = postsData.find(post => post.type === 'GENERIC');
       const otherPosts = postsData.filter(post => post.type !== 'GENERIC');
-  
+
       if (genericPost) setPinnedPost(genericPost);
-      if (otherPosts.length < 10) setHasMore(false);
-  
+      setHasMore(otherPosts.length === 25);
       otherPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  
+
       setPosts(prevPosts => {
         const newPosts = otherPosts.filter(post => !prevPosts.some(prevPost => prevPost.id === post.id));
         return pageNum === 1 ? newPosts : [...prevPosts, ...newPosts];
       });
-  
+
       setPage(pageNum + 1);
     } catch (error) {
       console.error("Error fetching posts:", error.message || "Unknown error");
@@ -67,24 +56,6 @@ const ArtistPostsPage = () => {
       setLoading(false);
     }
   };
-  
-  const fetchPostDetails = async (postId) => {
-    try {
-      console.log(`Fetching post details for post ID: ${postId}`);
-      const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-  
-      console.log("Fetched Post Details Response:", response.data);
-      const postData = response.data?.data?.post || {};
-      setPost(postData);
-    } catch (error) {
-      console.error("Error fetching post details:", error.message || "Unknown error");
-      Alert.alert('Error', 'Could not load post details.');
-    }
-  };
-  
-  
 
   const handleDelete = async (postId) => {
     try {
@@ -127,8 +98,11 @@ const ArtistPostsPage = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchArtistPosts(page);
-    }, [page])
+      setPage(1);
+      setPosts([]);
+      setHasMore(true);
+      fetchArtistPosts(1);
+    }, [])
   );
 
   const handleLoadMore = ({ nativeEvent }) => {
@@ -250,36 +224,32 @@ const ArtistPostsPage = () => {
 
         <Text style={styles.pageTitle}>Posts</Text>
         <ScrollView
-  style={styles.scrollView}
-  onScroll={handleLoadMore}
-  scrollEventThrottle={400}
-  refreshControl={
-    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-  }
->
-{pinnedPost && (
-  <TouchableOpacity
-    key={pinnedPost.id}
-    style={styles.postContainer}
-    onPress={() => navigation.navigate('PostDetailPage', { postId: pinnedPost.id })}
-    onLongPress={() => confirmDelete(pinnedPost.id)}
-  >
-    <Text style={styles.postUser}>My DayOnes</Text>
-    <Image
-      source={require('../../assets/images/Untitled_design-2.jpg')}
-      style={styles.postImage}
-    />
-    <View style={styles.interactionContainer}>
-      <Text style={styles.interactionText}>❤️ {pinnedPost.reactionCount || 0}</Text>
-      <Text style={styles.interactionText}>💬 {pinnedPost.commentsCount || 0}</Text>
-    </View>
-    <Text style={styles.postDate}>{new Date(pinnedPost.created_at).toLocaleString()}</Text>
-  </TouchableOpacity>
-)}
+          style={styles.scrollView}
+          onScroll={handleLoadMore}
+          scrollEventThrottle={400}
+        >
+          {pinnedPost && (
+            <TouchableOpacity
+              key={pinnedPost.id}
+              style={styles.postContainer}
+              onPress={() => navigation.navigate('PostDetailPage', { postId: pinnedPost.id })}
+              onLongPress={() => confirmDelete(pinnedPost.id)}
+            >
+              <Text style={styles.postUser}>My DayOnes</Text>
+              <Image
+                source={require('../../assets/images/Untitled_design-2.jpg')}
+                style={styles.postImage}
+              />
+              <View style={styles.interactionContainer}>
+                <Text style={styles.interactionText}>❤️ {pinnedPost.reactionCount || 0}</Text>
+                <Text style={styles.interactionText}>💬 {pinnedPost.commentsCount || 0}</Text>
+              </View>
+              <Text style={styles.postDate}>{new Date(pinnedPost.created_at).toLocaleString()}</Text>
+            </TouchableOpacity>
+          )}
 
-
-  {posts.map((post, index) => renderPostItem(post, index))}
-</ScrollView>
+          {posts.map((post, index) => renderPostItem(post, index))}
+        </ScrollView>
 
         {loading && <Text style={styles.loadingText}>Loading more posts...</Text>}
 
@@ -344,21 +314,8 @@ const styles = StyleSheet.create({
   plusButton: { position: 'absolute', top: 8, right: 5, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 25, zIndex: 10 },
   loadingText: { color: '#FFFFFF', textAlign: 'center', marginVertical: 10 },
   personbutton: { position: 'absolute', top: 10, right: 70, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 25, zIndex: 10 },
-  
-  modalBackground: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  },
-  
-  modalContainer: {
-    width: '90%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-  },
+  modalBackground: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
+  modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
   textInput: { width: '100%', minHeight: 80, borderColor: '#ccc', borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 20, fontSize: 16 },
   iconRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 20 },
