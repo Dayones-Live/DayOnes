@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
   userName: { fontSize: 16, fontWeight: 'bold', color: '#000' },
   userLocation: { fontSize: 13, color: '#666' },
   postText: { fontSize: 14, color: '#FFF', marginVertical: 10 },
-  postImage: { width: '100%', height: 300, borderRadius: 10, marginVertical: 10, backgroundColor: '#ddd' },
+  postImage: { width: '100%', height: 500, borderRadius: 10, marginVertical: 10, backgroundColor: '#ddd' },
   interactionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
   iconText: { marginLeft: 5, fontSize: 14, color: '#FFF' },
   commentContainer: { marginTop: 10, padding: 10, backgroundColor: 'white', borderRadius: 8 },
