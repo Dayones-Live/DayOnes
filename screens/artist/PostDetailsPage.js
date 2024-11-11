@@ -26,6 +26,7 @@ import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../../utils';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
 import Video from 'react-native-video';
+import ImageViewing from 'react-native-image-viewing';  // <-- Import ImageViewing
 
 const PostDetailPage = () => {
   const [post, setPost] = useState(null);
@@ -42,7 +43,9 @@ const PostDetailPage = () => {
   const [showReplies, setShowReplies] = useState({});
   const [showArtistReplies, setShowArtistReplies] = useState({}); // Track artist comment replies
   const [likedReplies, setLikedReplies] = useState([]);
-  
+  const [isFullScreenVisible, setFullScreenVisible] = useState(false);
+  const [imagesForViewing, setImagesForViewing] = useState([]); // Stores images for full-screen viewing
+
 
 
   const route = useRoute();
@@ -158,6 +161,16 @@ const PostDetailPage = () => {
       [commentId]: !prev[commentId],
     }));
   };
+
+  const openFullScreenImage = (imageUri) => {
+    setImagesForViewing([{ uri: imageUri }]); // Set the image to be viewed in full screen
+    setFullScreenVisible(true);
+  };
+
+  const closeFullScreenImage = () => {
+    setFullScreenVisible(false);
+  };
+
 
   const handleMediaUpload = async (uri) => {
     try {
@@ -442,7 +455,9 @@ const PostDetailPage = () => {
                         {artistComment.message}
                       </Text>
                       {artistComment.url && artistComment.media_type === "PHOTO" && (
-                        <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
+                        <TouchableOpacity onPress={() => openFullScreenImage(artistComment.url)}>
+                          <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
+                        </TouchableOpacity>
                       )}
                       {artistComment.media_type === 'VIDEO' && artistComment.url && (
                         <Video
@@ -514,7 +529,9 @@ const PostDetailPage = () => {
               </View>
               <Text style={styles.postText}>{item.message}</Text>
               {item.image_url && (
-                <Image source={{ uri: item.image_url }} style={styles.postImage} />
+                <TouchableOpacity onPress={() => openFullScreenImage(item.image_url)}>
+                  <Image source={{ uri: item.image_url }} style={styles.postImage} />
+                </TouchableOpacity>
               )}
               <View style={styles.interactionRow}>
                 <TouchableOpacity onPress={toggleComments}>
@@ -532,7 +549,7 @@ const PostDetailPage = () => {
         ListFooterComponent={
           <View>
             <TouchableOpacity onPress={toggleComments}>
-              
+
             </TouchableOpacity>
             {!commentsCollapsed && (
               <FlatList
@@ -676,6 +693,13 @@ const PostDetailPage = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+      <ImageViewing
+        images={imagesForViewing}
+        imageIndex={0}
+        visible={isFullScreenVisible}
+        onRequestClose={closeFullScreenImage}
+      />
+
     </SafeAreaView>
   );
 };
