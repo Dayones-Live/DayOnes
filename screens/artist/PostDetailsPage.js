@@ -428,7 +428,7 @@ const PostDetailPage = () => {
             {item.artistComments && item.artistComments.length > 0 && (
               <View>
                 {item.artistComments
-                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort artistComments by date, newest first
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                   .map((artistComment) => (
                     <View key={artistComment.id} style={styles.artistCommentContainer}>
                       <View style={styles.userInfoContainer}>
@@ -438,11 +438,12 @@ const PostDetailPage = () => {
                           <Text style={styles.userLocation}>{artistComment.user.location}</Text>
                         </View>
                       </View>
-                      <Text style={styles.commentText}>{artistComment.message}</Text>
+                      <Text style={[styles.commentText, styles.artistCommentText]}>
+                        {artistComment.message}
+                      </Text>
                       {artistComment.url && artistComment.media_type === "PHOTO" && (
                         <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
                       )}
-
                       {artistComment.media_type === 'VIDEO' && artistComment.url && (
                         <Video
                           source={{ uri: artistComment.url }}
@@ -453,7 +454,6 @@ const PostDetailPage = () => {
                         />
                       )}
                       <View style={styles.interactionRow}>
-
                         <TouchableOpacity onPress={() => toggleArtistReplies(artistComment.id)}>
                           <Foundation name="comments" size={24} color="#fff" />
                           <Text style={styles.iconText}>{artistComment.replies?.length || 0}</Text>
@@ -466,13 +466,10 @@ const PostDetailPage = () => {
                           <Icon name="trash" size={20} color="red" />
                         </TouchableOpacity>
                       </View>
-
-
-                      {/* Display replies if the toggle is open */}
                       {showArtistReplies[artistComment.id] && artistComment.replies && artistComment.replies.length > 0 && (
                         <View style={styles.repliesContainer}>
                           {artistComment.replies
-                            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort by date, newest first
+                            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                             .map((reply) => (
                               <View key={reply.id} style={[styles.commentContainer, { marginLeft: 20 }]}>
                                 <View style={styles.userInfoContainer}>
@@ -490,7 +487,6 @@ const PostDetailPage = () => {
                                       color={likedReplies.includes(reply.id) ? 'red' : '#333'}
                                     />
                                   </TouchableOpacity>
-
                                   <TouchableOpacity onPress={() => handleOpenReplyModal(reply.id)}>
                                     <AntDesign name="message1" size={20} color="#333" />
                                   </TouchableOpacity>
@@ -502,7 +498,6 @@ const PostDetailPage = () => {
                             ))}
                         </View>
                       )}
-
                     </View>
                   ))}
               </View>
@@ -512,7 +507,6 @@ const PostDetailPage = () => {
                 {item.user?.avatar_url ? (
                   <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
                 ) : null}
-
                 <View>
                   <Text style={styles.userName}>{item.user?.full_name}</Text>
                   <Text style={styles.userLocation}>{item.user?.location}</Text>
@@ -539,7 +533,7 @@ const PostDetailPage = () => {
           <View>
             <TouchableOpacity onPress={toggleComments}>
               <Text style={styles.collapseText}>
-                {commentsCollapsed ? ' ' : ' '}
+                {commentsCollapsed ? 'Show Comments' : 'Hide Comments'}
               </Text>
             </TouchableOpacity>
             {!commentsCollapsed && (
@@ -552,16 +546,21 @@ const PostDetailPage = () => {
                       {item.user.avatar_url && (
                         <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
                       )}
-
                       <View>
                         <Text style={styles.userName}>{item.user.full_name}</Text>
-                        <Text style={styles.commentText}>{item.message}</Text>
+                        <Text
+                          style={[
+                            styles.commentText,
+                            item.user.type === 'artist' ? styles.artistCommentText : styles.fanCommentText,
+                          ]}
+                        >
+                          {item.message}
+                        </Text>
                       </View>
                     </View>
                     {item.imageUrl && (
                       <Image source={{ uri: item.imageUrl }} style={styles.commentImage} />
                     )}
-
                     <View style={styles.interactionRow}>
                       <TouchableOpacity onPress={() => likeComment(item.id)}>
                         <Icon
@@ -592,7 +591,6 @@ const PostDetailPage = () => {
                               {reply.user.avatar_url && (
                                 <Image source={{ uri: reply.user.avatar_url }} style={styles.avatar} />
                               )}
-
                               <Text style={styles.userName}>{reply.user.full_name}</Text>
                             </View>
                             <Text style={styles.replyText}>{reply.message}</Text>
@@ -702,7 +700,7 @@ const styles = StyleSheet.create({
   reply: { marginBottom: 5 },
   replyText: { color: '#000', fontSize: 14 },
   replyTimestamp: { color: '#000', fontSize: 8 },
-  artistCommentImage: { width: '100%', height: 200, borderRadius: 10, marginVertical: 10 },
+  artistCommentImage: { width: '100%', height: 350, borderRadius: 10, marginVertical: 10 },
   postTitle: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
   plusIcon: { padding: 8 },
   postCard: {
@@ -733,7 +731,7 @@ const styles = StyleSheet.create({
   interactionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
   iconText: { marginLeft: 5, fontSize: 14, color: '#FFF' },
   commentContainer: { marginTop: 10, padding: 10, backgroundColor: 'white', borderRadius: 8 },
-  commentText: { color: '#fff', marginTop: 5 },
+  commentText: { color: 'black', marginTop: 5 },
   modalBackground: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
   modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
@@ -762,6 +760,9 @@ const styles = StyleSheet.create({
   closeButton: { marginTop: 10 },
   closeButtonText: { color: 'blue', fontWeight: 'bold' },
   collapseText: { color: '#FFF', textAlign: 'center', marginVertical: 10, fontSize: 16, fontWeight: 'bold' },
+  artistCommentText: { color: '#FFF' }, // White for artist comments
+  fanCommentText: { color: '#000' }, // Black for fan comments
+
 });
 
 export default PostDetailPage;
