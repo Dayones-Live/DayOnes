@@ -65,15 +65,20 @@ const EditScreen = ({ route, navigation }) => {
 
   const handleDoubleTap = () => {
     // Doubling the sizes
-    const smallSize = { width: scaleValue(220), height: scaleValue(220) };  // doubled from 110
-    const mediumSize = { width: scaleValue(300), height: scaleValue(300) }; // doubled from 150
-    const largeSize = { width: scaleValue(440), height: scaleValue(440) };  // doubled from 220
+    const smallSize = { width: scaleValue(100), height: scaleValue(100) };  // doubled from 110
+    const mediumSize = { width: scaleValue(200), height: scaleValue(200) }; // doubled from 150
+    const largeSize = { width: scaleValue(300), height: scaleValue(300) };  // doubled from 220
+    const XlargeSize = { width: scaleValue(400), height: scaleValue(400) };  // doubled from 220
 
     if (signatureSize.width === smallSize.width) {
       dispatch(setSignatureSize(mediumSize));
     } else if (signatureSize.width === mediumSize.width) {
       dispatch(setSignatureSize(largeSize));
-    } else {
+    }
+    else if (signatureSize.width === largeSize.width) {
+      dispatch(setSignatureSize(XlargeSize));
+    }
+    else {
       dispatch(setSignatureSize(smallSize));
     }
   };
@@ -266,7 +271,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     position: 'absolute',
-    top: 10,
+    top: '3.2%',
     left: 10,
     zIndex: 100, // Ensure it appears above other elements
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -280,7 +285,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    resizeMode: 'fill',
+    resizeMode: 'contain',
   },
   tabContainer: {
     flexDirection: 'row',

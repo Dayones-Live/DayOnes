@@ -5,6 +5,7 @@ import EvilIcons from 'react-native-vector-icons/EvilIcons';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
 import { useSelector } from 'react-redux';
+import Video from 'react-native-video';
 
 const MAX_COMMENT_LENGTH = 200;
 
@@ -60,12 +61,13 @@ const DMDetailPage = ({ route }) => {
         return comment.replies ? [...allReplies, ...comment.replies] : allReplies;
       }, []);
       setPost({ ...postData, artistComments, comments, artistReplies });
+      console.log("Artist Comments with Media Info:", artistComments);
+      console.log("Fan Comments with Media Info:", comments);
     } catch (error) {
       console.error('Error fetching post details:', error);
       Alert.alert('Error', 'Could not load post details.');
     }
   };
-  
 
   useEffect(() => {
     fetchPostDetails();
@@ -182,6 +184,8 @@ const addComment = async () => {
     );
   }
 
+ 
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SafeAreaView style={styles.container}>
@@ -224,8 +228,17 @@ const addComment = async () => {
                     <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
                     <Text style={styles.commentText}>{comment.message}</Text>
 
-                    {comment.isArtistComment && comment.url && (
-                      <Image source={{ uri: comment.url }} style={styles.commentImage} />
+                    {comment.media_type === "PHOTO" && comment.url && (
+                      <Image source={{ uri: comment.url }} style={styles.largeMedia} />
+                    )}
+                    {comment.media_type === "VIDEO" && comment.url && (
+                      <Video
+                        source={{ uri: comment.url }}
+                        style={styles.largeMedia}
+                        resizeMode="contain"
+                        paused={true} // Paused by default
+                        controls // Show playback controls
+                      />
                     )}
                   </View>
 
@@ -275,10 +288,10 @@ const addComment = async () => {
   );
 };
 
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000', padding: 16 },
   scrollViewContainer: { flexGrow: 1, paddingBottom: 100 },
-  loadingText: { fontSize: 20, color: '#ffffff' },
   userInfoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   userAvatar: { width: 50, height: 50, borderRadius: 25, marginRight: 10 },
   userName: { fontSize: 18, color: '#ffffff' },
@@ -289,56 +302,13 @@ const styles = StyleSheet.create({
   fanCommentContainer: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#333', padding: 10, borderRadius: 8, marginVertical: 5, alignSelf: 'flex-end', maxWidth: '75%' },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
   commentTextContainer: { flexShrink: 1 },
-  commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold', },
+  commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold' },
   commentText: { fontSize: 16, color: '#FFF', marginRight: 85 },
-  heartIconOutside: { 
-    marginTop: 10, 
-    alignSelf: 'center', 
-  },
-  commentCard: {
-    backgroundColor: '#1e1e1e',
-    borderRadius: 10,
-    padding: 15,
-    marginVertical: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-    maxWidth: '75%',
-    paddingBottom: 20,
-  },
-  userInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
-  commentImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 8,
-    marginTop: 5,
-  },
-  commentInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    width: '100%',
-  },
-  commentInput: {
-    flex: 1,
-    color: '#ffffff',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#555',
-    borderRadius: 25,
-    backgroundColor: 'rgba(51, 51, 51, 0.6)',
-    fontSize: 16,
-  },
+  heartIconOutside: { marginTop: 10, alignSelf: 'center' },
+  commentCard: { backgroundColor: '#1e1e1e', borderRadius: 10, padding: 15, marginVertical: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5, maxWidth: '75%', paddingBottom: 20 },
+  largeMedia: { width: 200, height: 250, borderRadius: 10, marginTop: 5 }, // Increased media size
+  commentInputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, backgroundColor: 'rgba(0, 0, 0, 0.4)', width: '100%' },
+  commentInput: { flex: 1, color: '#ffffff', paddingHorizontal: 15, paddingVertical: 10, borderWidth: 1, borderColor: '#555', borderRadius: 25, backgroundColor: 'rgba(51, 51, 51, 0.6)', fontSize: 16 },
   characterCounter: { color: '#aaa', marginLeft: 10, fontSize: 12 },
   sendButton: { marginLeft: 10, padding: 10, borderRadius: 25, backgroundColor: '#FF0080' },
 });

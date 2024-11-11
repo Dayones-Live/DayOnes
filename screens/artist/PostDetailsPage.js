@@ -42,6 +42,8 @@ const PostDetailPage = () => {
   const [showReplies, setShowReplies] = useState({});
   const [showArtistReplies, setShowArtistReplies] = useState({}); // Track artist comment replies
   const [likedReplies, setLikedReplies] = useState([]);
+  
+
 
   const route = useRoute();
   const navigation = useNavigation();
@@ -453,11 +455,11 @@ const PostDetailPage = () => {
                       <View style={styles.interactionRow}>
 
                         <TouchableOpacity onPress={() => toggleArtistReplies(artistComment.id)}>
-                          <Foundation name="comments" size={24} color="#333" />
+                          <Foundation name="comments" size={24} color="#fff" />
                           <Text style={styles.iconText}>{artistComment.replies?.length || 0}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => likeComment(artistComment.id)}>
-                          <Foundation name="heart" size={24} color="#333" />
+                          <Foundation name="heart" size={24} color="#fff" />
                           <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => deleteComment(artistComment.id)}>
@@ -715,8 +717,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   messageVideo: {
-    width: 200,
-    height: 200,
+    width: '100%',
+    height: 500,
     borderRadius: 10,
     marginBottom: 5,
   },
@@ -731,7 +733,7 @@ const styles = StyleSheet.create({
   interactionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
   iconText: { marginLeft: 5, fontSize: 14, color: '#FFF' },
   commentContainer: { marginTop: 10, padding: 10, backgroundColor: 'white', borderRadius: 8 },
-  commentText: { color: '#333', marginTop: 5 },
+  commentText: { color: '#fff', marginTop: 5 },
   modalBackground: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
   modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },

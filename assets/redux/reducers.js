@@ -23,7 +23,7 @@ const initialState = {
     accessToken: '',
     userID: '',
     signatureColor: '#FF0000',
-    signatureSize: { width: 450, height: 450 },
+    signatureSize: { width: 200, height: 200 },
     token: null,
     invitesEnabled: false, // Initialize invitesEnabled state
 };
