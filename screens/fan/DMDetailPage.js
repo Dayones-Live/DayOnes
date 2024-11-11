@@ -6,6 +6,7 @@ import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
 import { useSelector } from 'react-redux';
 import Video from 'react-native-video';
+import ImageViewing from 'react-native-image-viewing';
 
 const MAX_COMMENT_LENGTH = 200;
 
@@ -19,6 +20,13 @@ const DMDetailPage = ({ route }) => {
   const userEmail = useSelector((state) => state.userProfile.data.email);
   const userProfile = useSelector((state) => state.userProfile.data);
   const [latestArtistCommentId, setLatestArtistCommentId] = useState(null);
+  const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+  const [selectedImageUri, setSelectedImageUri] = useState(null);
+
+  const openImageViewer = (uri) => {
+    setSelectedImageUri(uri);
+    setIsImageViewerVisible(true);
+  };
 
   const fetchPostDetails = async () => {
     try {
@@ -196,17 +204,19 @@ const addComment = async () => {
               <Text style={styles.userName}>{post.user.full_name}</Text>
             </View>
           )}
-
+  
           {post.image_url && (
-            <Image source={{ uri: post.image_url }} style={styles.postImage} />
+            <TouchableOpacity onPress={() => openImageViewer(post.image_url)}>
+              <Image source={{ uri: post.image_url }} style={styles.postImage} />
+            </TouchableOpacity>
           )}
-
+  
           <View style={styles.interactionContainer}>
             <TouchableOpacity onPress={toggleLike}>
               <EvilIcons name="heart" size={30} color={liked ? '#FF0000' : '#FFFFFF'} />
             </TouchableOpacity>
           </View>
-
+  
           <View style={styles.commentsContainer}>
             {post.artistComments
               .map(comment => ({ ...comment, isArtistComment: true }))
@@ -227,9 +237,11 @@ const addComment = async () => {
                   <View style={styles.commentTextContainer}>
                     <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
                     <Text style={styles.commentText}>{comment.message}</Text>
-
+  
                     {comment.media_type === "PHOTO" && comment.url && (
-                      <Image source={{ uri: comment.url }} style={styles.largeMedia} />
+                      <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
+                        <Image source={{ uri: comment.url }} style={styles.largeMedia} />
+                      </TouchableOpacity>
                     )}
                     {comment.media_type === "VIDEO" && comment.url && (
                       <Video
@@ -241,7 +253,7 @@ const addComment = async () => {
                       />
                     )}
                   </View>
-
+  
                   {(comment.isArtistComment || likedComments.includes(comment.id)) && (
                     <TouchableOpacity
                       onPress={() =>
@@ -262,7 +274,7 @@ const addComment = async () => {
               ))}
           </View>
         </KeyboardAwareScrollView>
-
+  
         <View style={styles.commentInputContainer}>
           <TextInput
             style={styles.commentInput}
@@ -283,9 +295,18 @@ const addComment = async () => {
             <EvilIcons name="sc-telegram" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+  
+        {/* Fullscreen image viewer */}
+        <ImageViewing
+          images={[{ uri: selectedImageUri }]}
+          imageIndex={0}
+          visible={isImageViewerVisible}
+          onRequestClose={() => setIsImageViewerVisible(false)}
+        />
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
+  
 };
 
 
