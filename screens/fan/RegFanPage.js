@@ -61,9 +61,25 @@ const RegFanPage = () => {
       }
     } catch (error) {
       console.log(error);
-      Alert.alert('Signup Error', error.response?.data?.message || 'An unexpected error occurred.');
+
+      // Check if the error is due to a duplicate key constraint
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message &&
+        error.response.data.message.includes('duplicate key value violates unique constraint')
+      ) {
+        Alert.alert(
+          'Signup Successful',
+          'Please check your email for the verification code.'
+        );
+        navigation.navigate('VerifyAccount', { email });
+      } else {
+        Alert.alert('Signup Error', error.response?.data?.message || 'An unexpected error occurred.');
+      }
     }
   };
+
 
   return (
     <SafeAreaView style={styles.container}>
