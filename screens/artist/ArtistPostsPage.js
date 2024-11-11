@@ -278,10 +278,7 @@ const ArtistPostsPage = () => {
         <TouchableOpacity style={styles.plusButton} onPress={handleOpenModal}>
           <AntDesign name="pluscircleo" size={35} color="#FFFFFF" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.personbutton} onPress={handleOpenModal}>
-          <Ionicons name="person" size={25} color="#FFFFFF" />
-          <Text style={styles.persontext}> 1.5mil</Text>
-        </TouchableOpacity>
+        
 
         <Text style={styles.pageTitle}>Posts</Text>
         <ScrollView
@@ -375,7 +372,6 @@ const styles = StyleSheet.create({
   postDate: { fontSize: 14, color: '#888', marginTop: 5 },
   plusButton: { position: 'absolute', top: 8, right: 5, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 25, zIndex: 10 },
   loadingText: { color: '#FFFFFF', textAlign: 'center', marginVertical: 10 },
-  personbutton: { position: 'absolute', top: 10, right: 70, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 25, zIndex: 10 },
   modalBackground: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
   modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
