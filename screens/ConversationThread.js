@@ -68,7 +68,7 @@ const ConversationThread = () => {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 50000);
+    const interval = setInterval(fetchMessages, 5000);
 
     return () => clearInterval(interval);
   }, [accessToken, conversationId]);

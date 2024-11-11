@@ -9,6 +9,7 @@ import {
   StatusBar,
   Dimensions,
   Image,
+  Alert
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -29,7 +30,7 @@ const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [role, setRole] = useState(null); 
+  const [role, setRole] = useState(null);
   const [permissionsGranted, setPermissionsGranted] = useState(false);
 
   const navigation = useNavigation();
@@ -154,7 +155,7 @@ const LoginScreen = () => {
         <View style={styles.topSection}>
           {/* Updated the size to 2.5x */}
           <Image
-            source={require('../assets/images/1024.png')} 
+            source={require('../assets/images/1024.png')}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -188,31 +189,21 @@ const LoginScreen = () => {
           </LinearGradient>
         </View>
 
-        <View style={styles.iconContainer}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Icon name="google" size={24} color="#000" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.iconButton}>
-            <Icon name="apple" size={28} color="#000" />
-          </TouchableOpacity>
-        </View>
-
         <Text style={styles.signupText}>
-          Didn’t signup yet?{' '}
-          <Text onPress={() => navigation.navigate('RegFanPage')} style={styles.signupLink}>
-            Signup Now
+          Are you an Artist?{' '}
+          <Text onPress={() => Alert.alert('Artists!', 'Email DayOnesMedia@gmail.com for more infomation on how to partner with DayOnes.')} style={styles.signupLink}>
+            Contact Us!
           </Text>
         </Text>
 
         <View style={styles.bottomSection}>
-          <Text style={styles.artistQuestionText}>Are you an artist?</Text>
+          <Text style={styles.artistQuestionText}>Don't have an account?</Text>
           <LinearGradient colors={['#ffcc00', '#ff8800']} style={styles.signupArtistButton}>
             <TouchableOpacity
               style={styles.fullWidth}
-              onPress={() => navigation.navigate('RegArtistPage')}
+              onPress={() => navigation.navigate('RegFanPage')}
             >
-              <Text style={[styles.signupArtistText, { color: '#fff' }]}>Signup as an Artist</Text>
+              <Text style={[styles.signupArtistText, { color: '#fff' }]}>Signup</Text>
             </TouchableOpacity>
           </LinearGradient>
         </View>
