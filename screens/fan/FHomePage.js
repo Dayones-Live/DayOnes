@@ -136,38 +136,70 @@ const FHomePage = ({ navigation }) => {
   };
 
   const handleDenyInvite = async (inviteId) => {
-    try {
-      await fetch(`${BASEURL}/api/v1/invites/${inviteId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
+    Alert.alert(
+      'Deny this invite?',
+      'Are you sure you want to deny this invite?',
+      [
+        {
+          text: 'No, don\'t deny',
+          style: 'cancel',
         },
-        body: JSON.stringify({ status: 'REJECTED' }),
-      });
-      fetchInvites();
-      Alert.alert('Success', 'Invite denied.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to deny invite.');
-    }
+        {
+          text: 'Yes, deny',
+          onPress: () => {
+            Alert.alert(
+              'Last Chance',
+              'This invite will be permanently deleted. Are you sure?',
+              [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+                {
+                  text: 'Confirm',
+                  onPress: async () => {
+                    try {
+                      await fetch(`${BASEURL}/api/v1/invites/${inviteId}`, {
+                        method: 'PATCH',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${accessToken}`,
+                        },
+                        body: JSON.stringify({ status: 'REJECTED' }),
+                      });
+                      fetchInvites();
+                      Alert.alert('Success', 'Invite denied.');
+                    } catch (error) {
+                      Alert.alert('Error', 'Failed to deny invite.');
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   const renderInviteItem = ({ item }) => (
-    <View style={styles.inviteItem}>
-      <View style={styles.userInfoContainer}>
-        <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
-        <Text style={styles.userName}>{item.user.full_name}</Text>
+    <LinearGradient colors={['#0c002b', '#1b0248']} style={styles.inviteItemGradient}>
+      <View style={styles.inviteItem}>
+        <View style={styles.userInfoContainer}>
+          <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
+          <Text style={styles.userName}>{item.user.full_name}</Text>
+        </View>
+        <Text style={styles.inviteText}>Invite valid until: {new Date(item.valid_till).toLocaleString()}</Text>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={[styles.inviteButton, styles.confirmButton]} onPress={() => handleConfirmInvite(item.id)}>
+            <Text style={styles.buttonText}>Confirm</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.inviteButton, styles.denyButton]} onPress={() => handleDenyInvite(item.id)}>
+            <Text style={styles.buttonText}>Deny</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      <Text style={styles.inviteText}>Invite valid until: {new Date(item.valid_till).toLocaleString()}</Text>
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.inviteButton, styles.confirmButton]} onPress={() => handleConfirmInvite(item.id)}>
-          <Text style={styles.buttonText}>Confirm</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.inviteButton, styles.denyButton]} onPress={() => handleDenyInvite(item.id)}>
-          <Text style={styles.buttonText}>Deny</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </LinearGradient>
   );
 
   return (
@@ -236,12 +268,15 @@ const styles = StyleSheet.create({
     fontSize: wp('4.5%'),
     fontWeight: 'bold',
   },
-  inviteItem: {
-    backgroundColor: '#222',
-    padding: 15,
+  inviteItemGradient: {
     marginVertical: 8,
     borderRadius: 10,
     marginHorizontal: 10,
+    overflow: 'hidden',
+  },
+  inviteItem: {
+    padding: 15,
+    borderRadius: 10,
   },
   userInfoContainer: {
     flexDirection: 'row',
