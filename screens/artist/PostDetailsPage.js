@@ -532,9 +532,7 @@ const PostDetailPage = () => {
         ListFooterComponent={
           <View>
             <TouchableOpacity onPress={toggleComments}>
-              <Text style={styles.collapseText}>
-                {commentsCollapsed ? 'Show Comments' : 'Hide Comments'}
-              </Text>
+              
             </TouchableOpacity>
             {!commentsCollapsed && (
               <FlatList
