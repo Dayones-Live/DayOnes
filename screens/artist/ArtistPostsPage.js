@@ -11,6 +11,7 @@ import { uploadImageToBucket } from '../../utils';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -338,10 +339,10 @@ const ArtistPostsPage = () => {
       )}
       <View style={styles.iconRow}>
         <TouchableOpacity onPress={uploadFile}>
-          <FontAwesome5 name="file-upload" size={24} color="blue" />
+          <Icon name="image" size={24} color="blue" />
         </TouchableOpacity>
         <TouchableOpacity onPress={takePicture}>
-          <AntDesign name="camera" size={24} color="blue" />
+          <Icon name="camera" size={24} color="blue" />
         </TouchableOpacity>
       </View>
 
