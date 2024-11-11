@@ -1,11 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, FlatList, TouchableOpacity, Image, SafeAreaView, Modal, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  SafeAreaView,
+  Modal,
+  ActivityIndicator,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
 import { useSelector, useDispatch } from 'react-redux';
 import { setInvitesEnabled } from '../../assets/redux/actions';
 import { BASEURL } from '../../assets/constants';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 
 const FHomePage = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -167,15 +179,28 @@ const FHomePage = ({ navigation }) => {
         keyExtractor={(item) => item.id}
         renderItem={renderInviteItem}
         ListEmptyComponent={<Text style={styles.noInviteText}>No Invites Available</Text>}
-        contentContainerStyle={{ paddingTop: 65 }} // Added padding to push invites down
+        contentContainerStyle={{ paddingTop: 65 }}
       />
 
+      <View style={styles.logoContainer}>
+        <Text style={styles.overlayText}>Become a DayOne</Text>
+        <Image
+          source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
+          style={styles.placeholderImage}
+        />
+      </View>
+
       <View style={styles.controlsContainer}>
-        <TouchableOpacity style={styles.fetchButton} onPress={toggleInviteAndFetch}>
-          <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.fetchButtonGradient}>
-            <Text style={styles.buttonText}>Get Invites</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+        <LinearGradient
+          colors={['#00E5FF', '#D500F9']}
+          style={styles.sendButtonGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <TouchableOpacity style={styles.sendButton} onPress={toggleInviteAndFetch}>
+            <Text style={styles.sendButtonText}>Get Invites</Text>
+          </TouchableOpacity>
+        </LinearGradient>
       </View>
 
       <Modal visible={isLoading} transparent={true} animationType="fade">
@@ -195,6 +220,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  sendButtonGradient: {
+    paddingVertical: hp('2%'),
+    borderRadius: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  sendButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendButtonText: {
+    color: '#ffffff',
+    fontSize: wp('4.5%'),
+    fontWeight: 'bold',
   },
   inviteItem: {
     backgroundColor: '#222',
@@ -223,7 +263,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     marginBottom: 10,
-    fontFamily:'Verdana'
+    fontFamily: 'Verdana',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -236,7 +276,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     borderRadius: 5,
     alignItems: 'center',
-    
   },
   confirmButton: {
     backgroundColor: '#4CAF50',
@@ -252,21 +291,27 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
   },
-  fetchButton: {
-    width: '100%',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  fetchButtonGradient: {
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
   noInviteText: {
     textAlign: 'center',
     color: '#fff',
     fontSize: 16,
     padding: 20,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  placeholderImage: {
+    width: 400,
+    height: 400,
+    resizeMode: 'contain',
+    marginBottom: 40,
+  },
+  overlayText: {
+    color: '#FFF',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: -125,
   },
   modalBackground: {
     flex: 1,
