@@ -178,7 +178,7 @@ const FHomePage = ({ navigation }) => {
         data={invites}
         keyExtractor={(item) => item.id}
         renderItem={renderInviteItem}
-        ListEmptyComponent={<Text style={styles.noInviteText}>No Invites Available</Text>}
+       
         contentContainerStyle={{ paddingTop: 65 }}
       />
 
@@ -303,7 +303,8 @@ const styles = StyleSheet.create({
   },
   placeholderImage: {
     width: 400,
-    height: 400,
+    height: '60%',
+    top:'-40%',
     resizeMode: 'contain',
     marginBottom: 40,
   },
@@ -311,7 +312,8 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: -125,
+    marginBottom: 0,
+    bottom:'26%',
   },
   modalBackground: {
     flex: 1,

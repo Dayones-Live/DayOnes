@@ -158,16 +158,6 @@ const App = () => {
   );
 };
 
-// Styles, including Montserrat font usage
-const styles = StyleSheet.create({
-  regularText: {
-    fontFamily: 'Montserrat-VariableFont_wght', // Using the Montserrat font
-    fontWeight: '400', // Regular weight
-  },
-  boldText: {
-    fontFamily: 'Montserrat-VariableFont_wght', // Using the Montserrat font
-    fontWeight: '700', // Bold weight
-  },
-});
+
 
 export default App;
