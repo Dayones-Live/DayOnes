@@ -205,36 +205,39 @@ const FHomePage = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <ProfilePictureButton navigation={navigation} />
-
+  
       <FlatList
         data={invites}
         keyExtractor={(item) => item.id}
         renderItem={renderInviteItem}
-       
         contentContainerStyle={{ paddingTop: 65 }}
       />
-
-      <View style={styles.logoContainer}>
-        <Text style={styles.overlayText}>Become a DayOne</Text>
-        <Image
-          source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
-          style={styles.placeholderImage}
-        />
-      </View>
-
-      <View style={styles.controlsContainer}>
-        <LinearGradient
-          colors={['#00E5FF', '#D500F9']}
-          style={styles.sendButtonGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
-          <TouchableOpacity style={styles.sendButton} onPress={toggleInviteAndFetch}>
-            <Text style={styles.sendButtonText}>Get Invites</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-      </View>
-
+  
+      {invites.length === 0 && (
+        <View style={styles.logoContainer}>
+          <Text style={styles.overlayText}>Become a DayOne</Text>
+          <Image
+            source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
+            style={styles.placeholderImage}
+          />
+        </View>
+      )}
+  
+      {invites.length === 0 && (
+        <View style={styles.controlsContainer}>
+          <LinearGradient
+            colors={['#00E5FF', '#D500F9']}
+            style={styles.sendButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <TouchableOpacity style={styles.sendButton} onPress={toggleInviteAndFetch}>
+              <Text style={styles.sendButtonText}>Get Invites</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
+      )}
+  
       <Modal visible={isLoading} transparent={true} animationType="fade">
         <View style={styles.modalBackground}>
           <ActivityIndicator size="large" color="#D500F9" />
@@ -246,6 +249,7 @@ const FHomePage = ({ navigation }) => {
       </Modal>
     </SafeAreaView>
   );
+  
 };
 
 const styles = StyleSheet.create({
