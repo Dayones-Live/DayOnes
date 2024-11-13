@@ -584,9 +584,7 @@ const PostDetailPage = () => {
                           color={likedComments.includes(item.id) ? 'red' : '#333'}
                         />
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleOpenReplyModal(item.id)}>
-                        <AntDesign name="message1" size={20} color="#333" />
-                      </TouchableOpacity>
+                     
                       <TouchableOpacity onPress={() => createOrNavigateConversation(item.user.id)}>
                         <Icon name="paper-plane" size={20} color="#333" />
                       </TouchableOpacity>
