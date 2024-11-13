@@ -28,7 +28,7 @@ const NotificationsScreen = () => {
       {/* Add Profile Picture Button in the top-left corner */}
       <ProfilePictureButton />
 
-      <Text style={styles.text}>Todos</Text>
+      <Text style={styles.text}>Notifications</Text>
       <FlatList
         data={data}
         keyExtractor={(item) => item.id.toString()}
@@ -45,7 +45,7 @@ const NotificationsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c002b', // Navy blue background color
+    backgroundColor: '#000', // Navy blue background color
     alignItems: 'center',
     justifyContent: 'center',
   },

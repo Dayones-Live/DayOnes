@@ -164,6 +164,7 @@ const LoginScreen = () => {
         <View style={styles.middleSection}>
           <View style={styles.inputContainer}>
             <TextInput
+              key="Email"
               style={styles.input}
               placeholder="Email"
               placeholderTextColor="#888"

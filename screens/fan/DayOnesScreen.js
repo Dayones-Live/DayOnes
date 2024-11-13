@@ -14,7 +14,7 @@ import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
-import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
+import ProfilePictureButton from '../../assets/components/ProfilePictureButton2';
 
 const DayOnesScreen = ({ navigation }) => {
   const [posts, setPosts] = useState([]);

@@ -27,7 +27,7 @@ const ProfilePictureButton = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 20,
+    top: '8%',
     left: 20,
     zIndex: 1,
   },

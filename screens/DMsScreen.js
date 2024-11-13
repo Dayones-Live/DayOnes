@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, SafeAreaView, Image
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { getConversations } from '../assets/services/apiService';
+import { BASEURL } from '../assets/constants';
 
 const DMsScreen = () => {
   const [conversations, setConversations] = useState([]);
@@ -38,6 +39,33 @@ const DMsScreen = () => {
     }
   };
 
+  const handleDeleteConversation = async (conversationId) => {
+    try {
+      const response = await fetch(`${BASEURL}/api/v1/conversation/${conversationId}`, { // Adjusted endpoint
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+  
+      const responseData = await response.json();
+      console.log('Response status:', response.status);
+      console.log('Response data:', responseData);
+  
+      if (response.ok) {
+        setConversations((prevConversations) => prevConversations.filter((conv) => conv.id !== conversationId));
+        Alert.alert('Conversation deleted successfully');
+      } else {
+        Alert.alert('Failed to delete the conversation', responseData.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      Alert.alert('Error', 'Failed to delete the conversation. Please try again.');
+    }
+  };
+  
+  
+  
   const formatTimeAgo = (dateString) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -71,7 +99,20 @@ const DMsScreen = () => {
     const senderName = item.sender.full_name;
 
     return (
-      <TouchableOpacity onPress={() => handleConversationPress(item.id, item.sender)} style={styles.conversationContainer}>
+      <TouchableOpacity
+        onPress={() => handleConversationPress(item.id, item.sender)}  // Navigates to conversation on press
+        onLongPress={() =>
+          Alert.alert(
+            'Delete Conversation',
+            'Are you sure you want to delete this conversation?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete', style: 'destructive', onPress: () => handleDeleteConversation(item.id) },
+            ]
+          )
+        }  // Prompts deletion on long press
+        style={styles.conversationContainer}
+      >
         <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         <View style={styles.messageInfo}>
           <Text style={styles.senderName}>{senderName} sent you a message</Text>

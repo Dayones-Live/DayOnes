@@ -16,7 +16,7 @@ import Geolocation from '@react-native-community/geolocation';
 import { useSelector, useDispatch } from 'react-redux';
 import { setInvitesEnabled } from '../../assets/redux/actions';
 import { BASEURL } from '../../assets/constants';
-import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
+import ProfilePictureButton from '../../assets/components/ProfilePictureButton1';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 
 const FHomePage = ({ navigation }) => {
@@ -205,26 +205,37 @@ const FHomePage = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <ProfilePictureButton navigation={navigation} />
-  
+
+      {/* Header Section for Logo and Text */}
+      <View style={styles.header}>
+        <Image
+          source={require('../../assets/images/1024.png')}
+          style={styles.logo}
+        />
+        <Text style={styles.personalMediaText}>Personal Media</Text>
+      </View>
+
       <FlatList
         data={invites}
         keyExtractor={(item) => item.id}
         renderItem={renderInviteItem}
-        contentContainerStyle={{ paddingTop: 65 }}
+        contentContainerStyle={{ paddingTop: hp('10%') }}
       />
-  
+
+      {/* Static Placeholder Image and Text */}
       {invites.length === 0 && (
-        <View style={styles.logoContainer}>
-          <Text style={styles.overlayText}>Become a DayOne</Text>
+        <View style={styles.staticContainer}>
           <Image
             source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
-            style={styles.placeholderImage}
+            style={styles.staticPlaceholderImage}
           />
+          <Text style={styles.staticOverlayText}>Autographs & Invites</Text>
         </View>
       )}
-  
+
+      {/* Fixed "Get Invites" Button */}
       {invites.length === 0 && (
-        <View style={styles.controlsContainer}>
+        <View style={styles.fixedButtonContainer}>
           <LinearGradient
             colors={['#00E5FF', '#D500F9']}
             style={styles.sendButtonGradient}
@@ -237,19 +248,15 @@ const FHomePage = ({ navigation }) => {
           </LinearGradient>
         </View>
       )}
-  
+
       <Modal visible={isLoading} transparent={true} animationType="fade">
         <View style={styles.modalBackground}>
           <ActivityIndicator size="large" color="#D500F9" />
           <Text style={styles.countdownText}>Checking invites... {countdown}s</Text>
-          <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
         </View>
       </Modal>
     </SafeAreaView>
   );
-  
 };
 
 const styles = StyleSheet.create({
@@ -257,63 +264,61 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  sendButtonGradient: {
-    paddingVertical: hp('2%'),
-    borderRadius: 10,
-    width: '100%',
+  header: {
     alignItems: 'center',
+    paddingVertical: hp('2%'), // Space around the header
   },
-  sendButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  logo: {
+    width: wp('15%'), // Adjust to desired size
+    height: hp('6%'),
+    resizeMode: 'contain',
+    top:'-10%',
   },
-  sendButtonText: {
-    color: '#ffffff',
-    fontSize: wp('4.5%'),
+  personalMediaText: {
+    color: '#C0C0C0',
+    fontSize: wp('5%'), // Font size for "Personal Media"
     fontWeight: 'bold',
+    marginTop: hp('-0.9%'),
   },
   inviteItemGradient: {
-    marginVertical: 8,
-    borderRadius: 10,
-    marginHorizontal: 10,
-    overflow: 'hidden',
+    marginVertical: hp('1%'),
+    borderRadius: wp('2%'),
+    marginHorizontal: wp('2%'),
   },
   inviteItem: {
-    padding: 15,
-    borderRadius: 10,
+    padding: wp('3%'),
   },
   userInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: hp('1%'),
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    marginRight: wp('2%'),
   },
   userName: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
   inviteText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    marginBottom: 10,
-    fontFamily: 'Verdana',
+    fontSize: wp('3.5%'),
+    marginBottom: hp('1%'),
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    marginTop: hp('1%'),
   },
   inviteButton: {
     flex: 1,
-    paddingVertical: 8,
-    marginHorizontal: 5,
-    borderRadius: 5,
+    paddingVertical: hp('1%'),
+    marginHorizontal: wp('1%'),
+    borderRadius: wp('2%'),
     alignItems: 'center',
   },
   confirmButton: {
@@ -326,34 +331,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  controlsContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  noInviteText: {
-    textAlign: 'center',
-    color: '#fff',
-    fontSize: 16,
-    padding: 20,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  placeholderImage: {
-    width: 400,
-    height: '60%',
-    top:'-40%',
-    resizeMode: 'contain',
-    marginBottom: 40,
-  },
-  overlayText: {
-    color: '#FFF',
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 0,
-    bottom:'26%',
-  },
   modalBackground: {
     flex: 1,
     justifyContent: 'center',
@@ -362,19 +339,50 @@ const styles = StyleSheet.create({
   },
   countdownText: {
     color: '#fff',
-    fontSize: 16,
-    marginTop: 10,
+    fontSize: wp('4%'),
+    marginTop: hp('1%'),
   },
-  cancelButton: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#D500F9',
-    borderRadius: 10,
+  // Static Placeholder Image and Text
+  staticContainer: {
+    position: 'absolute',
+    top: hp('20%'),
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: -1,
   },
-  cancelButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  staticPlaceholderImage: {
+    width: wp('125%'),
+    height: hp('100%'),
+    resizeMode: 'contain',
+    top:'-38.4%',
+  },
+  staticOverlayText: {
+    position: 'absolute',
+    top: '1.7%',
     textAlign: 'center',
+    color: '#c0c0c0',
+    fontSize: wp('5%'),
+    fontWeight: 'bold',
+  },
+  // Fixed Button Styling
+  fixedButtonContainer: {
+    position: 'absolute',
+    bottom: hp('2%'),
+    left: wp('0%'),
+    right: wp('0%'),
+    alignItems: 'center',
+  },
+  sendButtonGradient: {
+    paddingVertical: hp('2%'),
+    borderRadius: wp('3%'),
+    width: '100%',
+    alignItems: 'center',
+  },
+  sendButtonText: {
+    color: 'white',
+    fontSize: wp('4.5%'),
+    fontWeight: 'bold',
   },
 });
 

@@ -22,12 +22,12 @@ import { uploadImageToBucket } from '../utils';
 import { uploadVideoToBucket } from '../utils/videoUploadService';
 import Video from 'react-native-video';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {BASEURL} from '../assets/constants'
 
 const formatTime = (date) => {
   const options = { hour: 'numeric', minute: 'numeric' };
   return new Date(date).toLocaleTimeString([], options);
 };
-
 const formatDateLabel = (date) => {
   const messageDate = new Date(date);
   const today = new Date();
@@ -44,7 +44,7 @@ const ConversationThread = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedMedia, setSelectedMedia] = useState(null);
-  const [mediaType, setMediaType] = useState(null); // NEW: track whether it's a photo or video
+  const [mediaType, setMediaType] = useState(null);
   const route = useRoute();
   const navigation = useNavigation();
   const { conversationId, profilePicture, username } = route.params;
@@ -53,6 +53,31 @@ const ConversationThread = () => {
   const loggedInUserEmail = loggedInUser?.data.email || null;
   const loggedInUserId = loggedInUser?.id || null;
   const { sendMessage } = useSendMessage(accessToken);
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const response = await fetch(`${BASEURL}/api/v1/message/${messageId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+  
+      if (response.ok) {
+        setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId));
+        Alert.alert('Message deleted successfully');
+      } else {
+        const errorData = await response.json(); // fetch error details if available
+        Alert.alert('Failed to delete the message', errorData.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      Alert.alert('Error', 'Failed to delete the message. Please try again.');
+    }
+  };
+  
+
+
 
   const fetchMessages = async () => {
     if (!accessToken) return;
@@ -146,9 +171,22 @@ const ConversationThread = () => {
     const senderEmail = item.messageSender?.email || null;
     const isSender = senderEmail === loggedInUserEmail;
     const timestamp = formatDateLabel(item.created_at);
-
+  
     return (
-      <View style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}>
+      <TouchableOpacity
+  onLongPress={() =>
+    Alert.alert(
+      'Delete Message',
+      'Are you sure you want to delete this message?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => handleDeleteMessage(item.id, accessToken) },
+      ]
+    )
+  }
+  style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}
+>
+
         <View style={[styles.messageBubble, isSender ? styles.senderBubble : styles.receiverBubble]}>
           {item.media_type === 'PHOTO' && item.url && (
             <Image source={{ uri: item.url }} style={styles.messageImage} />
@@ -165,7 +203,7 @@ const ConversationThread = () => {
           {item.message && <Text style={styles.messageText}>{item.message}</Text>}
           <Text style={styles.messageTimestamp}>{timestamp}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
