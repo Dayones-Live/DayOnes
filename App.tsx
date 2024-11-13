@@ -31,28 +31,28 @@ const Stack = createStackNavigator();
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [initialRoute, setInitialRoute] = useState('TermsAndPrivacyScreen'); // Default to Terms screen
+  const [initialRoute, setInitialRoute] = useState<string | null>(null);
 
   useEffect(() => {
-    // Hide the splash screen on load
     SplashScreen.hide();
-    checkPermissionsOnLaunch();
+    checkAcceptanceStatus();
   }, []);
 
-  const checkPermissionsOnLaunch = async () => {
+  const checkAcceptanceStatus = async () => {
     try {
-      const permissionsGranted = await AsyncStorage.getItem('permissionsGranted');
-      if (permissionsGranted === 'true') {
-        const role = await AsyncStorage.getItem('userRole');
-        setInitialRoute(role === 'ARTIST' ? 'ArtistStack' : 'FanStack');
+      const termsAccepted = await AsyncStorage.getItem('termsAccepted');
+      if (termsAccepted === 'true') {
+        setInitialRoute('LoginPage'); // Skip TOS if accepted
       } else {
-        setInitialRoute('PermissionsScreen');
+        setInitialRoute('TermsAndPrivacyScreen'); // Show TOS if not accepted
       }
     } catch (error) {
-      console.error('Error checking permissions on launch:', error);
-      setInitialRoute('LoginPage');
+      console.error('Error checking acceptance status:', error);
+      setInitialRoute('TermsAndPrivacyScreen'); // Default to TOS on error
     }
   };
+
+  if (initialRoute === null) return null;
 
   return (
     <Provider store={store}>

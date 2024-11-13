@@ -16,6 +16,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   check,
   request,
@@ -79,11 +80,12 @@ const PermissionsScreen = () => {
 
       if (
         camera === RESULTS.GRANTED &&
+        (library === RESULTS.GRANTED || library === RESULTS.LIMITED) &&
         notifications === RESULTS.GRANTED &&
-        library === RESULTS.GRANTED &&
         location === RESULTS.GRANTED
       ) {
-        navigateToAppropriateStack(profile.data.role);
+        await storePermissionsStatus(); // Store permissions status
+        navigateToAppropriateStack(profile.data.role); // Navigate to the next screen
       }
 
       setLoading(false);
@@ -123,6 +125,15 @@ const PermissionsScreen = () => {
       navigation.navigate('ArtistStack');
     } else if (role === 'USER') {
       navigation.navigate('FanStack');
+    }
+  };
+
+  const storePermissionsStatus = async () => {
+    try {
+      await AsyncStorage.setItem('permissionsGranted', 'true');
+      console.log('Permissions status saved to AsyncStorage');
+    } catch (error) {
+      console.error('Error storing permissions status:', error);
     }
   };
 
@@ -195,6 +206,7 @@ const PermissionsScreen = () => {
                   setNotificationsPermission(
                     notificationResult.status === RESULTS.GRANTED,
                   );
+                  checkAllPermissions(); // Recheck all permissions
                 }}
               />
               <PermissionItem
