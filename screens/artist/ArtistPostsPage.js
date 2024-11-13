@@ -43,13 +43,16 @@ const ArtistPostsPage = () => {
   
       const postsData = response.data?.data?.posts || [];
       const genericPost = postsData.find(post => post.type === 'GENERIC');
-      
+  
       if (genericPost) {
         setPinnedPost(genericPost);
         setGenericPostId(genericPost.id); // Store the ID of the generic post
       }
   
-      const otherPosts = postsData.filter(post => post.type !== 'GENERIC');
+      const otherPosts = postsData
+        .filter(post => post.type !== 'GENERIC')
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Sort posts by created_at in descending order
+  
       setHasMore(otherPosts.length === 25);
   
       setPosts(prevPosts => {
@@ -65,6 +68,7 @@ const ArtistPostsPage = () => {
       setLoading(false);
     }
   };
+  
 
   const handleDelete = async (postId) => {
     try {
