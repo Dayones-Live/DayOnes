@@ -82,10 +82,14 @@ const LoginScreen = () => {
 
   useEffect(() => {
     if (userProfile?.data?.role) {
-      setRole(userProfile.data.role);
-      setIsLoading(false);
+        setRole(userProfile.data.role);
+        console.log('useEffect triggered: userProfile role is:', userProfile.data.role);
+    } else {
+        console.log('useEffect triggered: No role found in userProfile.');
     }
-  }, [userProfile]);
+    setIsLoading(false);
+}, [userProfile]);
+
 
   useEffect(() => {
     if (role && !isLoading) {
@@ -106,18 +110,22 @@ const LoginScreen = () => {
       return;
     }
     setIsLoading(true);
-
+  
     loginUser(
       { email: username, password },
       {
         onSuccess: (data) => {
           setIsLoading(false);
-
+  
           const userRole = data?.role || userProfile?.data?.role;
           setRole(userRole);
+          
+          // Debugging statements
+          console.log('Data from API:', data);
           console.log('User Profile from Redux:', userProfile);
           console.log('Role from API or Redux:', userRole);
-
+          console.log('Final role value used for navigation:', userRole);
+  
           if (userRole === 'ARTIST' || userRole === 'USER') {
             checkAllPermissions().then((permissionsGranted) => {
               setPermissionsGranted(permissionsGranted);
@@ -131,7 +139,7 @@ const LoginScreen = () => {
         },
         onError: (error) => {
           setIsLoading(false);
-
+  
           if (error.toString().includes('User is not confirmed')) {
             alert('Account Not Confirmed', 'Please confirm your account to proceed.');
             navigation.navigate('VerifyAccount', { email: username });
@@ -146,6 +154,7 @@ const LoginScreen = () => {
       }
     );
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>
