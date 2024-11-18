@@ -171,26 +171,32 @@ const LoginScreen = () => {
         </View>
 
         <View style={styles.middleSection}>
-          <View style={styles.inputContainer}>
-            <TextInput
-              key="Email"
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#888"
-              value={username}
-              onChangeText={setUsername}
-              editable={!isLoading}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#888"
-              value={password}
-              secureTextEntry
-              onChangeText={setPassword}
-              editable={!isLoading}
-            />
-          </View>
+        <View style={styles.inputContainer}>
+  <TextInput
+    key="Email"
+    style={styles.input}
+    placeholder="Email"
+    placeholderTextColor="#888"
+    value={username}
+    onChangeText={setUsername}
+    editable={!isLoading}
+  />
+</View>
+
+<View style={styles.passwordfield}>
+  <TextInput
+    key="Password"
+    style={styles.passwordfield}
+    placeholder="Password"
+    placeholderTextColor="#888"
+    value={password}
+    onChangeText={setPassword}
+    editable={!isLoading}
+  />
+</View>
+
+          
+
 
           <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.loginButton}>
             <TouchableOpacity onPress={() => handleLogin()} style={styles.fullWidth} disabled={isLoading}>
@@ -227,6 +233,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  passwordfield:{
+    height: 50,
+    width:'100%',
+    backgroundColor: '#333',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    color: '#fff',
+    marginBottom: 40,
+    fontSize: 18,
+    marginRight:0,
+    textAlign:'left' ,
+  },
   contentContainer: {
     flex: 1,
     justifyContent: 'space-between',
@@ -248,7 +266,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     width: '100%',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   input: {
     height: 50,
@@ -257,7 +275,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     color: '#fff',
     marginBottom: 20,
-    fontSize: 16,
+    fontSize: 18,
   },
   fullWidth: {
     width: '100%',
