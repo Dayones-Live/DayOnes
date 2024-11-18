@@ -47,8 +47,8 @@ const ConversationThread = () => {
   const [newMessage, setNewMessage] = useState('');
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [mediaType, setMediaType] = useState(null);
-  const [isImageViewerVisible, setImageViewerVisible] = useState(false); // New state for ImageViewing
-  const [selectedImageForViewer, setSelectedImageForViewer] = useState(null); // Track selected image
+  const [isImageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageForViewer, setSelectedImageForViewer] = useState(null);
   const route = useRoute();
   const navigation = useNavigation();
   const { conversationId, profilePicture, username } = route.params;
@@ -57,7 +57,8 @@ const ConversationThread = () => {
   const loggedInUserEmail = loggedInUser?.data.email || null;
   const loggedInUserId = loggedInUser?.id || null;
   const { sendMessage } = useSendMessage(accessToken);
-  const flatListRef = useRef(null); // Add this inside your component
+  const flatListRef = useRef(null);
+  const [isSending, setIsSending] = useState(false);
 
   const handleDeleteMessage = async (messageId) => {
     try {
@@ -72,7 +73,7 @@ const ConversationThread = () => {
         setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId));
         Alert.alert('Message deleted successfully');
       } else {
-        const errorData = await response.json(); // fetch error details if available
+        const errorData = await response.json();
         Alert.alert('Failed to delete the message', errorData.message || 'Unknown error');
       }
     } catch (error) {
@@ -137,13 +138,17 @@ const ConversationThread = () => {
   };
 
   const handleSendMessage = async () => {
-    if (newMessage.trim() === '' && !selectedMedia) return;
+    if (isSending || (newMessage.trim() === '' && !selectedMedia)) return;
 
+    setIsSending(true); // Disable the button
     try {
       let mediaUrl = null;
       if (selectedMedia) {
         mediaUrl = await handleMediaUpload(selectedMedia);
-        if (!mediaUrl) return;
+        if (!mediaUrl) {
+          setIsSending(false); // Re-enable the button if media upload fails
+          return;
+        }
       }
 
       await sendMessage(conversationId, newMessage, mediaUrl, mediaType);
@@ -166,6 +171,8 @@ const ConversationThread = () => {
       setMediaType(null);
     } catch (error) {
       console.error('Error sending message:', error);
+    } finally {
+      setIsSending(false); // Re-enable the button
     }
   };
 
@@ -198,7 +205,7 @@ const ConversationThread = () => {
           style={[
             styles.messageBubble,
             isSender ? styles.senderBubble : styles.receiverBubble,
-            { alignSelf: isSender ? 'flex-end' : 'flex-start' }, // Align dynamically
+            { alignSelf: isSender ? 'flex-end' : 'flex-start' },
           ]}
         >
           {item.media_type === 'PHOTO' && item.url && (
@@ -216,9 +223,12 @@ const ConversationThread = () => {
           {item.message && <Text style={styles.messageText}>{item.message}</Text>}
           <Text style={styles.messageTimestamp}>{timestamp}</Text>
         </View>
-
       </TouchableOpacity>
     );
+  };
+
+  const handleBlockUser = () => {
+    Alert.alert('Placeholder for blocking a user');
   };
 
   return (
@@ -233,6 +243,9 @@ const ConversationThread = () => {
           </TouchableOpacity>
           <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
           <Text style={styles.username}>{username}</Text>
+          <TouchableOpacity onPress={handleBlockUser}>
+            <Text style={styles.blockButton}>Block User</Text>
+          </TouchableOpacity>
         </View>
 
         <KeyboardAwareScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -287,9 +300,14 @@ const ConversationThread = () => {
           <TouchableOpacity onPress={handleSelectMedia} style={styles.iconSpacing}>
             <Icon name="image" size={24} color="#888" style={styles.icon} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+          <TouchableOpacity
+            style={[styles.sendButton, isSending && { opacity: 0.5 }]} // Disable visual feedback
+            onPress={handleSendMessage}
+            disabled={isSending} // Disable button while sending
+          >
             <Icon name="send" size={24} color="#fff" />
           </TouchableOpacity>
+
         </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -320,6 +338,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+    flex: 1,
+  },
+  blockButton: {
+    color: '#ff4444',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   messageList: {
     flex: 1,
@@ -327,7 +351,7 @@ const styles = StyleSheet.create({
   messageWrapper: {
     flexDirection: 'row',
     marginVertical: 10,
-    paddingHorizontal: 5, // Reduce horizontal padding
+    paddingHorizontal: 5,
   },
   senderWrapper: {
     justifyContent: 'flex-end',
@@ -341,9 +365,9 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     padding: 10,
     borderRadius: 20,
-    alignSelf: 'flex-start', // Default alignment for receiver
-    backgroundColor: '#333', // Default color
-    maxWidth: '80%', // Limit width to avoid breaking the layout
+    alignSelf: 'flex-start',
+    backgroundColor: '#333',
+    maxWidth: '80%',
   },
   senderBubble: {
     backgroundColor: '#4e9af1',
@@ -355,7 +379,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     marginBottom: 5,
-    textAlign: 'left', // Ensure text is aligned properly
+    textAlign: 'left',
   },
   messageTimestamp: {
     color: '#aaa',
@@ -363,18 +387,18 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   messageImage: {
-    width: '100%', // Ensure it scales to the parent
-    aspectRatio: 16 / 9, // Maintain a consistent aspect ratio
+    width: '100%',
+    aspectRatio: 16 / 9,
     borderRadius: 10,
     marginBottom: 5,
-    backgroundColor: '#000', // Add background for missing images
+    backgroundColor: '#000',
   },
   messageVideo: {
-    width: '100%', // Ensure it scales to the parent
-    aspectRatio: 16 / 9, // Maintain a consistent aspect ratio
+    width: '100%',
+    aspectRatio: 16 / 9,
     borderRadius: 10,
     marginBottom: 5,
-    backgroundColor: '#000', // Add background for missing videos
+    backgroundColor: '#000',
   },
   inputContainer: {
     flexDirection: 'row',
