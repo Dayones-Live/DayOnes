@@ -15,7 +15,9 @@ const TermsAndPrivacyScreen = () => {
       try {
         await AsyncStorage.setItem('termsAccepted', 'true');
         console.log("Terms accepted and stored successfully");
-        navigation.navigate("LoginPage");
+        
+        // Since it's the first time, navigate directly to PermissionsScreen
+        navigation.navigate('PermissionsScreen');
       } catch (error) {
         console.error('Error saving acceptance status:', error);
       }
@@ -23,6 +25,7 @@ const TermsAndPrivacyScreen = () => {
       Alert.alert("Please agree to the Terms and Privacy Policy to continue.");
     }
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>

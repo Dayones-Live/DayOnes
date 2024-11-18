@@ -137,20 +137,32 @@ const PermissionsScreen = () => {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!cameraPermission || !libraryPermission || !notificationsPermission || !locationPermission) {
       Alert.alert(
         'Warning',
         'Not all permissions are granted. Some app features may not work correctly.',
         [
-          { text: 'Continue Anyway', onPress: () => navigateToAppropriateStack(profile.data.role) },
+          {
+            text: 'Continue Anyway',
+            onPress: async () => {
+              await AsyncStorage.setItem('permissionsGranted', 'false'); // Mark as incomplete
+              navigation.navigate('LoginPage'); // Navigate to login
+            },
+          },
           { text: 'Go Back', style: 'cancel' },
         ],
       );
     } else {
-      navigateToAppropriateStack(profile.data.role);
+      await AsyncStorage.setItem('permissionsGranted', 'true'); // Mark as granted
+      navigation.navigate('LoginPage'); // Proceed to login
     }
   };
+  
+  useEffect(() => {
+    checkAllPermissions();
+  }, []);
+  
 
   return (
     <SafeAreaView style={styles.safeAreaView}>

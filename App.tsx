@@ -5,10 +5,10 @@ import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SplashScreen from 'react-native-splash-screen';
-
 import store from './assets/redux/store';
 import TermsAndPrivacyScreen from './auth/TermsAndPrivacyScreen';
 import LoginPage from './screens/LoginPage';
+import PermissionsScreen from './screens/PermissionsScreen';
 import RegArtistPage from './screens/artist/RegArtistPage';
 import RegFanPage from './screens/fan/RegFanPage';
 import ArtistStack from './navigation/ArtistStack';
@@ -17,7 +17,6 @@ import ProfileScreen from './screens/ProfileScreen';
 import ArtistPostsPage from './screens/artist/ArtistPostsPage';
 import SignaturePage from './screens/artist/SignaturePage';
 import ArtistSignatures from './screens/artist/ArtistSignatures';
-import PermissionsScreen from './screens/PermissionsScreen';
 import EditScreen from './screens/artist/EditScreen';
 import SplashVideoScreen from './screens/SplashVideoScreen';
 import DMsScreen from './screens/DMsScreen';
@@ -35,24 +34,28 @@ const App = () => {
 
   useEffect(() => {
     SplashScreen.hide();
-    checkAcceptanceStatus();
+    checkAppSetupStatus();
   }, []);
 
-  const checkAcceptanceStatus = async () => {
+  const checkAppSetupStatus = async () => {
     try {
       const termsAccepted = await AsyncStorage.getItem('termsAccepted');
-      if (termsAccepted === 'true') {
-        setInitialRoute('LoginPage'); // Skip TOS if accepted
+      const permissionsGranted = await AsyncStorage.getItem('permissionsGranted');
+
+      if (termsAccepted === 'true' && permissionsGranted === 'true') {
+        setInitialRoute('LoginPage'); // Skip TOS and Permissions if both are satisfied
+      } else if (termsAccepted !== 'true') {
+        setInitialRoute('TermsAndPrivacyScreen'); // Show TOS first
       } else {
-        setInitialRoute('TermsAndPrivacyScreen'); // Show TOS if not accepted
+        setInitialRoute('PermissionsScreen'); // Show permissions if TOS is accepted
       }
     } catch (error) {
-      console.error('Error checking acceptance status:', error);
+      console.error('Error checking app setup status:', error);
       setInitialRoute('TermsAndPrivacyScreen'); // Default to TOS on error
     }
   };
 
-  if (initialRoute === null) return null;
+  if (initialRoute === null) return null; // Prevent rendering until initial route is determined
 
   return (
     <Provider store={store}>
@@ -62,6 +65,11 @@ const App = () => {
             <Stack.Screen
               name="TermsAndPrivacyScreen"
               component={TermsAndPrivacyScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="PermissionsScreen"
+              component={PermissionsScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen
@@ -112,11 +120,6 @@ const App = () => {
             <Stack.Screen
               name="ArtistSignatures"
               component={ArtistSignatures}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="PermissionsScreen"
-              component={PermissionsScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen

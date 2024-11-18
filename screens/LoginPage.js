@@ -15,6 +15,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Feather from 'react-native-vector-icons/Feather';
 import useLogin from '../assets/hooks/useLogin';
 import {
   check,
@@ -32,6 +33,7 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [role, setRole] = useState(null);
   const [permissionsGranted, setPermissionsGranted] = useState(false);
+  
 
   const navigation = useNavigation();
   const userProfile = useSelector((state) => state.userProfile);
