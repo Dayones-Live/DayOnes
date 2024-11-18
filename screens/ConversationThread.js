@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import { uploadVideoToBucket } from '../utils/videoUploadService';
 import Video from 'react-native-video';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { BASEURL } from '../assets/constants';
+import ImageViewing from 'react-native-image-viewing';
 
 const formatTime = (date) => {
   const options = { hour: 'numeric', minute: 'numeric' };
@@ -46,8 +47,8 @@ const ConversationThread = () => {
   const [newMessage, setNewMessage] = useState('');
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [mediaType, setMediaType] = useState(null);
-  const [sending, setSending] = useState(false); // Lock for sending
-  const flatListRef = useRef(null); // Ref for FlatList
+  const [isImageViewerVisible, setImageViewerVisible] = useState(false); // New state for ImageViewing
+  const [selectedImageForViewer, setSelectedImageForViewer] = useState(null); // Track selected image
   const route = useRoute();
   const navigation = useNavigation();
   const { conversationId, profilePicture, username } = route.params;
@@ -70,7 +71,7 @@ const ConversationThread = () => {
         setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId));
         Alert.alert('Message deleted successfully');
       } else {
-        const errorData = await response.json(); // Fetch error details if available
+        const errorData = await response.json(); // fetch error details if available
         Alert.alert('Failed to delete the message', errorData.message || 'Unknown error');
       }
     } catch (error) {
@@ -86,13 +87,6 @@ const ConversationThread = () => {
       const data = await getMessages(conversationId, accessToken);
       const sortedMessages = data.data.messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       setMessages(sortedMessages);
-
-      // Scroll to the bottom after fetching messages
-      setTimeout(() => {
-        if (flatListRef.current) {
-          flatListRef.current.scrollToEnd({ animated: true });
-        }
-      }, 100);
     } catch (err) {
       console.error('Error fetching messages:', err.message);
     }
@@ -143,18 +137,12 @@ const ConversationThread = () => {
 
   const handleSendMessage = async () => {
     if (newMessage.trim() === '' && !selectedMedia) return;
-    if (sending) return; // Prevent multiple sends
-
-    setSending(true); // Lock sending
 
     try {
       let mediaUrl = null;
       if (selectedMedia) {
         mediaUrl = await handleMediaUpload(selectedMedia);
-        if (!mediaUrl) {
-          setSending(false); // Unlock sending if upload fails
-          return;
-        }
+        if (!mediaUrl) return;
       }
 
       await sendMessage(conversationId, newMessage, mediaUrl, mediaType);
@@ -177,8 +165,6 @@ const ConversationThread = () => {
       setMediaType(null);
     } catch (error) {
       console.error('Error sending message:', error);
-    } finally {
-      setSending(false); // Unlock sending
     }
   };
 
@@ -195,11 +181,17 @@ const ConversationThread = () => {
             'Are you sure you want to delete this message?',
             [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive', onPress: () => handleDeleteMessage(item.id) },
+              { text: 'Delete', style: 'destructive', onPress: () => handleDeleteMessage(item.id, accessToken) },
             ]
           )
         }
         style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}
+        onPress={() => {
+          if (item.media_type === 'PHOTO') {
+            setSelectedImageForViewer(item.url);
+            setImageViewerVisible(true);
+          }
+        }}
       >
         <View style={[styles.messageBubble, isSender ? styles.senderBubble : styles.receiverBubble]}>
           {item.media_type === 'PHOTO' && item.url && (
@@ -235,14 +227,22 @@ const ConversationThread = () => {
           <Text style={styles.username}>{username}</Text>
         </View>
 
-        <FlatList
-          ref={flatListRef} // Attach FlatList ref
-          data={[...messages].reverse()}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderMessage}
-          style={styles.messageList}
-          inverted={true}
-          contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
+        <KeyboardAwareScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <FlatList
+            data={[...messages].reverse()}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderMessage}
+            style={styles.messageList}
+            inverted={true}
+            contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
+          />
+        </KeyboardAwareScrollView>
+
+        <ImageViewing
+          images={[{ uri: selectedImageForViewer }]}
+          imageIndex={0}
+          visible={isImageViewerVisible}
+          onRequestClose={() => setImageViewerVisible(false)}
         />
 
         <View style={styles.inputContainer}>
