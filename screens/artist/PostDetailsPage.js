@@ -502,9 +502,6 @@ const PostDetailPage = () => {
                                       color={likedReplies.includes(reply.id) ? 'red' : '#333'}
                                     />
                                   </TouchableOpacity>
-                                  <TouchableOpacity onPress={() => handleOpenReplyModal(reply.id)}>
-                                    <AntDesign name="message1" size={20} color="#333" />
-                                  </TouchableOpacity>
                                   <TouchableOpacity onPress={() => createOrNavigateConversation(reply.user.id)}>
                                     <Icon name="paper-plane" size={20} color="#333" />
                                   </TouchableOpacity>
@@ -750,8 +747,16 @@ const styles = StyleSheet.create({
   postImage: { width: '100%', height: 500, borderRadius: 10, marginVertical: 10, backgroundColor: '#ddd' },
   interactionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
   iconText: { marginLeft: 5, fontSize: 14, color: '#FFF' },
-  commentContainer: { marginTop: 10, padding: 10, backgroundColor: 'white', borderRadius: 8 },
-  commentText: { color: 'black', marginTop: 5 },
+  commentContainer: {
+    marginTop: 10,
+    padding: 10, // Add padding to create internal spacing
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingRight:20,
+    paddingLeft:1,
+  },
+  
+  commentText: { color: 'black', marginTop: 5 ,paddingRight:50, fontSize:15},
   modalBackground: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
   modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
