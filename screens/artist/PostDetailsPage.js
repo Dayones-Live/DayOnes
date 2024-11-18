@@ -13,7 +13,6 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
 } from 'react-native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
@@ -26,7 +25,7 @@ import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../../utils';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
 import Video from 'react-native-video';
-import ImageViewing from 'react-native-image-viewing';  // <-- Import ImageViewing
+import ImageViewing from 'react-native-image-viewing';
 
 const PostDetailPage = () => {
   const [post, setPost] = useState(null);
@@ -144,8 +143,10 @@ const PostDetailPage = () => {
   };
 
   const handleCloseModal = () => {
-    setModalVisible(false);
-    setSelectedImage(null);
+    setSelectedImage(null); // Clear the selected image
+    setMediaType(null); // Clear the media type
+    setPostText(''); // Clear the text input
+    setModalVisible(false); // Close the modal
   };
 
   const toggleReplies = (commentId) => {
@@ -581,7 +582,7 @@ const PostDetailPage = () => {
                           color={likedComments.includes(item.id) ? 'red' : '#333'}
                         />
                       </TouchableOpacity>
-                     
+
                       <TouchableOpacity onPress={() => createOrNavigateConversation(item.user.id)}>
                         <Icon name="paper-plane" size={20} color="#333" />
                       </TouchableOpacity>
@@ -639,7 +640,20 @@ const PostDetailPage = () => {
               multiline
             />
             {selectedImage && (
-              <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
+              mediaType === 'PHOTO' ? (
+                <Image
+                  source={{ uri: selectedImage }}
+                  style={{ width: 100, height: 100, marginBottom: 10 }}
+                />
+              ) : (
+                <Video
+                  source={{ uri: selectedImage }}
+                  style={{ width: 150, height: 150, marginBottom: 10 }}
+                  paused={true}
+                  controls
+                  resizeMode="contain"
+                />
+              )
             )}
             <View style={styles.iconRow}>
               <TouchableOpacity onPress={handleSelectMedia}>
@@ -752,11 +766,11 @@ const styles = StyleSheet.create({
     padding: 10, // Add padding to create internal spacing
     backgroundColor: 'white',
     borderRadius: 8,
-    paddingRight:20,
-    paddingLeft:1,
+    paddingRight: 20,
+    paddingLeft: 1,
   },
-  
-  commentText: { color: 'black', marginTop: 5 ,paddingRight:50, fontSize:15},
+
+  commentText: { color: 'black', marginTop: 5, paddingRight: 50, fontSize: 15 },
   modalBackground: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
   modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
