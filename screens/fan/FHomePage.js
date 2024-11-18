@@ -89,10 +89,14 @@ const FHomePage = ({ navigation }) => {
   };
 
   const handleCancel = () => {
-    if (intervalId) clearInterval(intervalId);
-    setIsLoading(false);
-    setCountdown(60);
+    if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    }
+    setIsLoading(false); // Hide the modal
+    setCountdown(60);    // Reset countdown
   };
+  
 
   const fetchInvites = async () => {
     try {
@@ -249,12 +253,16 @@ const FHomePage = ({ navigation }) => {
         </View>
       )}
 
-      <Modal visible={isLoading} transparent={true} animationType="fade">
-        <View style={styles.modalBackground}>
-          <ActivityIndicator size="large" color="#D500F9" />
-          <Text style={styles.countdownText}>Checking invites... {countdown}s</Text>
-        </View>
-      </Modal>
+<Modal visible={isLoading} transparent={true} animationType="fade">
+  <View style={styles.modalBackground}>
+    <ActivityIndicator size="large" color="#D500F9" />
+    <Text style={styles.countdownText}>Checking invites... {countdown}s</Text>
+    <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+      <Text style={styles.cancelButtonText}>Cancel</Text>
+    </TouchableOpacity>
+  </View>
+</Modal>
+
     </SafeAreaView>
   );
 };
@@ -273,6 +281,19 @@ const styles = StyleSheet.create({
     height: hp('6%'),
     resizeMode: 'contain',
     top:'-10%',
+  },
+  cancelButton: {
+    marginTop: 20,
+    backgroundColor: 'red',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   personalMediaText: {
     color: '#C0C0C0',
