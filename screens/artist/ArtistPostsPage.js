@@ -8,10 +8,10 @@ import { BASEURL } from '../../assets/constants';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../../utils';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Video from 'react-native-video';
+
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -28,38 +28,38 @@ const ArtistPostsPage = () => {
   const [mediaType, setMediaType] = useState(null);
   const [genericPostId, setGenericPostId] = useState(null);
 
-  
-  
+
+
 
   const fetchArtistPosts = async (pageNum = 1) => {
     if (loading || !hasMore) return;
     setLoading(true);
-  
+
     try {
       const apiUrl = `${BASEURL}/api/v1/post?pageNo=${pageNum}&pageSize=25`;
       const response = await axios.get(apiUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-  
+
       const postsData = response.data?.data?.posts || [];
       const genericPost = postsData.find(post => post.type === 'GENERIC');
-  
+
       if (genericPost) {
         setPinnedPost(genericPost);
         setGenericPostId(genericPost.id); // Store the ID of the generic post
       }
-  
+
       const otherPosts = postsData
         .filter(post => post.type !== 'GENERIC')
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Sort posts by created_at in descending order
-  
+
       setHasMore(otherPosts.length === 25);
-  
+
       setPosts(prevPosts => {
         const newPosts = otherPosts.filter(post => !prevPosts.some(prevPost => prevPost.id === post.id));
         return pageNum === 1 ? newPosts : [...prevPosts, ...newPosts];
       });
-  
+
       setPage(pageNum + 1);
     } catch (error) {
       console.error("Error fetching posts:", error.message || "Unknown error");
@@ -68,7 +68,7 @@ const ArtistPostsPage = () => {
       setLoading(false);
     }
   };
-  
+
 
   const handleDelete = async (postId) => {
     try {
@@ -126,9 +126,14 @@ const ArtistPostsPage = () => {
   };
 
   const handleOpenModal = () => setModalVisible(true);
-  const handleCloseModal = () => setModalVisible(false);
+  const handleCloseModal = () => {
+    setSelectedImage(null); // Clear the selected image
+    setMediaType(null); // Clear the media type
+    setPostText(''); // Clear the text input
+    setModalVisible(false); // Close the modal
+  };
 
-  const options = { mediaType: 'photo', includeBase64: false };
+
 
   const takePicture = () => {
     launchCamera({ mediaType: 'mixed' }, (response) => {
@@ -139,7 +144,7 @@ const ArtistPostsPage = () => {
       }
     });
   };
-  
+
 
   const uploadFile = () => {
     launchImageLibrary({ mediaType: 'mixed' }, (response) => {
@@ -159,25 +164,12 @@ const ArtistPostsPage = () => {
       } else if (mediaType === 'VIDEO') {
         s3Url = await uploadVideoToBucket(uri, 'message-media', accessToken);
       }
-      
+
       console.log('Full response from media upload:', { s3Url, mediaType }); // Log full response details here
       return s3Url;
     } catch (error) {
       console.error('Failed to upload media:', error);
       Alert.alert('Error', 'Media upload failed. Please try again.');
-      return null;
-    }
-  };
-  
-
-  const handleImageUpload = async (imageUri) => {
-    try {
-      const s3Url = await uploadImageToBucket(imageUri, 'profile-pictures', accessToken);
-      setSelectedImage(s3Url);
-      return s3Url;
-    } catch (error) {
-      console.error('Failed to upload image:', error.message || error);
-      Alert.alert('Error', 'Image upload failed. Please try again.');
       return null;
     }
   };
@@ -187,9 +179,9 @@ const ArtistPostsPage = () => {
       Alert.alert('Error', 'Post content or image is required.');
       return;
     }
-  
+
     let s3Url = selectedImage;
-  
+
     if (selectedImage && !selectedImage.startsWith('https://')) {
       s3Url = await handleMediaUpload(selectedImage);
       if (!s3Url) {
@@ -197,7 +189,7 @@ const ArtistPostsPage = () => {
         return;
       }
     }
-  
+
     try {
       if (genericPostId) {
         // If a generic post exists, use the comment endpoint to add media as a comment
@@ -210,7 +202,7 @@ const ArtistPostsPage = () => {
           commentData,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
-  
+
         if (response.status === 200 || response.status === 201) {
           Alert.alert('Success', 'Your comment has been posted.');
         } else {
@@ -227,7 +219,7 @@ const ArtistPostsPage = () => {
         const response = await axios.post(`${BASEURL}/api/v1/post/generic`, postData, {
           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         });
-  
+
         if (response.status === 200 || response.status === 201) {
           Alert.alert('Success', 'Your message has been sent to all fans.');
           setGenericPostId(response.data?.data?.post?.id); // Store the new generic post ID
@@ -235,13 +227,13 @@ const ArtistPostsPage = () => {
           Alert.alert('Error', 'Failed to send the message. Please try again.');
         }
       }
-  
+
       setPostText('');
       setSelectedImage(null);
       setMediaType(null);
       setModalVisible(false);
       fetchArtistPosts(1); // Refresh posts after sending
-  
+
     } catch (error) {
       console.error("Failed to send post or comment:", error.message || error);
       Alert.alert('Error', `An error occurred: ${error.response?.data?.message || 'An error occurred'}`);
@@ -282,7 +274,7 @@ const ArtistPostsPage = () => {
         <TouchableOpacity style={styles.plusButton} onPress={handleOpenModal}>
           <AntDesign name="pluscircleo" size={35} color="#FFFFFF" />
         </TouchableOpacity>
-        
+
 
         <Text style={styles.pageTitle}>Posts</Text>
         <ScrollView
@@ -316,47 +308,58 @@ const ArtistPostsPage = () => {
         {loading && <Text style={styles.loadingText}>Loading more posts...</Text>}
 
         <Modal
-  animationType="slide"
-  transparent={true}
-  visible={isModalVisible}
-  onRequestClose={handleCloseModal}
->
-  <KeyboardAvoidingView
-    behavior={Platform.OS === "ios" ? "padding" : "height"}
-    style={styles.modalBackground}
-  >
-    <View style={styles.modalContainer}>
-      <Text style={styles.modalTitle}>Message All Fans</Text>
-      <TextInput
-        style={styles.textInput}
-        placeholder="What is happening?!"
-        placeholderTextColor="gray"
-        value={postText}
-        onChangeText={setPostText}
-        multiline
-      />
-      {selectedImage && (
-        <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
-      )}
-      <View style={styles.iconRow}>
-        <TouchableOpacity onPress={uploadFile}>
-          <Icon name="image" size={24} color="blue" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={takePicture}>
-          <Icon name="camera" size={24} color="blue" />
-        </TouchableOpacity>
-      </View>
+          animationType="slide"
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={handleCloseModal}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.modalBackground}
+          >
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Message All Fans</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="What is happening?!"
+                placeholderTextColor="gray"
+                value={postText}
+                onChangeText={setPostText}
+                multiline
+              />
+              {selectedImage && (
+                mediaType === 'PHOTO' ? (
+                  <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
+                ) : (
+                  <Video
+                    source={{ uri: selectedImage }}
+                    style={{ width: 150, height: 150, marginBottom: 10 }}
+                    paused={true} // Pause the video by default
+                    controls // Display video player controls
+                    resizeMode="contain"
+                  />
+                )
+              )}
 
-      <TouchableOpacity style={styles.postButton} onPress={handleSendPost}>
-        <Text style={styles.postButtonText}>Post</Text>
-      </TouchableOpacity>
+              <View style={styles.iconRow}>
+                <TouchableOpacity onPress={uploadFile}>
+                  <Icon name="image" size={24} color="blue" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={takePicture}>
+                  <Icon name="camera" size={24} color="blue" />
+                </TouchableOpacity>
+              </View>
 
-      <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
-        <Text style={styles.closeButtonText}>Close</Text>
-      </TouchableOpacity>
-    </View>
-  </KeyboardAvoidingView>
-</Modal>
+              <TouchableOpacity style={styles.postButton} onPress={handleSendPost}>
+                <Text style={styles.postButtonText}>Post</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
 
       </View>
     </SafeAreaView>
