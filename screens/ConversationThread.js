@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -57,6 +57,7 @@ const ConversationThread = () => {
   const loggedInUserEmail = loggedInUser?.data.email || null;
   const loggedInUserId = loggedInUser?.id || null;
   const { sendMessage } = useSendMessage(accessToken);
+  const flatListRef = useRef(null); // Add this inside your component
 
   const handleDeleteMessage = async (messageId) => {
     try {
@@ -193,7 +194,13 @@ const ConversationThread = () => {
           }
         }}
       >
-        <View style={[styles.messageBubble, isSender ? styles.senderBubble : styles.receiverBubble]}>
+        <View
+          style={[
+            styles.messageBubble,
+            isSender ? styles.senderBubble : styles.receiverBubble,
+            { alignSelf: isSender ? 'flex-end' : 'flex-start' }, // Align dynamically
+          ]}
+        >
           {item.media_type === 'PHOTO' && item.url && (
             <Image source={{ uri: item.url }} style={styles.messageImage} />
           )}
@@ -209,6 +216,7 @@ const ConversationThread = () => {
           {item.message && <Text style={styles.messageText}>{item.message}</Text>}
           <Text style={styles.messageTimestamp}>{timestamp}</Text>
         </View>
+
       </TouchableOpacity>
     );
   };
@@ -229,6 +237,7 @@ const ConversationThread = () => {
 
         <KeyboardAwareScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <FlatList
+            ref={flatListRef}
             data={[...messages].reverse()}
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderMessage}
@@ -317,7 +326,8 @@ const styles = StyleSheet.create({
   },
   messageWrapper: {
     flexDirection: 'row',
-    marginVertical: 5,
+    marginVertical: 10,
+    paddingHorizontal: 5, // Reduce horizontal padding
   },
   senderWrapper: {
     justifyContent: 'flex-end',
@@ -328,10 +338,12 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   messageBubble: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    flexDirection: 'column',
+    padding: 10,
     borderRadius: 20,
-    maxWidth: '75%',
+    alignSelf: 'flex-start', // Default alignment for receiver
+    backgroundColor: '#333', // Default color
+    maxWidth: '80%', // Limit width to avoid breaking the layout
   },
   senderBubble: {
     backgroundColor: '#4e9af1',
@@ -343,6 +355,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     marginBottom: 5,
+    textAlign: 'left', // Ensure text is aligned properly
   },
   messageTimestamp: {
     color: '#aaa',
@@ -350,16 +363,18 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   messageImage: {
-    width: 200,
-    height: 200,
+    width: '100%', // Ensure it scales to the parent
+    aspectRatio: 16 / 9, // Maintain a consistent aspect ratio
     borderRadius: 10,
     marginBottom: 5,
+    backgroundColor: '#000', // Add background for missing images
   },
   messageVideo: {
-    width: 200,
-    height: 200,
+    width: '100%', // Ensure it scales to the parent
+    aspectRatio: 16 / 9, // Maintain a consistent aspect ratio
     borderRadius: 10,
     marginBottom: 5,
+    backgroundColor: '#000', // Add background for missing videos
   },
   inputContainer: {
     flexDirection: 'row',
