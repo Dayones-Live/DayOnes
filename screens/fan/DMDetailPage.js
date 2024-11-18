@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, Image, TouchableOpacity, StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import EvilIcons from 'react-native-vector-icons/EvilIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import Entypo from 'react-native-vector-icons/Entypo';
+import { Modal } from 'react-native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
 import { useSelector } from 'react-redux';
@@ -22,6 +25,11 @@ const DMDetailPage = ({ route }) => {
   const [latestArtistCommentId, setLatestArtistCommentId] = useState(null);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+  
+  const toggleMenu = () => {
+    setMenuVisible(!menuVisible);
+  };
 
   const openImageViewer = (uri) => {
     setSelectedImageUri(uri);
@@ -202,8 +210,38 @@ const addComment = async () => {
             <View style={styles.userInfoContainer}>
               <Image source={{ uri: post.user.avatar_url }} style={styles.userAvatar} />
               <Text style={styles.userName}>{post.user.full_name}</Text>
+              
+              <TouchableOpacity onPress={toggleMenu}>
+  <Entypo name="dots-three-horizontal" size={30} color="white" style={styles.menuIcon} />
+</TouchableOpacity>
+              
+              
             </View>
           )}
+
+{menuVisible && (
+  <Modal
+    transparent={true}
+    animationType="fade"
+    visible={menuVisible}
+    onRequestClose={toggleMenu}
+  >
+    <TouchableOpacity style={styles.modalOverlay} onPress={toggleMenu} activeOpacity={1}>
+      <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => {
+            toggleMenu();
+            Alert.alert('Flag Post', 'This post has been flagged for review.');
+          }}
+        >
+          <Ionicons name="warning-outline" size={24} color="red" />
+          <Text style={styles.menuText}>Flag Post</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  </Modal>
+)}
   
           {post.image_url && (
             <TouchableOpacity onPress={() => openImageViewer(post.image_url)}>
@@ -332,6 +370,45 @@ const styles = StyleSheet.create({
   commentInput: { flex: 1, color: '#ffffff', paddingHorizontal: 15, paddingVertical: 10, borderWidth: 1, borderColor: '#555', borderRadius: 25, backgroundColor: 'rgba(51, 51, 51, 0.6)', fontSize: 16 },
   characterCounter: { color: '#aaa', marginLeft: 10, fontSize: 12 },
   sendButton: { marginLeft: 10, padding: 10, borderRadius: 25, backgroundColor: '#FF0080' },
+  warning:{right:"-100%", alignItems:'flex-end', marginRight:'30%'  },
+  menuIcon: {
+    marginLeft: '60%',
+  },
+  
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  menuContainer: {
+    backgroundColor: '#333',
+    borderRadius: 10,
+    padding: 5,
+    width: 140,
+    alignItems: 'flex-start',
+    marginBottom:'150%',
+    marginLeft:'69%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+  },
+  
+  menuText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#FFF',
+  },
+  
 });
 
 export default DMDetailPage;
