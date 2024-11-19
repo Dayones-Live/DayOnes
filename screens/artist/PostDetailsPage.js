@@ -145,7 +145,6 @@ const PostDetailPage = () => {
   const handleCloseModal = () => {
     setSelectedImage(null); // Clear the selected image
     setMediaType(null); // Clear the media type
-    setPostText(''); // Clear the text input
     setModalVisible(false); // Close the modal
   };
 
