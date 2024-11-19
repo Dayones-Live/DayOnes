@@ -639,20 +639,28 @@ const PostDetailPage = () => {
               multiline
             />
             {selectedImage && (
-              mediaType === 'PHOTO' ? (
-                <Image
-                  source={{ uri: selectedImage }}
-                  style={{ width: 100, height: 100, marginBottom: 10 }}
-                />
-              ) : (
-                <Video
-                  source={{ uri: selectedImage }}
-                  style={{ width: 150, height: 150, marginBottom: 10 }}
-                  paused={true}
-                  controls
-                  resizeMode="contain"
-                />
-              )
+              <View style={styles.mediaContainer}>
+                {mediaType === 'PHOTO' ? (
+                  <Image
+                    source={{ uri: selectedImage }}
+                    style={styles.mediaPreview}
+                  />
+                ) : (
+                  <Video
+                    source={{ uri: selectedImage }}
+                    style={styles.mediaPreview}
+                    paused
+                    controls
+                    resizeMode="contain"
+                  />
+                )}
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={() => setSelectedImage(null)}
+                >
+                  <AntDesign name="close" size={24} color="white" />
+                </TouchableOpacity>
+              </View>
             )}
             <View style={styles.iconRow}>
               <TouchableOpacity onPress={handleSelectMedia}>
@@ -671,6 +679,7 @@ const PostDetailPage = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
 
       <Modal
         animationType="slide"
@@ -723,6 +732,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: '#000',
+  },
+  mediaContainer: {
+    position: 'relative',
+    width: 150,
+    height: 150,
+    marginBottom: 20,
+  },
+  mediaPreview: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+    backgroundColor: '#000',
+  },
+  clearButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 12,
+    padding: 5,
+    zIndex: 1,
   },
   dropdownButton: { paddingVertical: 5, marginTop: 5 },
   dropdownText: { color: '#FF0080', fontSize: 14 },

@@ -328,18 +328,27 @@ const ArtistPostsPage = () => {
                 multiline
               />
               {selectedImage && (
-                mediaType === 'PHOTO' ? (
-                  <Image source={{ uri: selectedImage }} style={{ width: 100, height: 100, marginBottom: 10 }} />
-                ) : (
-                  <Video
-                    source={{ uri: selectedImage }}
-                    style={{ width: 150, height: 150, marginBottom: 10 }}
-                    paused={true} // Pause the video by default
-                    controls // Display video player controls
-                    resizeMode="contain"
-                  />
-                )
+                <View style={styles.mediaContainer}>
+                  {mediaType === 'PHOTO' ? (
+                    <Image source={{ uri: selectedImage }} style={styles.mediaPreview} />
+                  ) : (
+                    <Video
+                      source={{ uri: selectedImage }}
+                      style={styles.mediaPreview}
+                      paused
+                      controls
+                      resizeMode="contain"
+                    />
+                  )}
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={() => setSelectedImage(null)} // Clear the selected image
+                  >
+                    <AntDesign name="close" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
               )}
+
 
               <View style={styles.iconRow}>
                 <TouchableOpacity onPress={uploadFile}>
@@ -388,6 +397,30 @@ const styles = StyleSheet.create({
   postButtonText: { color: 'white', fontWeight: 'bold' },
   closeButton: { marginTop: 10 },
   closeButtonText: { color: 'blue', fontWeight: 'bold' },
+  mediaContainer: {
+    position: 'relative',
+    width: 150,
+    height: 150,
+    marginBottom: 20,
+  },
+  mediaPreview: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+    backgroundColor: '#000',
+  },
+  clearButton: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
 });
 
 export default ArtistPostsPage;
