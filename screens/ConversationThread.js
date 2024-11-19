@@ -180,52 +180,79 @@ const ConversationThread = () => {
     const senderEmail = item.messageSender?.email || null;
     const isSender = senderEmail === loggedInUserEmail;
     const timestamp = formatDateLabel(item.created_at);
-
+  
     return (
-      <TouchableOpacity
-        onLongPress={() =>
-          Alert.alert(
-            'Delete Message',
-            'Are you sure you want to delete this message?',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Delete', style: 'destructive', onPress: () => handleDeleteMessage(item.id, accessToken) },
-            ]
-          )
-        }
-        style={[styles.messageWrapper, isSender ? styles.senderWrapper : styles.receiverWrapper]}
-        onPress={() => {
-          if (item.media_type === 'PHOTO') {
-            setSelectedImageForViewer(item.url);
-            setImageViewerVisible(true);
-          }
-        }}
+      <View
+        style={[
+          styles.messageWrapper,
+          isSender ? styles.senderWrapper : styles.receiverWrapper,
+        ]}
       >
-        <View
-          style={[
-            styles.messageBubble,
-            isSender ? styles.senderBubble : styles.receiverBubble,
-            { alignSelf: isSender ? 'flex-end' : 'flex-start' },
-          ]}
-        >
-          {item.media_type === 'PHOTO' && item.url && (
-            <Image source={{ uri: item.url }} style={styles.messageImage} />
-          )}
-          {item.media_type === 'VIDEO' && item.url && (
+        {/* Render Media */}
+        {item.media_type === 'PHOTO' && item.url && (
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedImageForViewer(item.url);
+              setImageViewerVisible(true);
+            }}
+            style={isSender ? styles.senderMedia : styles.receiverMedia}
+          >
+            <Image
+              source={{ uri: item.url }}
+              style={[
+                styles.messageImage,
+                isSender ? styles.senderMedia : styles.receiverMedia,
+              ]}
+            />
+          </TouchableOpacity>
+        )}
+        {item.media_type === 'VIDEO' && item.url && (
+          <View style={isSender ? styles.senderMedia : styles.receiverMedia}>
             <Video
               source={{ uri: item.url }}
-              style={styles.messageVideo}
+              style={[
+                styles.messageVideo,
+                isSender ? styles.senderMedia : styles.receiverMedia,
+              ]}
               paused={true}
-              resizeMode="contain"
+              resizeMode="cover"
               controls
             />
-          )}
-          {item.message && <Text style={styles.messageText}>{item.message}</Text>}
-          <Text style={styles.messageTimestamp}>{timestamp}</Text>
-        </View>
-      </TouchableOpacity>
+          </View>
+        )}
+  
+        {/* Render Message Bubble (Text and Timestamp) */}
+        {item.message && (
+          <TouchableOpacity
+            onLongPress={() =>
+              Alert.alert(
+                'Delete Message',
+                'Are you sure you want to delete this message?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => handleDeleteMessage(item.id),
+                  },
+                ]
+              )
+            }
+            style={[
+              styles.messageBubble,
+              isSender ? styles.senderBubble : styles.receiverBubble,
+            ]}
+          >
+            <Text style={styles.messageText}>{item.message}</Text>
+            <Text style={styles.messageTimestamp}>{timestamp}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     );
   };
+  
+  
+  
 
   const handleBlockUser = () => {
     Alert.alert('Placeholder for blocking a user');
@@ -248,17 +275,16 @@ const ConversationThread = () => {
           </TouchableOpacity>
         </View>
 
-        <KeyboardAwareScrollView contentContainerStyle={{ flexGrow: 1 }}>
-          <FlatList
-            ref={flatListRef}
-            data={[...messages].reverse()}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderMessage}
-            style={styles.messageList}
-            inverted={true}
-            contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
-          />
-        </KeyboardAwareScrollView>
+        <FlatList
+  ref={flatListRef}
+  data={[...messages].reverse()}
+  keyExtractor={(item) => item.id.toString()}
+  renderItem={renderMessage}
+  style={styles.messageList}
+  inverted={true}
+  contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
+/>
+
 
         <ImageViewing
           images={[{ uri: selectedImageForViewer }]}
@@ -349,7 +375,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messageWrapper: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     marginVertical: 10,
     paddingHorizontal: 5,
   },
@@ -362,43 +388,58 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   messageBubble: {
-    flexDirection: 'column',
+    maxWidth: '75%',
     padding: 10,
     borderRadius: 20,
-    alignSelf: 'flex-start',
-    backgroundColor: '#333',
-    maxWidth: '80%',
+    marginVertical: 5,
   },
   senderBubble: {
     backgroundColor: '#4e9af1',
+    alignSelf: 'flex-end',
   },
   receiverBubble: {
     backgroundColor: '#333',
+    alignSelf: 'flex-start',
   },
   messageText: {
     color: '#fff',
     fontSize: 16,
-    marginBottom: 5,
-    textAlign: 'left',
   },
   messageTimestamp: {
     color: '#aaa',
     fontSize: 12,
     textAlign: 'right',
+    marginTop: 5,
   },
   messageImage: {
-    width: '100%',
-    aspectRatio: 16 / 9,
+    width: '85%', // Larger width for better display
     borderRadius: 10,
-    marginBottom: 5,
+    alignSelf: 'flex-start', // Dynamic alignment for receiver
+    marginBottom: 10,
+    aspectRatio: 1.5, // Adjust aspect ratio for consistent sizing
     backgroundColor: '#000',
+    marginLeft:'12%',
   },
   messageVideo: {
-    width: '100%',
-    aspectRatio: 16 / 9,
+    width: '85%', // Larger width for better display
     borderRadius: 10,
-    marginBottom: 5,
+    marginRight: '11%',
+    alignSelf: 'flex-start', // Dynamic alignment for receiver
+    aspectRatio: 1,
     backgroundColor: '#000',
+  },
+  senderMedia: {
+    alignItems: 'flex-end',
+    alignSelf: 'flex-end', // Ensure it aligns to the right for sender
+    right:'-6%',
+    marginVertical: 5,
+  },
+  receiverMedia: {
+    alignItems: 'flex-start',
+    left:'-4%',
+    alignSelf: 'flex-start', // Ensure it aligns to the left for receiver
+    marginVertical: 5,
+    
   },
   inputContainer: {
     flexDirection: 'row',
@@ -456,5 +497,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
 });
+
 
 export default ConversationThread;

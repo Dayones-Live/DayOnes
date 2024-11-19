@@ -24,6 +24,9 @@ const { height } = Dimensions.get('window');
 
 const ProfileScreen = () => {
   const [selectedImage, setSelectedImage] = useState(null);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const dispatch = useDispatch();
   const accessToken = useSelector(state => state.accessToken);
   const profile = useSelector(state => state.userProfile || {});
@@ -114,21 +117,53 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleNavigateHome = () => {
-    if (profile.data?.role === 'ARTIST') {
-      navigation.navigate('HHomePage');
-    } else if (profile.data?.role === 'USER') {
-      navigation.navigate('FanStack');
-    } else {
-      Alert.alert('Error', 'Unknown role. Cannot navigate to the home page.');
+  const handleUpdatePassword = async () => {
+    if (!currentPassword || !newPassword) {
+      Alert.alert('Error', 'Please fill in all fields.');
+      return;
+    }
+  
+    setIsUpdatingPassword(true);
+    const url = `${BASEURL}/api/v1/user/update-user`;
+    const payload = {
+      currentPassword, // Test field
+      newPassword,     // Test field
+    };
+  
+    try {
+      const response = await axios.post(url, payload, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      console.log('Response from update-user:', response.data);
+      if (response.status === 200 || response.status === 201) {
+        Alert.alert('Success', 'Password update attempted. Check response for confirmation.');
+        setCurrentPassword('');
+        setNewPassword('');
+      } else {
+        Alert.alert('Error', 'Failed to update password. Check server response.');
+      }
+    } catch (error) {
+      console.error('Error testing update-user endpoint:', error.response || error);
+      Alert.alert(
+        'Error',
+        error.response?.data?.message ||
+          'An error occurred while testing the endpoint.'
+      );
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
+  
 
   return (
     <>
       <StatusBar backgroundColor="#000" barStyle="light-content" />
       <View style={styles.container}>
-        <TouchableOpacity style={styles.homeButton} onPress={handleNavigateHome}>
+        <TouchableOpacity style={styles.homeButton} onPress={() => navigation.goBack()}>
           <Icon name="home" size={24} color="#FFF" />
         </TouchableOpacity>
 
@@ -174,15 +209,32 @@ const ProfileScreen = () => {
             editable={false}
           />
 
-          <View style={[styles.line, { marginBottom: 15 }]} />
-
-          {profile.data?.role === 'ARTIST' && (
-            <TouchableOpacity onPress={() => navigation.navigate('SignaturePage')}>
+          <View style={styles.passwordUpdateSection}>
+            <Text style={styles.sectionTitle}>Update Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Current Password"
+              placeholderTextColor="#FFF"
+              secureTextEntry
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="New Password"
+              placeholderTextColor="#FFF"
+              secureTextEntry
+              value={newPassword}
+              onChangeText={setNewPassword}
+            />
+            <TouchableOpacity onPress={handleUpdatePassword} disabled={isUpdatingPassword}>
               <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.gradientButtonFullWidth}>
-                <Text style={styles.buttonText}>Manage Signatures/Texts</Text>
+                <Text style={styles.buttonText}>
+                  {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
-          )}
+          </View>
 
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutButtonText}>Logout</Text>
@@ -225,7 +277,7 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     paddingHorizontal: 25,
     alignItems: 'center',
-    width: '95%', // Adjusted to take up more width of the screen
+    width: '95%',
     alignSelf: 'center',
   },
   sectionTitle: {
@@ -250,12 +302,9 @@ const styles = StyleSheet.create({
     width: '100%',
     textAlign: 'center',
   },
-  line: {
+  passwordUpdateSection: {
+    marginTop: 20,
     width: '100%',
-    height: 1,
-    backgroundColor: '#888',
-    marginVertical: 10,
-    marginBottom: 15,
   },
   gradientButtonFullWidth: {
     paddingVertical: 10,
@@ -278,7 +327,6 @@ const styles = StyleSheet.create({
     marginVertical: 30,
     marginBottom: -15,
     paddingHorizontal: 30,
-
   },
   logoutButtonText: {
     color: '#FFF',

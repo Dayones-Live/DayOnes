@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
   commentTextContainer: { flexShrink: 1 },
   commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold' },
-  commentText: { fontSize: 16, color: '#FFF', marginRight: 85 },
+  commentText: { fontSize: 16, color: '#FFF', marginRight: 10 },
   heartIconOutside: { marginTop: 10, alignSelf: 'center' },
   commentCard: { backgroundColor: '#1e1e1e', borderRadius: 10, padding: 15, marginVertical: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5, maxWidth: '75%', paddingBottom: 20 },
   largeMedia: { width: 200, height: 250, borderRadius: 10, marginTop: 5 }, // Increased media size
