@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   },
   receiverMedia: {
     alignItems: 'flex-start',
-    left:'-4%',
+    left:'-2%',
     alignSelf: 'flex-start', // Ensure it aligns to the left for receiver
     marginVertical: 5,
     

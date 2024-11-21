@@ -59,31 +59,34 @@ const DMDetailPage = ({ route }) => {
         .filter(comment => comment.commentReactionCount > 0)
         .map(comment => comment.id);
   
-      setLikedComments([...likedArtistComments, ...likedFanComments]);
+      // Process artistReplies for likes
+      const artistReplies = artistComments.reduce((allReplies, comment) => {
+        return comment.replies ? [...allReplies, ...comment.replies] : allReplies;
+      }, []);
+      const likedReplies = artistReplies
+        .filter(reply => reply.commentReactionCount > 0)
+        .map(reply => reply.id);
   
-      // Sort artist comments by creation date to ensure the latest comment is last
+      // Update likedComments to include all liked comments and replies
+      setLikedComments([...likedArtistComments, ...likedFanComments, ...likedReplies]);
+  
+      // Set the latest artist comment ID
       artistComments = artistComments.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-  
-      // Set the latest artist comment ID to the ID of the most recent comment
       if (artistComments.length > 0) {
         const latestArtistComment = artistComments[artistComments.length - 1];
         setLatestArtistCommentId(latestArtistComment.id);
       } else {
-        setLatestArtistCommentId(null); // Clear if no artist comments
+        setLatestArtistCommentId(null);
       }
   
-      // Flatten artist replies and set post data
-      const artistReplies = artistComments.reduce((allReplies, comment) => {
-        return comment.replies ? [...allReplies, ...comment.replies] : allReplies;
-      }, []);
+      // Flatten artist comments, replies, and fan comments into a single list
       setPost({ ...postData, artistComments, comments, artistReplies });
-      console.log("Artist Comments with Media Info:", artistComments);
-      console.log("Fan Comments with Media Info:", comments);
     } catch (error) {
       console.error('Error fetching post details:', error);
       Alert.alert('Error', 'Could not load post details.');
     }
   };
+  
 
   useEffect(() => {
     fetchPostDetails();
@@ -256,61 +259,64 @@ const addComment = async () => {
           </View>
   
           <View style={styles.commentsContainer}>
-            {post.artistComments
-              .map(comment => ({ ...comment, isArtistComment: true }))
-              .concat(post.comments, post.artistReplies)
-              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-              .map((comment, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.commentCard,
-                    comment.isArtistComment ? styles.artistCommentContainer : styles.fanCommentContainer,
-                    { alignSelf: comment.isArtistComment ? 'flex-start' : 'flex-end' },
-                  ]}
-                >
-                  {comment.user && comment.user.avatar_url && (
-                    <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
-                  )}
-                  <View style={styles.commentTextContainer}>
-                    <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
-                    <Text style={styles.commentText}>{comment.message}</Text>
-  
-                    {comment.media_type === "PHOTO" && comment.url && (
-                      <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
-                        <Image source={{ uri: comment.url }} style={styles.largeMedia} />
-                      </TouchableOpacity>
-                    )}
-                    {comment.media_type === "VIDEO" && comment.url && (
-                      <Video
-                        source={{ uri: comment.url }}
-                        style={styles.largeMedia}
-                        resizeMode="contain"
-                        paused={true} // Paused by default
-                        controls // Show playback controls
-                      />
-                    )}
-                  </View>
-  
-                  {(comment.isArtistComment || likedComments.includes(comment.id)) && (
-                    <TouchableOpacity
-                      onPress={() =>
-                        likedComments.includes(comment.id)
-                          ? dislikeComment(comment.id)
-                          : likeComment(comment.id)
-                      }
-                      style={styles.heartIconOutside}
-                    >
-                      <EvilIcons
-                        name="heart"
-                        size={28}
-                        color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'}
-                      />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              ))}
-          </View>
+  {post.artistComments
+    .map(comment => ({ ...comment, isArtistComment: true }))
+    .concat(post.comments, post.artistReplies)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .map((comment, index) => (
+      <View
+        key={index}
+        style={[
+          styles.commentCard,
+          comment.isArtistComment ? styles.artistCommentContainer : styles.fanCommentContainer,
+          { alignSelf: comment.isArtistComment ? 'flex-start' : 'flex-end' },
+        ]}
+      >
+        {comment.user && comment.user.avatar_url && (
+          <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
+        )}
+        <View style={styles.commentTextContainer}>
+          <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
+          <Text style={styles.commentText}>{comment.message}</Text>
+
+          {/* Media handling for photos and videos */}
+          {comment.media_type === "PHOTO" && comment.url && (
+            <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
+              <Image source={{ uri: comment.url }} style={styles.largeMedia} />
+            </TouchableOpacity>
+          )}
+          {comment.media_type === "VIDEO" && comment.url && (
+            <Video
+              source={{ uri: comment.url }}
+              style={styles.largeMedia}
+              resizeMode="contain"
+              paused={true} // Paused by default
+              controls // Show playback controls
+            />
+          )}
+        </View>
+
+        {/* Like button logic */}
+        {(comment.isArtistComment || likedComments.includes(comment.id)) && (
+          <TouchableOpacity
+            onPress={() =>
+              likedComments.includes(comment.id)
+                ? dislikeComment(comment.id)
+                : likeComment(comment.id)
+            }
+            style={styles.heartIconOutside}
+          >
+            <EvilIcons
+              name="heart"
+              size={28}
+              color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+    ))}
+</View>
+
         </KeyboardAwareScrollView>
   
         <View style={styles.commentInputContainer}>
@@ -363,7 +369,7 @@ const styles = StyleSheet.create({
   commentTextContainer: { flexShrink: 1 },
   commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold' },
   commentText: { fontSize: 16, color: '#FFF', marginRight: 10 },
-  heartIconOutside: { marginTop: 10, alignSelf: 'center' },
+  heartIconOutside: { marginTop: 10, alignSelf: 'center', },
   commentCard: { backgroundColor: '#1e1e1e', borderRadius: 10, padding: 15, marginVertical: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5, maxWidth: '75%', paddingBottom: 20 },
   largeMedia: { width: 200, height: 250, borderRadius: 10, marginTop: 5 }, // Increased media size
   commentInputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, backgroundColor: 'rgba(0, 0, 0, 0.4)', width: '100%' },
