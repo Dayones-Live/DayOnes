@@ -10,6 +10,10 @@ import { BASEURL } from '../../assets/constants';
 import { useSelector } from 'react-redux';
 import Video from 'react-native-video';
 import ImageViewing from 'react-native-image-viewing';
+import { uploadImageToBucket } from '../../utils';
+import { uploadVideoToBucket } from '../../utils/videoUploadService';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
 const MAX_COMMENT_LENGTH = 200;
 
@@ -26,7 +30,10 @@ const DMDetailPage = ({ route }) => {
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
-  
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mediaType, setMediaType] = useState(null);
+
+
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
   };
@@ -41,16 +48,16 @@ const DMDetailPage = ({ route }) => {
       const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-  
+
       const postData = response.data?.data?.post || {};
       const reactions = response.data?.data?.reactions || [];
       let artistComments = response.data?.data?.artistComments || [];
       const comments = response.data?.data?.comments || [];
-  
+
       // Set post liked state
       const isPostLiked = reactions.some(reaction => reaction.user?.email === userEmail);
       setLiked(isPostLiked);
-  
+
       // Get IDs of liked artist and fan comments
       const likedArtistComments = artistComments
         .filter(comment => comment.commentReactionCount > 0)
@@ -58,7 +65,7 @@ const DMDetailPage = ({ route }) => {
       const likedFanComments = comments
         .filter(comment => comment.commentReactionCount > 0)
         .map(comment => comment.id);
-  
+
       // Process artistReplies for likes
       const artistReplies = artistComments.reduce((allReplies, comment) => {
         return comment.replies ? [...allReplies, ...comment.replies] : allReplies;
@@ -66,10 +73,10 @@ const DMDetailPage = ({ route }) => {
       const likedReplies = artistReplies
         .filter(reply => reply.commentReactionCount > 0)
         .map(reply => reply.id);
-  
+
       // Update likedComments to include all liked comments and replies
       setLikedComments([...likedArtistComments, ...likedFanComments, ...likedReplies]);
-  
+
       // Set the latest artist comment ID
       artistComments = artistComments.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       if (artistComments.length > 0) {
@@ -78,7 +85,7 @@ const DMDetailPage = ({ route }) => {
       } else {
         setLatestArtistCommentId(null);
       }
-  
+
       // Flatten artist comments, replies, and fan comments into a single list
       setPost({ ...postData, artistComments, comments, artistReplies });
     } catch (error) {
@@ -86,79 +93,126 @@ const DMDetailPage = ({ route }) => {
       Alert.alert('Error', 'Could not load post details.');
     }
   };
-  
+
 
   useEffect(() => {
     fetchPostDetails();
   }, [postId]);
 
- const toggleLike = async () => {
-  try {
-    if (!liked) {
-      const response = await axios.post(`${BASEURL}/api/v1/post/${postId}/likes`, {}, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (response.status === 200 || response.status === 201) {
-        setLiked(true);
-      } else {
-        Alert.alert("Error", "Failed to like the post.");
+  const handleMediaUpload = async (uri) => {
+    try {
+      let s3Url;
+      if (mediaType === 'PHOTO') {
+        s3Url = await uploadImageToBucket(uri, 'message-media', accessToken);
+      } else if (mediaType === 'VIDEO') {
+        s3Url = await uploadVideoToBucket(uri, 'message-media', accessToken);
       }
-    } else {
-      const response = await axios.delete(`${BASEURL}/api/v1/post/${postId}/likes`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (response.status === 200 || response.status === 204) {
-        setLiked(false);
-      } else {
-        Alert.alert("Error", "Failed to unlike the post.");
-      }
+      return s3Url;
+    } catch (error) {
+      console.error('Failed to upload media:', error);
+      Alert.alert('Error', 'Media upload failed. Please try again.');
+      return null;
     }
-  } catch (error) {
-    console.error("Error toggling like on post:", error);
-    Alert.alert("Error", "An unexpected error occurred.");
-  }
-};
+  };
 
-
-const addComment = async () => {
-  if (!commentText.trim()) {
-    Alert.alert("Error", "Comment cannot be empty.");
-    return;
-  }
-
-  try {
-    const endpoint = `${BASEURL}/api/v1/post/${postId}/comment`;
-    const body = {
-      message: commentText,
-      ...(latestArtistCommentId && { parentCommentId: latestArtistCommentId }),
-    };
-
-    const response = await axios.post(endpoint, body, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+  const handleSelectMedia = () => {
+    launchImageLibrary({ mediaType: 'mixed' }, (response) => {
+      if (response.assets && response.assets.length > 0) {
+        const asset = response.assets[0];
+        setSelectedMedia(asset.uri);
+        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
+      }
     });
+  };
 
-    if (response.status === 200 || response.status === 201) {
-      const newComment = {
-        ...response.data.data,
-        user: {
-          full_name: userProfile?.full_name || 'Unknown User',
-          avatar_url: userProfile?.avatar_url || '',
-        },
+  const handleTakeMedia = () => {
+    launchCamera({ mediaType: 'mixed' }, (response) => {
+      if (response.assets && response.assets.length > 0) {
+        const asset = response.assets[0];
+        setSelectedMedia(asset.uri);
+        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
+      }
+    });
+  };
+
+
+
+  const toggleLike = async () => {
+    try {
+      if (!liked) {
+        const response = await axios.post(`${BASEURL}/api/v1/post/${postId}/likes`, {}, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (response.status === 200 || response.status === 201) {
+          setLiked(true);
+        } else {
+          Alert.alert("Error", "Failed to like the post.");
+        }
+      } else {
+        const response = await axios.delete(`${BASEURL}/api/v1/post/${postId}/likes`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (response.status === 200 || response.status === 204) {
+          setLiked(false);
+        } else {
+          Alert.alert("Error", "Failed to unlike the post.");
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling like on post:", error);
+      Alert.alert("Error", "An unexpected error occurred.");
+    }
+  };
+
+
+  const addComment = async () => {
+    if (!commentText.trim() && !selectedMedia) {
+      Alert.alert('Error', 'Comment or media is required.');
+      return;
+    }
+
+    let s3Url = null;
+
+    if (selectedMedia) {
+      s3Url = await handleMediaUpload(selectedMedia);
+      if (!s3Url) return; // Exit if upload fails
+    }
+
+    try {
+      const body = {
+        message: commentText.trim(),
+        ...(s3Url && { url: s3Url, mediaType }),
+        ...(latestArtistCommentId && { parentCommentId: latestArtistCommentId }),
       };
 
-      setPost((prevPost) => ({
-        ...prevPost,
-        comments: [newComment, ...prevPost.comments],
-      }));
-      setCommentText('');
-    } else {
-      Alert.alert("Error", "Unexpected response from the server.");
+      const response = await axios.post(`${BASEURL}/api/v1/post/${postId}/comment`, body, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        const newComment = {
+          ...response.data.data,
+          user: {
+            full_name: userProfile?.full_name || 'Unknown User',
+            avatar_url: userProfile?.avatar_url || '',
+          },
+        };
+
+        setPost((prevPost) => ({
+          ...prevPost,
+          comments: [newComment, ...prevPost.comments],
+        }));
+        setCommentText('');
+        setSelectedMedia(null); // Clear selected media
+        setMediaType(null); // Clear media type
+      } else {
+        Alert.alert('Error', 'Unexpected response from the server.');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to add comment.');
     }
-  } catch (error) {
-    console.error("Error adding comment:", error.response?.data || error.message);
-    Alert.alert("Error", "Failed to add comment.");
-  }
-};
+  };
 
 
 
@@ -203,7 +257,7 @@ const addComment = async () => {
     );
   }
 
- 
+
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -213,113 +267,134 @@ const addComment = async () => {
             <View style={styles.userInfoContainer}>
               <Image source={{ uri: post.user.avatar_url }} style={styles.userAvatar} />
               <Text style={styles.userName}>{post.user.full_name}</Text>
-              
+
               <TouchableOpacity onPress={toggleMenu}>
-  <Entypo name="dots-three-horizontal" size={30} color="white" style={styles.menuIcon} />
-</TouchableOpacity>
-              
-              
+                <Entypo name="dots-three-horizontal" size={30} color="white" style={styles.menuIcon} />
+              </TouchableOpacity>
+
+
             </View>
           )}
 
-{menuVisible && (
-  <Modal
-    transparent={true}
-    animationType="fade"
-    visible={menuVisible}
-    onRequestClose={toggleMenu}
-  >
-    <TouchableOpacity style={styles.modalOverlay} onPress={toggleMenu} activeOpacity={1}>
-      <View style={styles.menuContainer}>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => {
-            toggleMenu();
-            Alert.alert('Flag Post', 'This post has been flagged for review.');
-          }}
-        >
-          <Ionicons name="warning-outline" size={24} color="red" />
-          <Text style={styles.menuText}>Flag Post</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  </Modal>
-)}
-  
+          {menuVisible && (
+            <Modal
+              transparent={true}
+              animationType="fade"
+              visible={menuVisible}
+              onRequestClose={toggleMenu}
+            >
+              <TouchableOpacity style={styles.modalOverlay} onPress={toggleMenu} activeOpacity={1}>
+                <View style={styles.menuContainer}>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      toggleMenu();
+                      Alert.alert('Flag Post', 'This post has been flagged for review.');
+                    }}
+                  >
+                    <Ionicons name="warning-outline" size={24} color="red" />
+                    <Text style={styles.menuText}>Flag Post</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          )}
+
           {post.image_url && (
             <TouchableOpacity onPress={() => openImageViewer(post.image_url)}>
               <Image source={{ uri: post.image_url }} style={styles.postImage} />
             </TouchableOpacity>
           )}
-  
+
           <View style={styles.interactionContainer}>
             <TouchableOpacity onPress={toggleLike}>
               <EvilIcons name="heart" size={30} color={liked ? '#FF0000' : '#FFFFFF'} />
             </TouchableOpacity>
           </View>
-  
+
           <View style={styles.commentsContainer}>
-  {post.artistComments
-    .map(comment => ({ ...comment, isArtistComment: true }))
-    .concat(post.comments, post.artistReplies)
-    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-    .map((comment, index) => (
-      <View
-        key={index}
-        style={[
-          styles.commentCard,
-          comment.isArtistComment ? styles.artistCommentContainer : styles.fanCommentContainer,
-          { alignSelf: comment.isArtistComment ? 'flex-start' : 'flex-end' },
-        ]}
-      >
-        {comment.user && comment.user.avatar_url && (
-          <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
-        )}
-        <View style={styles.commentTextContainer}>
-          <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
-          <Text style={styles.commentText}>{comment.message}</Text>
+            {post.artistComments
+              .map(comment => ({ ...comment, isArtistComment: true }))
+              .concat(post.comments, post.artistReplies)
+              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+              .map((comment, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.commentCard,
+                    comment.isArtistComment ? styles.artistCommentContainer : styles.fanCommentContainer,
+                    { alignSelf: comment.isArtistComment ? 'flex-start' : 'flex-end' },
+                  ]}
+                >
+                  {comment.user && comment.user.avatar_url && (
+                    <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
+                  )}
+                  <View style={styles.commentTextContainer}>
+                    <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
+                    <Text style={styles.commentText}>{comment.message}</Text>
 
-          {/* Media handling for photos and videos */}
-          {comment.media_type === "PHOTO" && comment.url && (
-            <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
-              <Image source={{ uri: comment.url }} style={styles.largeMedia} />
-            </TouchableOpacity>
-          )}
-          {comment.media_type === "VIDEO" && comment.url && (
-            <Video
-              source={{ uri: comment.url }}
-              style={styles.largeMedia}
-              resizeMode="contain"
-              paused={true} // Paused by default
-              controls // Show playback controls
-            />
-          )}
-        </View>
+                    {/* Media handling for photos and videos */}
+                    {comment.media_type === "PHOTO" && comment.url && (
+                      <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
+                        <Image source={{ uri: comment.url }} style={styles.largeMedia} />
+                      </TouchableOpacity>
+                    )}
+                    {comment.media_type === "VIDEO" && comment.url && (
+                      <Video
+                        source={{ uri: comment.url }}
+                        style={styles.largeMedia}
+                        resizeMode="contain"
+                        paused={true} // Paused by default
+                        controls // Show playback controls
+                      />
+                    )}
+                  </View>
 
-        {/* Like button logic */}
-        {(comment.isArtistComment || likedComments.includes(comment.id)) && (
-          <TouchableOpacity
-            onPress={() =>
-              likedComments.includes(comment.id)
-                ? dislikeComment(comment.id)
-                : likeComment(comment.id)
-            }
-            style={styles.heartIconOutside}
-          >
-            <EvilIcons
-              name="heart"
-              size={28}
-              color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-    ))}
-</View>
+                  {/* Like button logic */}
+                  {(comment.isArtistComment || likedComments.includes(comment.id)) && (
+                    <TouchableOpacity
+                      onPress={() =>
+                        likedComments.includes(comment.id)
+                          ? dislikeComment(comment.id)
+                          : likeComment(comment.id)
+                      }
+                      style={styles.heartIconOutside}
+                    >
+                      <EvilIcons
+                        name="heart"
+                        size={28}
+                        color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'}
+                      />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+          </View>
 
         </KeyboardAwareScrollView>
-  
+
         <View style={styles.commentInputContainer}>
+          {selectedMedia && (
+            <View style={styles.previewContainer}>
+              {mediaType === 'PHOTO' ? (
+                <Image source={{ uri: selectedMedia }} style={styles.previewImage} />
+              ) : (
+                <Video
+                  source={{ uri: selectedMedia }}
+                  style={styles.previewVideo}
+                  resizeMode="cover"
+                  paused={true}
+                />
+              )}
+              <TouchableOpacity
+                onPress={() => setSelectedMedia(null)}
+                style={styles.removeMediaButton}
+              >
+                <Icon name="close" size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <TextInput
             style={styles.commentInput}
             placeholder="Write a comment..."
@@ -328,18 +403,25 @@ const addComment = async () => {
             onChangeText={(text) => setCommentText(text.slice(0, MAX_COMMENT_LENGTH))}
             multiline
           />
-          <Text style={styles.characterCounter}>
-            {commentText.length}/{MAX_COMMENT_LENGTH}
-          </Text>
+          <TouchableOpacity onPress={handleTakeMedia} style={styles.icon}>
+            <Icon name="camera" size={24} color="#888" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleSelectMedia} style={styles.icon}>
+            <Icon name="image" size={24} color="#888" />
+          </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.sendButton, { backgroundColor: commentText.trim() ? '#FF0080' : '#555' }]}
+            style={[
+              styles.sendButton,
+              { backgroundColor: commentText.trim() || selectedMedia ? '#FF0080' : '#555' },
+            ]}
             onPress={addComment}
-            disabled={!commentText.trim()}
+            disabled={!commentText.trim() && !selectedMedia}
           >
             <EvilIcons name="sc-telegram" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-  
+
+
         {/* Fullscreen image viewer */}
         <ImageViewing
           images={[{ uri: selectedImageUri }]}
@@ -350,7 +432,7 @@ const addComment = async () => {
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
-  
+
 };
 
 
@@ -376,45 +458,68 @@ const styles = StyleSheet.create({
   commentInput: { flex: 1, color: '#ffffff', paddingHorizontal: 15, paddingVertical: 10, borderWidth: 1, borderColor: '#555', borderRadius: 25, backgroundColor: 'rgba(51, 51, 51, 0.6)', fontSize: 16 },
   characterCounter: { color: '#aaa', marginLeft: 10, fontSize: 12 },
   sendButton: { marginLeft: 10, padding: 10, borderRadius: 25, backgroundColor: '#FF0080' },
-  warning:{right:"-100%", alignItems:'flex-end', marginRight:'30%'  },
+  warning: { right: "-100%", alignItems: 'flex-end', marginRight: '30%' },
   menuIcon: {
     marginLeft: '60%',
   },
-  
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   menuContainer: {
     backgroundColor: '#333',
     borderRadius: 10,
     padding: 5,
     width: 140,
     alignItems: 'flex-start',
-    marginBottom:'150%',
-    marginLeft:'69%',
+    marginBottom: '150%',
+    marginLeft: '69%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 4,
     elevation: 5,
   },
-  
+
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
   },
-  
+
   menuText: {
     marginLeft: 10,
     fontSize: 16,
     color: '#FFF',
   },
-  
+  previewContainer: {
+    position: 'relative',
+    marginRight: 10,
+  },
+  previewImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+  },
+  previewVideo: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+  },
+  removeMediaButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#000',
+    borderRadius: 10,
+    padding: 2,
+  },
+
+
 });
 
 export default DMDetailPage;
