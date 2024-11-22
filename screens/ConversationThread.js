@@ -11,6 +11,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -21,7 +22,6 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../utils';
 import { uploadVideoToBucket } from '../utils/videoUploadService';
 import Video from 'react-native-video';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { BASEURL } from '../assets/constants';
 import ImageViewing from 'react-native-image-viewing';
 
@@ -59,6 +59,8 @@ const ConversationThread = () => {
   const { sendMessage } = useSendMessage(accessToken);
   const flatListRef = useRef(null);
   const [isSending, setIsSending] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [reason, setReason] = useState('');
 
   const handleDeleteMessage = async (messageId) => {
     try {
@@ -176,11 +178,43 @@ const ConversationThread = () => {
     }
   };
 
+
+  const toggleMenu = () => {
+    setMenuVisible(!menuVisible);
+  };
+
+  // const handleBlockUser = () => {
+  //   if (!reason.trim()) {
+  //     Alert.alert('Error', 'Please provide a reason for blocking the user.');
+  //     return;
+  //   }
+
+  //   console.log('Block User Reason:', reason);
+  //   console.log('User ID:', route.params.userId); // Assuming userId is passed via route params
+
+  //   toggleMenu(); // Close the modal
+  //   setReason(''); // Clear reason
+  // };
+
+  const handleReportUser = () => {
+    if (!reason.trim()) {
+      Alert.alert('Error', 'Please provide a reason for reporting the user.');
+      return;
+    }
+
+    console.log('Report User Reason:', reason);
+    console.log('User ID:', route.params.userId); // Assuming userId is passed via route params
+    console.log(route.params)
+    toggleMenu(); // Close the modal
+    setReason(''); // Clear reason
+  };
+
+
   const renderMessage = ({ item }) => {
     const senderEmail = item.messageSender?.email || null;
     const isSender = senderEmail === loggedInUserEmail;
     const timestamp = formatDateLabel(item.created_at);
-  
+
     return (
       <View
         style={[
@@ -220,7 +254,7 @@ const ConversationThread = () => {
             />
           </View>
         )}
-  
+
         {/* Render Message Bubble (Text and Timestamp) */}
         {item.message && (
           <TouchableOpacity
@@ -250,13 +284,6 @@ const ConversationThread = () => {
       </View>
     );
   };
-  
-  
-  
-
-  const handleBlockUser = () => {
-    Alert.alert('Placeholder for blocking a user');
-  };
 
   return (
     <KeyboardAvoidingView
@@ -270,20 +297,55 @@ const ConversationThread = () => {
           </TouchableOpacity>
           <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
           <Text style={styles.username}>{username}</Text>
-          <TouchableOpacity onPress={handleBlockUser}>
-            <Text style={styles.blockButton}>Block User</Text>
+          <TouchableOpacity onPress={toggleMenu}>
+            <Icon name="ellipsis-v" size={24} color="#fff" style={styles.menuIcon} />
           </TouchableOpacity>
+
+          {menuVisible && (
+            <Modal
+              transparent={true}
+              animationType="fade"
+              visible={menuVisible}
+              onRequestClose={toggleMenu}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContainer}>
+                  <Text style={styles.modalTitle}>Specify Your Reason</Text>
+
+                  <TextInput
+                    style={styles.inputBox}
+                    placeholder="Write your reason here..."
+                    placeholderTextColor="#aaa"
+                    multiline
+                    value={reason}
+                    onChangeText={setReason}
+                  />
+
+                  <TouchableOpacity onPress={handleReportUser} style={styles.modalItem}>
+                    <Icon name="flag" size={20} color="#ffa500" style={styles.modalItemIcon} />
+                    <Text style={styles.modalText}>Report User</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={toggleMenu} style={styles.modalCloseButton}>
+                    <Text style={styles.modalCloseText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
+          )}
+
         </View>
 
+
+
         <FlatList
-  ref={flatListRef}
-  data={[...messages].reverse()}
-  keyExtractor={(item) => item.id.toString()}
-  renderItem={renderMessage}
-  style={styles.messageList}
-  inverted={true}
-  contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
-/>
+          ref={flatListRef}
+          data={[...messages].reverse()}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderMessage}
+          style={styles.messageList}
+          inverted={true}
+          contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
+        />
 
 
         <ImageViewing
@@ -351,6 +413,75 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: '#1e1e1e',
   },
+  menuIcon: {
+    marginLeft: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 15,
+  },
+  inputBox: {
+    width: '100%',
+    height: 100,
+    borderWidth: 1,
+    borderColor: '#444',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 15,
+    backgroundColor: '#222',
+    color: '#fff',
+    fontSize: 16,
+    textAlignVertical: 'top', // Ensures text starts at the top
+  },
+
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Dimmed background
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: '#333',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#444',
+    width: '100%',
+  },
+  modalItemIcon: {
+    marginRight: 10,
+  },
+  modalText: {
+    fontSize: 18,
+    color: '#fff',
+  },
+  modalCloseButton: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: '#444',
+    borderRadius: 5,
+    width: '50%',
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+
   backButton: {
     marginRight: 10,
   },
@@ -418,7 +549,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     aspectRatio: 1.5, // Adjust aspect ratio for consistent sizing
     backgroundColor: '#000',
-    marginLeft:'12%',
+    marginLeft: '12%',
   },
   messageVideo: {
     width: '85%', // Larger width for better display
@@ -431,15 +562,15 @@ const styles = StyleSheet.create({
   senderMedia: {
     alignItems: 'flex-end',
     alignSelf: 'flex-end', // Ensure it aligns to the right for sender
-    right:'-6%',
+    right: '-6%',
     marginVertical: 5,
   },
   receiverMedia: {
     alignItems: 'flex-start',
-    left:'-2%',
+    left: '-2%',
     alignSelf: 'flex-start', // Ensure it aligns to the left for receiver
     marginVertical: 5,
-    
+
   },
   inputContainer: {
     flexDirection: 'row',

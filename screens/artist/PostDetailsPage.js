@@ -326,16 +326,6 @@ const PostDetailPage = () => {
     }, 100);
   };
 
-  const handleOpenReplyModal = (commentId) => {
-    setReplyParentId(commentId);
-    setReplyText('');
-    setReplyModalVisible(true);
-  };
-
-  const handleCloseReplyModal = () => {
-    setReplyModalVisible(false);
-    setReplyParentId(null);
-  };
 
   const openReportMenu = (commentId) => {
     setSelectedCommentId(commentId);
@@ -387,38 +377,6 @@ const PostDetailPage = () => {
     } catch (error) {
       console.error("Error reporting comment:", error);
       Alert.alert("Error", "An unexpected error occurred while reporting the comment.");
-    }
-  };
-
-
-
-
-  const handleSendReply = async () => {
-    if (!replyText.trim()) {
-      Alert.alert('Error', 'Reply content cannot be empty.');
-      return;
-    }
-
-    const replyData = {
-      message: replyText,
-      parentCommentId: replyParentId,
-    };
-
-    try {
-      const response = await axios.post(
-        `${BASEURL}/api/v1/post/${postId}/comment`,
-        replyData,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-
-      if (response.status === 200 || response.status === 201) {
-        Alert.alert('Success', 'Your reply has been posted.');
-        setReplyText('');
-        setReplyModalVisible(false);
-        fetchPostDetails();
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to post the reply.');
     }
   };
 
@@ -779,37 +737,6 @@ const PostDetailPage = () => {
               <Text style={styles.postButtonText}>Send</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-
-      <Modal
-        animationType="slide"
-        transparent
-        visible={isReplyModalVisible}
-        onRequestClose={handleCloseReplyModal}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalBackground}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Reply to Comment</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Write your reply..."
-              placeholderTextColor="gray"
-              value={replyText}
-              onChangeText={setReplyText}
-              multiline
-            />
-            <TouchableOpacity style={styles.postButton} onPress={handleSendReply}>
-              <Text style={styles.postButtonText}>Reply</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.closeButton} onPress={handleCloseReplyModal}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
