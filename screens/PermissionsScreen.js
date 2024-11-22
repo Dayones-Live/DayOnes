@@ -80,7 +80,6 @@ const PermissionsScreen = () => {
 
       if (
         camera === RESULTS.GRANTED &&
-        (library === RESULTS.GRANTED || library === RESULTS.LIMITED) &&
         notifications === RESULTS.GRANTED &&
         location === RESULTS.GRANTED
       ) {
@@ -158,11 +157,11 @@ const PermissionsScreen = () => {
       navigation.navigate('LoginPage'); // Proceed to login
     }
   };
-  
+
   useEffect(() => {
     checkAllPermissions();
   }, []);
-  
+
 
   return (
     <SafeAreaView style={styles.safeAreaView}>

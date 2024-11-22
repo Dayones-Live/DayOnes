@@ -196,18 +196,45 @@ const ConversationThread = () => {
   //   setReason(''); // Clear reason
   // };
 
-  const handleReportUser = () => {
+  const handleReportUser = async () => {
     if (!reason.trim()) {
       Alert.alert('Error', 'Please provide a reason for reporting the user.');
       return;
     }
 
-    console.log('Report User Reason:', reason);
-    console.log('User ID:', route.params.userId); // Assuming userId is passed via route params
-    console.log(route.params)
-    toggleMenu(); // Close the modal
-    setReason(''); // Clear reason
+    try {
+      const payload = {
+        description: reason.trim(),
+        reportedUserId: route.params.userId, // Assuming userId is passed via route params
+      };
+
+      console.log('Report User Payload:', payload);
+
+      const response = await fetch(`${BASEURL}/api/v1/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'User has been reported successfully.');
+      } else {
+        const errorData = await response.json();
+        console.error('Report User Error:', errorData);
+        Alert.alert('Error', errorData.message || 'Failed to report the user. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error reporting user:', error);
+      Alert.alert('Error', 'An error occurred while reporting the user. Please try again.');
+    } finally {
+      toggleMenu(); // Close the modal
+      setReason(''); // Clear the reason
+    }
   };
+
 
 
   const renderMessage = ({ item }) => {

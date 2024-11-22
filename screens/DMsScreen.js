@@ -47,11 +47,11 @@ const DMsScreen = () => {
           Authorization: `Bearer ${accessToken}`,
         },
       });
-  
+
       const responseData = await response.json();
       console.log('Response status:', response.status);
       console.log('Response data:', responseData);
-  
+
       if (response.ok) {
         setConversations((prevConversations) => prevConversations.filter((conv) => conv.id !== conversationId));
         Alert.alert('Conversation deleted successfully');
@@ -63,9 +63,9 @@ const DMsScreen = () => {
       Alert.alert('Error', 'Failed to delete the conversation. Please try again.');
     }
   };
-  
-  
-  
+
+
+
   const formatTimeAgo = (dateString) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -86,10 +86,12 @@ const DMsScreen = () => {
   };
 
   const handleConversationPress = (conversationId, sender) => {
+    console.log('send', sender)
     navigation.navigate('ConversationThread', {
       conversationId,
       profilePicture: sender.avatar_url || 'https://example.com/default-avatar.png',
       username: sender.full_name,
+      userID: sender.id,
     });
   };
 
