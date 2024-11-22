@@ -46,6 +46,8 @@ const PostDetailPage = () => {
   const [imagesForViewing, setImagesForViewing] = useState([]); // Stores images for full-screen viewing
   const [reportMenuVisible, setReportMenuVisible] = useState(false);
   const [selectedCommentId, setSelectedCommentId] = useState(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false); // Modal visibility
+  const [reportDescription, setReportDescription] = useState(""); // Input for report description
 
 
   const route = useRoute();
@@ -345,42 +347,45 @@ const PostDetailPage = () => {
     setReportMenuVisible(false);
   };
 
-  const confirmReport = (commentId) => {
-    Alert.alert(
-      "Report Comment",
-      "Are you sure you want to report this comment?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Yes",
-          style: "destructive",
-          onPress: () => handleReportComment(commentId),
-        },
-      ]
-    );
+  const openReportModal = (commentId) => {
+    setSelectedCommentId(commentId);
+    setReportDescription("");
+    setReportModalVisible(true);
   };
 
-  const handleReportComment = async (commentId) => {
-    const description = "Inappropriate content"; // Customize this as needed
-    const reportPayload = {
-      description: description,
-      reportedCommentId: commentId,
-    };
+  const closeReportModal = () => {
+    setReportModalVisible(false);
+    closeReportMenu();
+    setReportDescription("");
+    setSelectedCommentId(null);
+  };
+
+  const submitCommentReport = async () => {
+    if (!reportDescription.trim()) {
+      Alert.alert("Error", "Please provide a reason for reporting the comment.");
+      return;
+    }
 
     try {
-      const response = await axios.post(`${BASEURL}/api/v1/report`, reportPayload, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`, // Ensure you have accessToken from Redux or context
+      const response = await axios.post(
+        `${BASEURL}/api/v1/report`,
+        {
+          description: reportDescription.trim(),
+          reportedCommentId: selectedCommentId,
         },
-      });
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
 
       if (response.status === 200 || response.status === 201) {
-        Alert.alert("Reported", "This comment has been successfully reported.");
+        Alert.alert("Success", "Your report has been submitted successfully. Thank you!");
+        closeReportModal();
       } else {
-        Alert.alert("Error", "Failed to report the comment. Please try again.");
+        Alert.alert("Error", "Failed to report the comment.");
       }
     } catch (error) {
-      console.error("Error reporting comment:", error.response?.data || error.message);
+      console.error("Error reporting comment:", error);
       Alert.alert("Error", "An unexpected error occurred while reporting the comment.");
     }
   };
@@ -811,6 +816,35 @@ const PostDetailPage = () => {
         </KeyboardAvoidingView>
       </Modal>
 
+      <Modal
+        visible={reportModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closeReportModal}
+      >
+        <View style={styles.reportModalOverlay}>
+          <View style={styles.reportModalContainer}>
+            <Text style={styles.reportModalTitle}>Report Comment</Text>
+            <TextInput
+              style={styles.reportModalDescriptionInput}
+              placeholder="Why are you reporting this comment?"
+              placeholderTextColor="#aaa"
+              multiline
+              value={reportDescription}
+              onChangeText={(text) => setReportDescription(text)}
+            />
+            <View style={styles.reportModalButtons}>
+              <TouchableOpacity style={styles.reportModalCancelButton} onPress={closeReportModal}>
+                <Text style={styles.reportModalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.reportModalSubmitButton} onPress={submitCommentReport}>
+                <Text style={styles.reportModalButtonText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {reportMenuVisible && (
         <Modal
           transparent={true}
@@ -819,25 +853,23 @@ const PostDetailPage = () => {
           onRequestClose={closeReportMenu}
         >
           <TouchableOpacity
-            style={styles.modalOverlay}
+            style={styles.reportMenuOverlay}
             onPress={closeReportMenu}
             activeOpacity={1}
           >
-            <View style={styles.menuContainer}>
+            <View style={styles.reportMenuContainer}>
               <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => {
-                  closeReportMenu();
-                  confirmReport(selectedCommentId);
-                }}
+                onPress={() => openReportModal(selectedCommentId)} // Pass the comment ID
+                style={styles.reportMenuItem}
               >
-                <Icon name="flag" size={24} color="red" />
-                <Text style={styles.menuText}>Report Comment</Text>
+                <Icon name="flag" size={20} color="red" style={styles.reportMenuFlagIcon} />
+                <Text style={styles.reportMenuText}>Report Comment</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
         </Modal>
       )}
+
 
       <ImageViewing
         images={imagesForViewing}
@@ -854,7 +886,67 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000', padding: 16 },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0c002b' },
   errorText: { color: '#FFF', fontSize: 18 },
-
+  reportModalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.65)", // Dimmed background
+  },
+  reportModalContainer: {
+    backgroundColor: "#222", // Modal background
+    borderRadius: 12,
+    padding: 20,
+    width: "90%",
+    alignSelf: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  reportModalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#c0c0c0",
+    marginBottom: 10,
+  },
+  reportModalDescriptionInput: {
+    backgroundColor: "#333",
+    color: "#FFF",
+    padding: 15,
+    borderRadius: 10,
+    height: 120,
+    marginBottom: 20,
+    textAlignVertical: "top", // Ensures text starts at the top of the box
+    fontSize: 16,
+  },
+  reportModalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  reportModalCancelButton: {
+    backgroundColor: "#555",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 10,
+  },
+  reportModalSubmitButton: {
+    backgroundColor: "#FF0080",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flex: 1,
+    marginLeft: 10,
+  },
+  reportModalButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    textAlign: "center",
+    fontWeight: "bold",
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -882,7 +974,6 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     backgroundColor: "#000",
     left: "9%",
-
   },
   commentVideo: {
     width: "90%",
@@ -894,6 +985,40 @@ const styles = StyleSheet.create({
   },
   dotsButton: {
     marginHorizontal: 10,
+  },
+  reportMenuOverlay: {
+    flex: 1,
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.4)", // Semi-transparent background
+    paddingTop: 50, // Adjust to place below the status bar
+    paddingRight: 20, // Add spacing from the right edge
+  },
+  reportMenuContainer: {
+    backgroundColor: "#222",
+    marginTop: 20,
+    borderRadius: 10,
+    padding: 15,
+    width: 200,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  reportMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reportMenuFlagIcon: {
+    marginRight: 10,
+  },
+  reportMenuText: {
+    fontSize: 16,
+    color: "#FFF",
   },
   modalOverlay: {
     flex: 1,
@@ -972,7 +1097,6 @@ const styles = StyleSheet.create({
     paddingRight: 20,
     paddingLeft: 1,
   },
-
   commentText: { color: 'black', marginTop: 5, paddingRight: 50, fontSize: 15 },
   modalBackground: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
   modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
