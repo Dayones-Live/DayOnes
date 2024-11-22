@@ -14,6 +14,8 @@ import { uploadImageToBucket } from '../../utils';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import {  launchImageLibrary } from 'react-native-image-picker';
+import { TouchableWithoutFeedback } from 'react-native';
+
 
 const MAX_COMMENT_LENGTH = 200;
 
@@ -32,6 +34,64 @@ const DMDetailPage = ({ route }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [mediaType, setMediaType] = useState(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportDescription, setReportDescription] = useState("");
+
+
+  const openReportModal = () => {
+    setReportModalVisible(true);
+  };
+  
+  const closeReportModal = () => {
+    setReportDescription("");
+    setReportModalVisible(false);
+  };
+  
+  const submitReport = async () => {
+    if (!reportDescription.trim()) {
+      Alert.alert("Error", "Please provide a reason for reporting the post.");
+      return;
+    }
+  
+    try {
+      console.log("Submitting report for post ID:", postId);
+  
+      const response = await axios.post(
+        `${BASEURL}/api/v1/report`,
+        {
+          description: reportDescription.trim(),
+          reportedPostId: postId,
+        },
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+  
+      console.log("Report API Response:", response);
+  
+      if (response.status === 200 || response.status === 201) {
+        // Use a user-friendly success message
+        Alert.alert("Success", "Your report has been submitted successfully. Thank you!");
+        closeReportModal(); // Close the modal
+      } else {
+        console.log("Unexpected API Response Status:", response.status);
+        Alert.alert("Error", "Failed to report the post.");
+      }
+    } catch (error) {
+      console.error("Error reporting post:", error);
+      if (error.response) {
+        console.log("Error Response Data:", error.response.data);
+        Alert.alert(
+          "Error",
+          error.response.data.message || "An unexpected error occurred while reporting the post."
+        );
+      } else {
+        Alert.alert("Error", "An unexpected error occurred while reporting the post.");
+      }
+    }
+  };
+  
+  
 
 
   const toggleMenu = () => {
@@ -42,6 +102,42 @@ const DMDetailPage = ({ route }) => {
     setSelectedImageUri(uri);
     setIsImageViewerVisible(true);
   };
+
+  const reportPost = async () => {
+    try {
+      console.log("Attempting to report the post with ID:", postId);
+  
+      const response = await axios.post(
+        `${BASEURL}/api/v1/report`,
+        {
+          description: "This post is inappropriate.", // Customize the description as needed
+          reportedPostId: postId, // Use the `postId` from the route parameters
+        },
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+  
+      console.log("API Response:", response);
+  
+      if (response.status === 200 || response.status === 201) {
+        Alert.alert("Success", "The post has been reported.");
+      } else {
+        console.log("Unexpected API Response Status:", response.status);
+        Alert.alert("Error", "Failed to report the post.");
+      }
+    } catch (error) {
+      console.error("Error reporting post:", error);
+      if (error.response) {
+        console.log("Error Response Data:", error.response.data);
+        console.log("Error Response Status:", error.response.status);
+        console.log("Error Response Headers:", error.response.headers);
+      }
+      Alert.alert("Error", "An unexpected error occurred while reporting the post.");
+    }
+  };
+  
+  
 
   const fetchPostDetails = async () => {
     try {
@@ -252,61 +348,73 @@ const DMDetailPage = ({ route }) => {
 
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <SafeAreaView style={styles.container}>
-        <KeyboardAwareScrollView contentContainerStyle={styles.scrollViewContainer} extraScrollHeight={80}>
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollViewContainer}
+          extraScrollHeight={80}
+        >
           {post.user && post.user.avatar_url && (
             <View style={styles.userInfoContainer}>
               <Image source={{ uri: post.user.avatar_url }} style={styles.userAvatar} />
               <Text style={styles.userName}>{post.user.full_name}</Text>
-
+  
               <TouchableOpacity onPress={toggleMenu}>
-                <Entypo name="dots-three-horizontal" size={30} color="white" style={styles.menuIcon} />
+                <Entypo
+                  name="dots-three-horizontal"
+                  size={30}
+                  color="white"
+                  style={styles.menuIcon}
+                />
               </TouchableOpacity>
-
-
             </View>
           )}
+  
+  {menuVisible && (
+  <Modal
+    transparent={true}
+    animationType="fade"
+    visible={menuVisible}
+    onRequestClose={toggleMenu}
+  >
+     <TouchableWithoutFeedback onPress={toggleMenu}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.menuContainer}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              toggleMenu();
+              openReportModal(); // Open the report modal
+            }}
+          >
+            <Ionicons name="warning-outline" size={24} color="red" />
+            <Text style={styles.menuText}>Flag Post</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableWithoutFeedback>
+  </Modal>
+)}
 
-          {menuVisible && (
-            <Modal
-              transparent={true}
-              animationType="fade"
-              visible={menuVisible}
-              onRequestClose={toggleMenu}
-            >
-              <TouchableOpacity style={styles.modalOverlay} onPress={toggleMenu} activeOpacity={1}>
-                <View style={styles.menuContainer}>
-                  <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={() => {
-                      toggleMenu();
-                      Alert.alert('Flag Post', 'This post has been flagged for review.');
-                    }}
-                  >
-                    <Ionicons name="warning-outline" size={24} color="red" />
-                    <Text style={styles.menuText}>Flag Post</Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            </Modal>
-          )}
-
+  
           {post.image_url && (
             <TouchableOpacity onPress={() => openImageViewer(post.image_url)}>
               <Image source={{ uri: post.image_url }} style={styles.postImage} />
             </TouchableOpacity>
           )}
-
+  
           <View style={styles.interactionContainer}>
             <TouchableOpacity onPress={toggleLike}>
-              <EvilIcons name="heart" size={30} color={liked ? '#FF0000' : '#FFFFFF'} />
+              <EvilIcons name="heart" size={30} color={liked ? "#FF0000" : "#FFFFFF"} />
             </TouchableOpacity>
           </View>
-
+  
           <View style={styles.commentsContainer}>
             {post.artistComments
-              .map(comment => ({ ...comment, isArtistComment: true }))
+              .map((comment) => ({ ...comment, isArtistComment: true }))
               .concat(post.comments, post.artistReplies)
               .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
               .map((comment, index) => (
@@ -314,8 +422,10 @@ const DMDetailPage = ({ route }) => {
                   key={index}
                   style={[
                     styles.commentCard,
-                    comment.isArtistComment ? styles.artistCommentContainer : styles.fanCommentContainer,
-                    { alignSelf: comment.isArtistComment ? 'flex-start' : 'flex-end' },
+                    comment.isArtistComment
+                      ? styles.artistCommentContainer
+                      : styles.fanCommentContainer,
+                    { alignSelf: comment.isArtistComment ? "flex-start" : "flex-end" },
                   ]}
                 >
                   {comment.user && comment.user.avatar_url && (
@@ -324,8 +434,7 @@ const DMDetailPage = ({ route }) => {
                   <View style={styles.commentTextContainer}>
                     <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
                     <Text style={styles.commentText}>{comment.message}</Text>
-
-                    {/* Media handling for photos and videos */}
+  
                     {comment.media_type === "PHOTO" && comment.url && (
                       <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
                         <Image source={{ uri: comment.url }} style={styles.largeMedia} />
@@ -336,13 +445,12 @@ const DMDetailPage = ({ route }) => {
                         source={{ uri: comment.url }}
                         style={styles.largeMedia}
                         resizeMode="contain"
-                        paused={true} // Paused by default
-                        controls // Show playback controls
+                        paused={true}
+                        controls
                       />
                     )}
                   </View>
-
-                  {/* Like button logic */}
+  
                   {(comment.isArtistComment || likedComments.includes(comment.id)) && (
                     <TouchableOpacity
                       onPress={() =>
@@ -355,20 +463,19 @@ const DMDetailPage = ({ route }) => {
                       <EvilIcons
                         name="heart"
                         size={28}
-                        color={likedComments.includes(comment.id) ? '#FF0000' : '#FFFFFF'}
+                        color={likedComments.includes(comment.id) ? "#FF0000" : "#FFFFFF"}
                       />
                     </TouchableOpacity>
                   )}
                 </View>
               ))}
           </View>
-
         </KeyboardAwareScrollView>
-
+  
         <View style={styles.commentInputContainer}>
           {selectedMedia && (
             <View style={styles.previewContainer}>
-              {mediaType === 'PHOTO' ? (
+              {mediaType === "PHOTO" ? (
                 <Image source={{ uri: selectedMedia }} style={styles.previewImage} />
               ) : (
                 <Video
@@ -386,7 +493,7 @@ const DMDetailPage = ({ route }) => {
               </TouchableOpacity>
             </View>
           )}
-
+  
           <TextInput
             style={styles.commentInput}
             placeholder="Write a comment..."
@@ -395,14 +502,14 @@ const DMDetailPage = ({ route }) => {
             onChangeText={(text) => setCommentText(text.slice(0, MAX_COMMENT_LENGTH))}
             multiline
           />
-          
+  
           <TouchableOpacity onPress={handleSelectMedia} style={styles.icon}>
             <Icon name="image" size={24} color="#888" />
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.sendButton,
-              { backgroundColor: commentText.trim() || selectedMedia ? '#FF0080' : '#555' },
+              { backgroundColor: commentText.trim() || selectedMedia ? "#FF0080" : "#555" },
             ]}
             onPress={addComment}
             disabled={!commentText.trim() && !selectedMedia}
@@ -410,18 +517,46 @@ const DMDetailPage = ({ route }) => {
             <EvilIcons name="sc-telegram" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-
-
-        {/* Fullscreen image viewer */}
+  
         <ImageViewing
           images={[{ uri: selectedImageUri }]}
           imageIndex={0}
           visible={isImageViewerVisible}
           onRequestClose={() => setIsImageViewerVisible(false)}
         />
+  
+        <Modal
+          visible={reportModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={closeReportModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.reportModal}>
+              <Text style={styles.modalTitle}>Report Post</Text>
+              <TextInput
+                style={styles.descriptionInput}
+                placeholder="Why are you reporting this post?"
+                placeholderTextColor="#aaa"
+                multiline
+                value={reportDescription}
+                onChangeText={(text) => setReportDescription(text)}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.cancelButton} onPress={closeReportModal}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.submitButton} onPress={submitReport}>
+                  <Text style={styles.buttonText}>Submit</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
+  
 
 };
 
@@ -454,20 +589,15 @@ const styles = StyleSheet.create({
     marginLeft: '50%',
   },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
 
   menuContainer: {
-    backgroundColor: '#333',
+    backgroundColor: 'black',
     borderRadius: 10,
-    padding: 5,
+    
     width: 140,
     alignItems: 'flex-start',
-    marginBottom: '150%',
+    marginBottom: '100%',
     marginLeft: '69%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -480,12 +610,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
+    
   },
 
   menuText: {
     marginLeft: 10,
     fontSize: 16,
     color: '#FFF',
+    
   },
   previewContainer: {
     position: 'relative',
@@ -509,6 +641,69 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 2,
   },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    bottom:"5%",
+    backgroundColor: "rgba(0, 0, 0, .96)", // Dimmed background
+    
+  },
+  reportModal: {
+    backgroundColor: "#222", // Modal background
+    borderRadius: 12,
+    padding: 20,
+    width: "90%",
+    alignSelf: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  descriptionInput: {
+    backgroundColor: "#333",
+    color: "#FFF",
+    padding: 15,
+    borderRadius: 10,
+    height: 120,
+    marginBottom: 20,
+    textAlignVertical: "top", // Ensures text starts at the top of the box
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  modalTitle: {
+    bottom:"5%",
+    color:"#c0c0c0"
+  },
+  cancelButton: {
+    backgroundColor: "#555",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 10,
+  },
+  submitButton: {
+    backgroundColor: "#FF0080",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flex: 1,
+    marginLeft: 10,
+  },
+  buttonText: {
+    color: "#FFF",
+    fontSize: 16,
+    textAlign: "center",
+    fontWeight: "bold",
+  },
+  
+  
 
 
 });
