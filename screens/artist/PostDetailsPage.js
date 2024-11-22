@@ -44,7 +44,8 @@ const PostDetailPage = () => {
   const [likedReplies, setLikedReplies] = useState([]);
   const [isFullScreenVisible, setFullScreenVisible] = useState(false);
   const [imagesForViewing, setImagesForViewing] = useState([]); // Stores images for full-screen viewing
-
+  const [reportMenuVisible, setReportMenuVisible] = useState(false);
+  const [selectedCommentId, setSelectedCommentId] = useState(null);
 
 
   const route = useRoute();
@@ -334,6 +335,59 @@ const PostDetailPage = () => {
     setReplyParentId(null);
   };
 
+  const openReportMenu = (commentId) => {
+    setSelectedCommentId(commentId);
+    setReportMenuVisible(true);
+  };
+
+  const closeReportMenu = () => {
+    setSelectedCommentId(null);
+    setReportMenuVisible(false);
+  };
+
+  const confirmReport = (commentId) => {
+    Alert.alert(
+      "Report Comment",
+      "Are you sure you want to report this comment?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: () => handleReportComment(commentId),
+        },
+      ]
+    );
+  };
+
+  const handleReportComment = async (commentId) => {
+    const description = "Inappropriate content"; // Customize this as needed
+    const reportPayload = {
+      description: description,
+      reportedCommentId: commentId,
+    };
+
+    try {
+      const response = await axios.post(`${BASEURL}/api/v1/report`, reportPayload, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`, // Ensure you have accessToken from Redux or context
+        },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        Alert.alert("Reported", "This comment has been successfully reported.");
+      } else {
+        Alert.alert("Error", "Failed to report the comment. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error reporting comment:", error.response?.data || error.message);
+      Alert.alert("Error", "An unexpected error occurred while reporting the comment.");
+    }
+  };
+
+
+
+
   const handleSendReply = async () => {
     if (!replyText.trim()) {
       Alert.alert('Error', 'Reply content cannot be empty.');
@@ -439,93 +493,98 @@ const PostDetailPage = () => {
         renderItem={({ item }) => (
           <>
             {item.artistComments && item.artistComments.length > 0 && (
-  <View>
-    {item.artistComments
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      .map((artistComment) => (
-        <View key={artistComment.id} style={styles.artistCommentContainer}>
-          <View style={styles.userInfoContainer}>
-            <Image source={{ uri: artistComment.user.avatar_url }} style={styles.avatar} />
-            <View>
-              <Text style={styles.userName}>{artistComment.user.full_name}</Text>
-              <Text style={styles.userLocation}>{artistComment.user.location}</Text>
-            </View>
-          </View>
-          <Text style={[styles.commentText, styles.artistCommentText]}>
-            {artistComment.message}
-          </Text>
-          {artistComment.url && artistComment.media_type === "PHOTO" && (
-            <TouchableOpacity onPress={() => openFullScreenImage(artistComment.url)}>
-              <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
-            </TouchableOpacity>
-          )}
-          {artistComment.media_type === "VIDEO" && artistComment.url && (
-            <Video
-              source={{ uri: artistComment.url }}
-              style={styles.messageVideo}
-              paused={true}
-              resizeMode="contain"
-              controls
-            />
-          )}
-          <View style={styles.interactionRow}>
-            <TouchableOpacity onPress={() => toggleArtistReplies(artistComment.id)}>
-              <Foundation name="comments" size={24} color="#fff" />
-              <Text style={styles.iconText}>{artistComment.replies?.length || 0}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => likeComment(artistComment.id)}>
-              <Foundation name="heart" size={24} color="#fff" />
-              <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => deleteComment(artistComment.id)}>
-              <Icon name="trash" size={20} color="red" />
-            </TouchableOpacity>
-          </View>
-          {showArtistReplies[artistComment.id] && artistComment.replies && artistComment.replies.length > 0 && (
-            <View style={styles.repliesContainer}>
-              {artistComment.replies
-                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                .map((reply) => (
-                  <View key={reply.id} style={[styles.commentContainer, { marginLeft: 20 }]}>
-                    <View style={styles.userInfoContainer}>
-                      <Image source={{ uri: reply.user.avatar_url }} style={styles.avatar} />
-                      <View>
-                        <Text style={styles.userName}>{reply.user.full_name}</Text>
-                        <Text style={styles.commentText}>{reply.message}</Text>
+              <View>
+                {item.artistComments
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                  .map((artistComment) => (
+                    <View key={artistComment.id} style={styles.artistCommentContainer}>
+                      <View style={styles.userInfoContainer}>
+                        <Image source={{ uri: artistComment.user.avatar_url }} style={styles.avatar} />
+                        <View>
+                          <Text style={styles.userName}>{artistComment.user.full_name}</Text>
+                          <Text style={styles.userLocation}>{artistComment.user.location}</Text>
+                        </View>
                       </View>
-                    </View>
-                    {reply.url && reply.media_type === "PHOTO" && (
-                      <Image source={{ uri: reply.url }} style={styles.commentAImage} />
-                    )}
-                    {reply.url && reply.media_type === "VIDEO" && (
-                      <Video
-                        source={{ uri: reply.url }}
-                        style={styles.commentVideo}
-                        paused={true}
-                        resizeMode="contain"
-                        controls
-                      />
-                    )}
-                    <View style={styles.interactionRow}>
-                      <TouchableOpacity onPress={() => likeReply(reply.id)}>
-                        <Icon
-                          name="heart"
-                          size={20}
-                          color={likedReplies.includes(reply.id) ? "red" : "#333"}
+                      <Text style={[styles.commentText, styles.artistCommentText]}>
+                        {artistComment.message}
+                      </Text>
+                      {artistComment.url && artistComment.media_type === "PHOTO" && (
+                        <TouchableOpacity onPress={() => openFullScreenImage(artistComment.url)}>
+                          <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
+                        </TouchableOpacity>
+                      )}
+                      {artistComment.media_type === "VIDEO" && artistComment.url && (
+                        <Video
+                          source={{ uri: artistComment.url }}
+                          style={styles.messageVideo}
+                          paused={true}
+                          resizeMode="contain"
+                          controls
                         />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => createOrNavigateConversation(reply.user.id)}>
-                        <Icon name="paper-plane" size={20} color="#333" />
-                      </TouchableOpacity>
+                      )}
+                      <View style={styles.interactionRow}>
+                        <TouchableOpacity onPress={() => toggleArtistReplies(artistComment.id)}>
+                          <Foundation name="comments" size={24} color="#fff" />
+                          <Text style={styles.iconText}>{artistComment.replies?.length || 0}</Text>
+                        </TouchableOpacity>
+                        <View style={styles.iconContainer}>
+                          <Foundation name="heart" size={24} color="#fff" />
+                          <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
+                        </View>
+
+                        <TouchableOpacity onPress={() => deleteComment(artistComment.id)}>
+                          <Icon name="trash" size={20} color="red" />
+                        </TouchableOpacity>
+                      </View>
+                      {showArtistReplies[artistComment.id] && artistComment.replies && artistComment.replies.length > 0 && (
+                        <View style={styles.repliesContainer}>
+                          {artistComment.replies
+                            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                            .map((reply) => (
+                              <View key={reply.id} style={[styles.commentContainer, { marginLeft: 20 }]}>
+                                <View style={styles.userInfoContainer}>
+                                  <Image source={{ uri: reply.user.avatar_url }} style={styles.avatar} />
+                                  <View>
+                                    <Text style={styles.userName}>{reply.user.full_name}</Text>
+                                    <Text style={styles.commentText}>{reply.message}</Text>
+                                  </View>
+                                </View>
+                                {reply.url && reply.media_type === "PHOTO" && (
+                                  <Image source={{ uri: reply.url }} style={styles.commentAImage} />
+                                )}
+                                {reply.url && reply.media_type === "VIDEO" && (
+                                  <Video
+                                    source={{ uri: reply.url }}
+                                    style={styles.commentVideo}
+                                    paused={true}
+                                    resizeMode="contain"
+                                    controls
+                                  />
+                                )}
+                                <View style={styles.interactionRow}>
+                                  <TouchableOpacity onPress={() => likeReply(reply.id)}>
+                                    <Icon
+                                      name="heart"
+                                      size={20}
+                                      color={likedReplies.includes(reply.id) ? "red" : "#333"}
+                                    />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity onPress={() => createOrNavigateConversation(reply.user.id)}>
+                                    <Icon name="paper-plane" size={20} color="#333" />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity onPress={() => openReportMenu(reply.id)}>
+                                    <Icon name="ellipsis-h" size={20} color="#333" style={styles.dotsButton} />
+                                  </TouchableOpacity>
+
+                                </View>
+                              </View>
+                            ))}
+                        </View>
+                      )}
                     </View>
-                  </View>
-                ))}
-            </View>
-          )}
-        </View>
-      ))}
-  </View>
-)}
+                  ))}
+              </View>
+            )}
 
             <View style={styles.postCard}>
               <View style={styles.userInfoContainer}>
@@ -598,6 +657,11 @@ const PostDetailPage = () => {
                       <TouchableOpacity onPress={() => createOrNavigateConversation(item.user.id)}>
                         <Icon name="paper-plane" size={20} color="#333" />
                       </TouchableOpacity>
+                      {/* Three-Dot Button */}
+                      <TouchableOpacity onPress={() => openReportMenu(item.id)}>
+                        <Icon name="ellipsis-h" size={20} color="#333" style={styles.dotsButton} />
+                      </TouchableOpacity>
+
                     </View>
                     {item.replies && item.replies.length > 0 && (
                       <TouchableOpacity onPress={() => toggleReplies(item.id)} style={styles.dropdownButton}>
@@ -607,45 +671,45 @@ const PostDetailPage = () => {
                       </TouchableOpacity>
                     )}
                     {showReplies[item.id] && (
-  <View style={styles.repliesContainer}>
-   {item.replies.map((reply, index) => (
-  <View key={index} style={styles.reply}>
-    <View style={styles.userInfoContainer}>
-      {reply.user.avatar_url && (
-        <Image source={{ uri: reply.user.avatar_url }} style={styles.avatar} />
-      )}
-      <Text style={styles.userName}>{reply.user.full_name}</Text>
-    </View>
-    <Text style={styles.replyText}>{reply.message}</Text>
-    {reply.url && reply.media_type === 'PHOTO' && (
-      <TouchableOpacity onPress={() => openFullScreenImage(reply.url)}>
-        <Image source={{ uri: reply.url }} style={styles.commentAImage} />
-      </TouchableOpacity>
-    )}
-    {reply.url && reply.media_type === 'VIDEO' && (
-      <Video
-        source={{ uri: reply.url }}
-        style={styles.commentVideo}
-        paused={true}
-        resizeMode="contain"
-        controls
-      />
-    )}
-    <Text style={styles.replyTimestamp}>
-      {new Date(reply.created_at).toLocaleTimeString()}
-    </Text>
-  </View>
-))}
+                      <View style={styles.repliesContainer}>
+                        {item.replies.map((reply, index) => (
+                          <View key={index} style={styles.reply}>
+                            <View style={styles.userInfoContainer}>
+                              {reply.user.avatar_url && (
+                                <Image source={{ uri: reply.user.avatar_url }} style={styles.avatar} />
+                              )}
+                              <Text style={styles.userName}>{reply.user.full_name}</Text>
+                            </View>
+                            <Text style={styles.replyText}>{reply.message}</Text>
+                            {reply.url && reply.media_type === 'PHOTO' && (
+                              <TouchableOpacity onPress={() => openFullScreenImage(reply.url)}>
+                                <Image source={{ uri: reply.url }} style={styles.commentAImage} />
+                              </TouchableOpacity>
+                            )}
+                            {reply.url && reply.media_type === 'VIDEO' && (
+                              <Video
+                                source={{ uri: reply.url }}
+                                style={styles.commentVideo}
+                                paused={true}
+                                resizeMode="contain"
+                                controls
+                              />
+                            )}
+                            <Text style={styles.replyTimestamp}>
+                              {new Date(reply.created_at).toLocaleTimeString()}
+                            </Text>
+                          </View>
+                        ))}
 
-<ImageViewing
-  images={imagesForViewing} // This contains the selected image's URL
-  imageIndex={0}
-  visible={isFullScreenVisible}
-  onRequestClose={closeFullScreenImage}
-/>
+                        <ImageViewing
+                          images={imagesForViewing} // This contains the selected image's URL
+                          imageIndex={0}
+                          visible={isFullScreenVisible}
+                          onRequestClose={closeFullScreenImage}
+                        />
 
-  </View>
-)}
+                      </View>
+                    )}
 
                   </View>
                 )}
@@ -746,6 +810,35 @@ const PostDetailPage = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {reportMenuVisible && (
+        <Modal
+          transparent={true}
+          animationType="fade"
+          visible={reportMenuVisible}
+          onRequestClose={closeReportMenu}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            onPress={closeReportMenu}
+            activeOpacity={1}
+          >
+            <View style={styles.menuContainer}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  closeReportMenu();
+                  confirmReport(selectedCommentId);
+                }}
+              >
+                <Icon name="flag" size={24} color="red" />
+                <Text style={styles.menuText}>Report Comment</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
+
       <ImageViewing
         images={imagesForViewing}
         imageIndex={0}
@@ -761,6 +854,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000', padding: 16 },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0c002b' },
   errorText: { color: '#FFF', fontSize: 18 },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -787,8 +881,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginVertical: 10,
     backgroundColor: "#000",
-    left:"9%",
-    
+    left: "9%",
 
   },
   commentVideo: {
@@ -797,9 +890,35 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginVertical: 10,
     backgroundColor: "#000",
-    left:"9%",
+    left: "9%",
   },
-  
+  dotsButton: {
+    marginHorizontal: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  menuContainer: {
+    backgroundColor: "#333",
+    borderRadius: 10,
+    padding: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    width: 200,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+  },
+  menuText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: "#FFF",
+  },
   clearButton: {
     position: 'absolute',
     top: -5,
