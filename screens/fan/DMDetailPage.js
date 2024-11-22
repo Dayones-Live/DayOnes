@@ -36,6 +36,73 @@ const DMDetailPage = ({ route }) => {
   const [mediaType, setMediaType] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportDescription, setReportDescription] = useState("");
+  const [reportCommentModalVisible, setReportCommentModalVisible] = useState(false);
+const [reportedCommentId, setReportedCommentId] = useState(null);
+const [commentReportDescription, setCommentReportDescription] = useState("");
+const [commentIcons, setCommentIcons] = useState({});
+const [openCommentMenuId, setOpenCommentMenuId] = useState(null);
+const [activeCommentMenu, setActiveCommentMenu] = useState(null);
+
+// Function to open the menu and set text specific to the comment
+const openCommentMenu = (commentId, text) => {
+  setActiveCommentMenu(commentId);
+  setCommentText((prev) => ({
+    ...prev,
+    [commentId]: text, // Assign text or actions to the specific comment
+  }));
+};
+
+
+
+
+const openReportCommentModal = (commentId) => {
+  setReportedCommentId(commentId);
+  setCommentReportDescription(""); // Clear previous input
+  setReportCommentModalVisible(true);
+};
+
+const closeReportCommentModal = () => {
+  setReportedCommentId(null);
+  setCommentReportDescription("");
+  setReportCommentModalVisible(false);
+};
+
+const submitCommentReport = async () => {
+  if (!commentReportDescription.trim()) {
+    Alert.alert("Error", "Please provide a reason for reporting the comment.");
+    return;
+  }
+
+  // Prepare the payload
+  const reportPayload = {
+    description: commentReportDescription.trim(),
+    reportedCommentId: reportedCommentId,
+  };
+
+  // Log the payload
+  console.log("Comment Report API Payload:", reportPayload);
+
+  try {
+    const response = await axios.post(
+      `${BASEURL}/api/v1/report`,
+      reportPayload,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    // Log the response
+    console.log("Comment Report API Response:", response);
+
+    if (response.status === 200 || response.status === 201) {
+      Alert.alert("Success", "The comment has been reported successfully.");
+      closeReportCommentModal();
+    } else {
+      Alert.alert("Error", "Failed to report the comment.");
+    }
+  } catch (error) {
+    console.error("Error reporting comment:", error);
+    Alert.alert("Error", "An unexpected error occurred while reporting the comment.");
+  }
+};
 
 
   const openReportModal = () => {
@@ -413,63 +480,106 @@ const DMDetailPage = ({ route }) => {
           </View>
   
           <View style={styles.commentsContainer}>
-            {post.artistComments
-              .map((comment) => ({ ...comment, isArtistComment: true }))
-              .concat(post.comments, post.artistReplies)
-              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-              .map((comment, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.commentCard,
-                    comment.isArtistComment
-                      ? styles.artistCommentContainer
-                      : styles.fanCommentContainer,
-                    { alignSelf: comment.isArtistComment ? "flex-start" : "flex-end" },
-                  ]}
-                >
-                  {comment.user && comment.user.avatar_url && (
-                    <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
-                  )}
-                  <View style={styles.commentTextContainer}>
-                    <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
-                    <Text style={styles.commentText}>{comment.message}</Text>
-  
-                    {comment.media_type === "PHOTO" && comment.url && (
-                      <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
-                        <Image source={{ uri: comment.url }} style={styles.largeMedia} />
+          {post.artistComments
+  .map((comment) => ({ ...comment, isArtistComment: true }))
+  .concat(post.comments, post.artistReplies)
+  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  .map((comment, index) => (
+    <View
+      key={index}
+      style={[
+        styles.commentCard,
+        comment.isArtistComment
+          ? styles.artistCommentContainer
+          : styles.fanCommentContainer,
+        { alignSelf: comment.isArtistComment ? "flex-start" : "flex-end" },
+      ]}
+    >
+      {comment.user && comment.user.avatar_url && (
+        <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
+      )}
+      <View style={styles.commentTextContainer}>
+        <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
+        <Text style={styles.commentText}>{comment.message}</Text>
+
+        {comment.media_type === "PHOTO" && comment.url && (
+          <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
+            <Image source={{ uri: comment.url }} style={styles.largeMedia} />
+          </TouchableOpacity>
+        )}
+        {comment.media_type === "VIDEO" && comment.url && (
+          <Video
+            source={{ uri: comment.url }}
+            style={styles.largeMedia}
+            resizeMode="contain"
+            paused={true}
+            controls
+          />
+        )}
+      </View>
+
+      {/* Actions */}
+      <View style={styles.commentActions}>
+        {(comment.isArtistComment || likedComments.includes(comment.id)) && (
+          <TouchableOpacity
+            onPress={() =>
+              likedComments.includes(comment.id)
+                ? dislikeComment(comment.id)
+                : likeComment(comment.id)
+            }
+            style={styles.heartIconOutside}
+          >
+            <EvilIcons
+              name="heart"
+              size={28}
+              color={likedComments.includes(comment.id) ? "#FF0000" : "#FFFFFF"}
+            />
+          </TouchableOpacity>
+        )}
+
+        {comment.isArtistComment && (
+          <>
+            <TouchableOpacity
+              onPress={() => setActiveCommentMenu(comment.id)}
+              style={styles.reportButton}
+            >
+              <Entypo name="dots-three-horizontal" size={24} color="#FFF" />
+            </TouchableOpacity>
+
+            {activeCommentMenu === comment.id && (
+              <Modal
+                transparent={true}
+                animationType="fade"
+                visible={activeCommentMenu === comment.id}
+                onRequestClose={() => setActiveCommentMenu(null)}
+              >
+                <TouchableWithoutFeedback onPress={() => setActiveCommentMenu(null)}>
+                  <View style={styles.modalOverlay}>
+                    <View style={styles.menuContainer}>
+                      <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => {
+                          setActiveCommentMenu(null); // Close menu
+                          openReportCommentModal(comment.id); // Open report modal
+                        }}
+                      >
+                        <Ionicons name="warning-outline" size={24} color="red" />
+                        <Text style={styles.menuText}>Flag Comment</Text>
                       </TouchableOpacity>
-                    )}
-                    {comment.media_type === "VIDEO" && comment.url && (
-                      <Video
-                        source={{ uri: comment.url }}
-                        style={styles.largeMedia}
-                        resizeMode="contain"
-                        paused={true}
-                        controls
-                      />
-                    )}
+                    </View>
                   </View>
-  
-                  {(comment.isArtistComment || likedComments.includes(comment.id)) && (
-                    <TouchableOpacity
-                      onPress={() =>
-                        likedComments.includes(comment.id)
-                          ? dislikeComment(comment.id)
-                          : likeComment(comment.id)
-                      }
-                      style={styles.heartIconOutside}
-                    >
-                      <EvilIcons
-                        name="heart"
-                        size={28}
-                        color={likedComments.includes(comment.id) ? "#FF0000" : "#FFFFFF"}
-                      />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              ))}
-          </View>
+                </TouchableWithoutFeedback>
+              </Modal>
+            )}
+          </>
+        )}
+      </View>
+    </View>
+  ))}
+
+
+</View>
+
         </KeyboardAwareScrollView>
   
         <View style={styles.commentInputContainer}>
@@ -553,6 +663,35 @@ const DMDetailPage = ({ route }) => {
             </View>
           </View>
         </Modal>
+        <Modal
+  visible={reportCommentModalVisible}
+  transparent={true}
+  animationType="slide"
+  onRequestClose={closeReportCommentModal}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.reportModal}>
+      <Text style={styles.modalTitle}>Report Comment</Text>
+      <TextInput
+        style={styles.descriptionInput}
+        placeholder="Why are you reporting this comment?"
+        placeholderTextColor="#aaa"
+        multiline
+        value={commentReportDescription}
+        onChangeText={(text) => setCommentReportDescription(text)}
+      />
+      <View style={styles.modalButtons}>
+        <TouchableOpacity style={styles.cancelButton} onPress={closeReportCommentModal}>
+          <Text style={styles.buttonText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.submitButton} onPress={submitCommentReport}>
+          <Text style={styles.buttonText}>Submit</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
+
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -576,7 +715,7 @@ const styles = StyleSheet.create({
   commentTextContainer: { flexShrink: 1 },
   commentAuthor: { fontSize: 14, color: '#FFF', fontWeight: 'bold' },
   commentText: { fontSize: 16, color: '#FFF', marginRight: 10 },
-  heartIconOutside: { marginTop: 10, alignSelf: 'center', },
+  heartIconOutside: { marginTop: 0, alignSelf: 'center', },
   commentCard: { backgroundColor: '#1e1e1e', borderRadius: 10, padding: 15, marginVertical: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 5, maxWidth: '75%', paddingBottom: 20 },
   largeMedia: { width: 200, height: 250, borderRadius: 10, marginTop: 5 }, // Increased media size
   commentInputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, backgroundColor: 'rgba(0, 0, 0, 0.4)', width: '100%' },
@@ -610,11 +749,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
+    right:"50%",
     
   },
+  reportButton: {
+    marginLeft: 10,
+    padding: 5,
+  },
+  
+  commentActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  
 
   menuText: {
-    marginLeft: 10,
+    marginLeft: 11,
     fontSize: 16,
     color: '#FFF',
     
