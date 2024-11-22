@@ -13,7 +13,7 @@ import ImageViewing from 'react-native-image-viewing';
 import { uploadImageToBucket } from '../../utils';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import {  launchImageLibrary } from 'react-native-image-picker';
 
 const MAX_COMMENT_LENGTH = 200;
 
@@ -125,15 +125,7 @@ const DMDetailPage = ({ route }) => {
     });
   };
 
-  const handleTakeMedia = () => {
-    launchCamera({ mediaType: 'mixed' }, (response) => {
-      if (response.assets && response.assets.length > 0) {
-        const asset = response.assets[0];
-        setSelectedMedia(asset.uri);
-        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
-      }
-    });
-  };
+  
 
 
 
@@ -403,9 +395,7 @@ const DMDetailPage = ({ route }) => {
             onChangeText={(text) => setCommentText(text.slice(0, MAX_COMMENT_LENGTH))}
             multiline
           />
-          <TouchableOpacity onPress={handleTakeMedia} style={styles.icon}>
-            <Icon name="camera" size={24} color="#888" />
-          </TouchableOpacity>
+          
           <TouchableOpacity onPress={handleSelectMedia} style={styles.icon}>
             <Icon name="image" size={24} color="#888" />
           </TouchableOpacity>
@@ -458,9 +448,10 @@ const styles = StyleSheet.create({
   commentInput: { flex: 1, color: '#ffffff', paddingHorizontal: 15, paddingVertical: 10, borderWidth: 1, borderColor: '#555', borderRadius: 25, backgroundColor: 'rgba(51, 51, 51, 0.6)', fontSize: 16 },
   characterCounter: { color: '#aaa', marginLeft: 10, fontSize: 12 },
   sendButton: { marginLeft: 10, padding: 10, borderRadius: 25, backgroundColor: '#FF0080' },
+  icon: { marginLeft: 10, padding: 10, borderRadius: 25,  },
   warning: { right: "-100%", alignItems: 'flex-end', marginRight: '30%' },
   menuIcon: {
-    marginLeft: '60%',
+    marginLeft: '50%',
   },
 
   modalOverlay: {
