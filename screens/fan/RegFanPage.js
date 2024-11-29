@@ -34,8 +34,8 @@ const RegFanPage = () => {
   const [callingCode, setCallingCode] = useState('1');
 
   const handleSignup = async () => {
-    if (!email || !password || !confirmPassword || !name || !phoneNumber) {
-      Alert.alert('Validation Error', 'All fields are required.');
+    if (!email || !password || !confirmPassword || !name) {
+      Alert.alert('Validation Error', 'All required fields must be filled.');
       return;
     }
 
@@ -45,13 +45,21 @@ const RegFanPage = () => {
     }
 
     try {
-      const response = await axios.post(`${BASEURL}/api/v1/auth/signup`, {
+      const payload = {
         email,
         password,
         role: 'USER',
         name,
-        phoneNumber: `+${callingCode}${phoneNumber.replace(/\D/g, '')}`,
-      });
+      };
+
+      // Add phoneNumber only if it is provided
+      if (phoneNumber) {
+        payload.phoneNumber = `+${callingCode}${phoneNumber.replace(/\D/g, '')}`;
+      }
+
+      console.log('Signup Payload:', payload); // Log the payload for testing
+
+      const response = await axios.post(`${BASEURL}/api/v1/auth/signup`, payload);
 
       if (response.status === 200) {
         Alert.alert('Signup Successful', 'Please check your email for the verification code.');
@@ -163,7 +171,7 @@ const RegFanPage = () => {
                   <Text style={styles.callingCodeText}>+{callingCode}</Text>
                   <TextInput
                     style={styles.phoneInput}
-                    placeholder="Phone Number"
+                    placeholder="Phone Number (Optional)"
                     placeholderTextColor="#888"
                     keyboardType="default" // Changed to default to show Done button
                     value={phoneNumber}
@@ -173,6 +181,7 @@ const RegFanPage = () => {
                   />
                 </View>
               </View>
+
             </View>
 
             <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.signupButton}>

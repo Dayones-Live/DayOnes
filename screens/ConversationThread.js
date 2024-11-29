@@ -183,20 +183,63 @@ const ConversationThread = () => {
     setMenuVisible(!menuVisible);
   };
 
-  // const handleBlockUser = () => {
-  //   if (!reason.trim()) {
-  //     Alert.alert('Error', 'Please provide a reason for blocking the user.');
-  //     return;
-  //   }
+  const handleBlockUser = () => {
+    const userId = route.params.userId; // Get userId from route params
 
-  //   console.log('Block User Reason:', reason);
-  //   console.log('User ID:', route.params.userId); // Assuming userId is passed via route params
+    if (!userId) {
+      Alert.alert('Error', 'Unable to block the user. Missing user ID.');
+      return;
+    }
 
-  //   toggleMenu(); // Close the modal
-  //   setReason(''); // Clear reason
-  // };
+    // Show confirmation dialog
+    Alert.alert(
+      'Block User',
+      'Are you sure you want to block this user? You can access blocked users in the Profile Page.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('Blocking user with ID:', userId);
+
+              const response = await fetch(`${BASEURL}/api/v1/blocks`, { // Use '/api/v1/blocks'
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({ blockedUser: userId }), // Adjust key if necessary
+              });
+
+              const responseData = await response.json();
+              console.log('API Response Status:', response.status);
+              console.log('API Response Data:', responseData);
+
+              if (response.ok) {
+                Alert.alert('Success', 'User has been blocked successfully.');
+              } else {
+                Alert.alert(
+                  'Error',
+                  responseData.message || 'Failed to block the user. Please try again.'
+                );
+              }
+            } catch (error) {
+              console.error('Error blocking user:', error);
+              Alert.alert('Error', 'An error occurred while blocking the user.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+
 
   const handleReportUser = async () => {
+    console.log('Route Params:', route.params); // Log the route parameters
+
     if (!reason.trim()) {
       Alert.alert('Error', 'Please provide a reason for reporting the user.');
       return;
@@ -205,10 +248,10 @@ const ConversationThread = () => {
     try {
       const payload = {
         description: reason.trim(),
-        reportedUserId: route.params.userId, // Assuming userId is passed via route params
+        reportedUserId: route.params.userId, // Use userId from route params
       };
 
-      console.log('Report User Payload:', payload);
+      console.log('Report User Payload:', payload); // Log the request payload
 
       const response = await fetch(`${BASEURL}/api/v1/report`, {
         method: 'POST',
@@ -219,21 +262,28 @@ const ConversationThread = () => {
         body: JSON.stringify(payload),
       });
 
+      // Log response status and data
+      const responseData = await response.json();
+      console.log('API Response Status:', response.status); // Log HTTP status code
+      console.log('API Response Data:', responseData); // Log response JSON
+
       if (response.ok) {
         Alert.alert('Success', 'User has been reported successfully.');
       } else {
-        const errorData = await response.json();
-        console.error('Report User Error:', errorData);
-        Alert.alert('Error', errorData.message || 'Failed to report the user. Please try again.');
+        Alert.alert(
+          'Error',
+          responseData.message || 'Failed to report the user. Please try again.'
+        );
       }
     } catch (error) {
-      console.error('Error reporting user:', error);
+      console.error('Error reporting user:', error); // Log any network or unexpected errors
       Alert.alert('Error', 'An error occurred while reporting the user. Please try again.');
     } finally {
       toggleMenu(); // Close the modal
       setReason(''); // Clear the reason
     }
   };
+
 
 
 
@@ -348,16 +398,25 @@ const ConversationThread = () => {
                     onChangeText={setReason}
                   />
 
+                  {/* Report User Button */}
                   <TouchableOpacity onPress={handleReportUser} style={styles.modalItem}>
                     <Icon name="flag" size={20} color="#ffa500" style={styles.modalItemIcon} />
                     <Text style={styles.modalText}>Report User</Text>
                   </TouchableOpacity>
+
+                  {/* Block User Button */}
+                  <TouchableOpacity onPress={handleBlockUser} style={styles.modalItem}>
+                    <Icon name="ban" size={20} color="#ff4444" style={styles.modalItemIcon} />
+                    <Text style={styles.modalText}>Block User</Text>
+                  </TouchableOpacity>
+
                   <TouchableOpacity onPress={toggleMenu} style={styles.modalCloseButton}>
                     <Text style={styles.modalCloseText}>Close</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </Modal>
+
           )}
 
         </View>

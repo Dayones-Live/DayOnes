@@ -11,6 +11,8 @@ const DMsScreen = () => {
   const [pageSize, setPageSize] = useState(10);
   const accessToken = useSelector((state) => state.accessToken);
   const navigation = useNavigation();
+  const loggedInUser = useSelector((state) => state.userProfile);
+  const loggedInUserEmail = loggedInUser?.data.email || null;
 
   useEffect(() => {
     fetchConversations();
@@ -85,24 +87,37 @@ const DMsScreen = () => {
     }
   };
 
-  const handleConversationPress = (conversationId, sender) => {
-    console.log('send', sender)
+  const handleConversationPress = (conversationId, sender, receiver) => {
+    // Determine the other user (not the logged-in user)
+    const otherUser = sender.email === loggedInUserEmail ? receiver : sender;
+
+    // Pass only the relevant information
+
     navigation.navigate('ConversationThread', {
       conversationId,
-      profilePicture: sender.avatar_url || 'https://example.com/default-avatar.png',
-      username: sender.full_name,
-      userID: sender.id,
+      profilePicture: otherUser.avatar_url || 'https://example.com/default-avatar.png',
+      username: otherUser.full_name,
+      userId: otherUser.id
     });
   };
 
+
+  const getOtherUser = (sender, receiver, loggedInUserEmail) => {
+    return sender.email === loggedInUserEmail ? receiver : sender;
+  };
+
+
   const renderItem = ({ item }) => {
+    // Determine who is not the logged-in user
+    const otherUser = getOtherUser(item.sender, item.reciever, loggedInUserEmail);
+
     const lastMessageTime = formatTimeAgo(item.updated_at);
-    const avatarUrl = item.sender.avatar_url || 'https://example.com/default-avatar.png';
-    const senderName = item.sender.full_name;
+    const avatarUrl = otherUser.avatar_url || 'https://example.com/default-avatar.png';
+    const displayName = otherUser.full_name;
 
     return (
       <TouchableOpacity
-        onPress={() => handleConversationPress(item.id, item.sender)}  // Navigates to conversation on press
+        onPress={() => handleConversationPress(item.id, item.sender, item.reciever)}
         onLongPress={() =>
           Alert.alert(
             'Delete Conversation',
@@ -112,17 +127,18 @@ const DMsScreen = () => {
               { text: 'Delete', style: 'destructive', onPress: () => handleDeleteConversation(item.id) },
             ]
           )
-        }  // Prompts deletion on long press
+        }
         style={styles.conversationContainer}
       >
         <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         <View style={styles.messageInfo}>
-          <Text style={styles.senderName}>{senderName} sent you a private message</Text>
+          <Text style={styles.senderName}>{displayName} sent you a private message</Text>
           <Text style={styles.lastMessage}>Tap to view message - {lastMessageTime}</Text>
         </View>
       </TouchableOpacity>
     );
   };
+
 
   return (
     <SafeAreaView style={styles.container}>
