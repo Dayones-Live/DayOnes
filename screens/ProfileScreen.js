@@ -10,6 +10,10 @@ import {
   StatusBar,
   Dimensions,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -17,9 +21,6 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import axios from 'axios';
 import { BASEURL } from '../assets/constants';
 import LinearGradient from 'react-native-linear-gradient';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import { uploadImageToBucket } from '../utils';
-import { setUserProfile } from '../assets/redux/actions';
 
 const { height } = Dimensions.get('window');
 
@@ -30,8 +31,8 @@ const ProfileScreen = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const dispatch = useDispatch();
-  const accessToken = useSelector(state => state.accessToken);
-  const profile = useSelector(state => state.userProfile || {});
+  const accessToken = useSelector((state) => state.accessToken);
+  const profile = useSelector((state) => state.userProfile || {});
   const navigation = useNavigation();
 
   const handleLogout = async () => {
@@ -54,53 +55,41 @@ const ProfileScreen = () => {
   };
 
   const updatePasswordHandler = async () => {
-    // Validate inputs
     if (!currentPassword || !newPassword) {
-      Alert.alert('Error', 'Both Current Password and New Password are required.');
+      Alert.alert('Error', 'Both Previous Password and New Password are required.');
       return;
     }
-  
     if (newPassword !== confirmPassword) {
       Alert.alert('Error', 'New Password and Confirm New Password do not match.');
       return;
     }
-  
     try {
-      // Make the API request
       const response = await axios.post(
         `${BASEURL}/api/v1/auth/update-password`,
         {
-          currentPassword,
+          previousPassword: currentPassword,
           newPassword,
         },
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`, // Ensure token is valid
+            Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
         }
       );
-  
-      // Handle successful response
       if (response.status === 200) {
         Alert.alert('Success', 'Password updated successfully!');
-        // Reset form
         setPasswordUpdateVisible(false);
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       }
     } catch (error) {
-      // Log the error for debugging
-      console.error('Error updating password:', error.response?.data || error.message);
-  
-      // Extract server response or fallback to default message
       const errorMessage =
-        error.response?.data?.message || 'Failed to update password. Please try again.';
+        error.response?.data?.message?.join('\n') || 'Failed to update password. Please try again.';
       Alert.alert('Error', errorMessage);
     }
   };
-  
 
   const handleNavigateHome = () => {
     if (profile.data?.role === 'ARTIST') {
@@ -115,111 +104,122 @@ const ProfileScreen = () => {
   return (
     <>
       <StatusBar backgroundColor="#000" barStyle="light-content" />
-      <ScrollView style={styles.container}>
-        <TouchableOpacity style={styles.homeButton} onPress={handleNavigateHome}>
-          <Icon name="home" size={24} color="#FFF" />
-        </TouchableOpacity>
-
-        <View style={styles.logoContainer}>
-          <Image source={require('../assets/images/1024.png')} style={styles.logo} />
-        </View>
-
-        <View style={styles.profileSection}>
-          <Text style={styles.sectionTitle}>Profile</Text>
-
-          <Image
-            source={selectedImage ? { uri: selectedImage } : profile.data?.avatar_url ? { uri: profile.data.avatar_url } : require('../assets/images/defaultProfileImage.png')}
-            style={styles.profilePicture}
-          />
-
-          <TouchableOpacity
-            onPress={() =>
-              Alert.alert('Change Profile Picture', 'Select an option', [
-                { text: 'Take Picture', onPress: handleTakePicture },
-                { text: 'Upload File', onPress: handleUploadFile },
-                { text: 'Cancel', style: 'cancel' },
-              ])
-            }
-          >
-            <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.gradientButtonFullWidth}>
-              <Text style={styles.buttonText}>Change Picture</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TextInput
-            style={styles.input}
-            value={profile.data?.full_name || 'Name'}
-            placeholder="Name"
-            placeholderTextColor="#FFF"
-            editable={false}
-          />
-
-          <TextInput
-            style={styles.input}
-            value={profile.data?.email || 'youremail@gmail.com'}
-            placeholder="youremail@gmail.com"
-            placeholderTextColor="#FFF"
-            editable={false}
-          />
-
-          <View style={[styles.line, { marginBottom: 15 }]} />
-
-          {profile.data?.role === 'ARTIST' && (
-            <TouchableOpacity onPress={() => navigation.navigate('SignaturePage')}>
-              <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.gradientButtonFullWidth}>
-                <Text style={styles.buttonText}>Manage Signatures/Texts</Text>
-              </LinearGradient>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView style={styles.container}>
+            <TouchableOpacity style={styles.homeButton} onPress={handleNavigateHome}>
+              <Icon name="home" size={24} color="#FFF" />
             </TouchableOpacity>
-          )}
 
-          {/* Update Password Section */}
-          <TouchableOpacity
-            onPress={() => setPasswordUpdateVisible(!isPasswordUpdateVisible)}
-            style={styles.gradientButtonFullWidth}
-          >
-            <Text style={styles.buttonText}>
-              {isPasswordUpdateVisible ? 'Cancel Password Update' : 'Update Password'}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.logoContainer}>
+              <Image source={require('../assets/images/1024.png')} style={styles.logo} />
+            </View>
 
-          {isPasswordUpdateVisible && (
-            <View style={styles.passwordForm}>
+            <View style={styles.profileSection}>
+              <Text style={styles.sectionTitle}>Profile</Text>
+
+              <Image
+                source={
+                  selectedImage
+                    ? { uri: selectedImage }
+                    : profile.data?.avatar_url
+                    ? { uri: profile.data.avatar_url }
+                    : require('../assets/images/defaultProfileImage.png')
+                }
+                style={styles.profilePicture}
+              />
+
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert('Change Profile Picture', 'Select an option', [
+                    { text: 'Take Picture', onPress: () => console.log('Take Picture') },
+                    { text: 'Upload File', onPress: () => console.log('Upload File') },
+                    { text: 'Cancel', style: 'cancel' },
+                  ])
+                }
+              >
+                <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.gradientButtonFullWidth}>
+                  <Text style={styles.buttonText}>Change Picture</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
               <TextInput
-  style={styles.input}
-  placeholder="Current Password"
-  placeholderTextColor="#AAAAAA"
-  secureTextEntry
-  value={currentPassword}
-  onChangeText={setCurrentPassword}
-/>
-<TextInput
-  style={styles.input}
-  placeholder="New Password"
-  placeholderTextColor="#AAAAAA"
-  secureTextEntry
-  value={newPassword}
-  onChangeText={setNewPassword}
-/>
-<TextInput
-  style={styles.input}
-  placeholder="Confirm New Password"
-  placeholderTextColor="#AAAAAA"
-  secureTextEntry
-  value={confirmPassword}
-  onChangeText={setConfirmPassword}
-/>
+                style={styles.input}
+                value={profile.data?.full_name || 'Name'}
+                placeholder="Name"
+                placeholderTextColor="#FFF"
+                editable={false}
+              />
 
-              <TouchableOpacity style={styles.logoutButton} onPress={updatePasswordHandler}>
-                <Text style={styles.logoutButtonText}>Submit</Text>
+              <TextInput
+                style={styles.input}
+                value={profile.data?.email || 'youremail@gmail.com'}
+                placeholder="youremail@gmail.com"
+                placeholderTextColor="#FFF"
+                editable={false}
+              />
+
+              <View style={[styles.line, { marginBottom: 15 }]} />
+
+              {profile.data?.role === 'ARTIST' && (
+                <TouchableOpacity onPress={() => navigation.navigate('SignaturePage')}>
+                  <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.gradientButtonFullWidth}>
+                    <Text style={styles.buttonText}>Manage Signatures/Texts</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                onPress={() => setPasswordUpdateVisible(!isPasswordUpdateVisible)}
+                style={styles.gradientButtonFullWidth}
+              >
+                <Text style={styles.buttonText}>
+                  {isPasswordUpdateVisible ? 'Cancel Password Update' : 'Update Password'}
+                </Text>
+              </TouchableOpacity>
+
+              {isPasswordUpdateVisible && (
+                <View style={styles.passwordForm}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Current Password"
+                    placeholderTextColor="#AAAAAA"
+                    secureTextEntry
+                    value={currentPassword}
+                    onChangeText={setCurrentPassword}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="New Password"
+                    placeholderTextColor="#AAAAAA"
+                    secureTextEntry
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Confirm New Password"
+                    placeholderTextColor="#AAAAAA"
+                    secureTextEntry
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                  />
+                  <TouchableOpacity style={styles.logoutButton} onPress={updatePasswordHandler}>
+                    <Text style={styles.logoutButtonText}>Submit</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <Text style={styles.logoutButtonText}>Logout</Text>
               </TouchableOpacity>
             </View>
-          )}
-
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </>
   );
 };
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 80,
     height: 80,
-    marginTop: "11%",
+    marginTop: '11%',
     resizeMode: 'contain',
   },
   profileSection: {
@@ -276,9 +276,8 @@ const styles = StyleSheet.create({
     borderColor: '#D500F9',
   },
   input: {
-    backgroundColor: '#2C2C2E', // Dark background for the input
-    color: '#FFF', // Change to a lighter color like '#FFFFFF' for better contrast
-    placeholderTextColor: '#AAAAAA', // Make the placeholder slightly lighter
+    backgroundColor: '#2C2C2E',
+    color: '#FFF',
     padding: 12,
     marginVertical: 10,
     borderRadius: 8,
@@ -286,7 +285,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
   },
- 
   line: {
     width: '100%',
     height: 1,
