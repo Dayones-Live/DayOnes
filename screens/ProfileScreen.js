@@ -23,6 +23,10 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import axios from 'axios';
 import { BASEURL } from '../assets/constants';
 import LinearGradient from 'react-native-linear-gradient';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { uploadImageToBucket } from '../utils';
+import { setUserProfile } from '../assets/redux/actions'; // Adjust the path as needed
+
 
 const ProfileScreen = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -36,6 +40,8 @@ const ProfileScreen = () => {
   const profile = useSelector((state) => state.userProfile || {});
   const navigation = useNavigation();
   const [optionsVisible, setOptionsVisible] = useState(false);
+  const dispatch = useDispatch();
+
 
 
   const fetchBlockedUsers = async () => {
@@ -87,7 +93,69 @@ const ProfileScreen = () => {
   };
 
 
+  const handleImageUpload = async (imageUri) => {
+    try {
+      const s3Url = await uploadImageToBucket(imageUri, 'profile-pictures', accessToken);
+      setSelectedImage(s3Url);
+      await updateProfilePicture(s3Url);
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      Alert.alert('Error', 'Image upload failed. Please try again.');
+    }
+  };
+  const handleTakePicture = () => {
+    launchCamera({ mediaType: 'photo', includeBase64: false }, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorMessage) {
+        console.error('ImagePicker Error:', response.errorMessage);
+      } else if (response.assets && response.assets.length > 0) {
+        const capturedImage = response.assets[0];
+        setSelectedImage(capturedImage.uri);
+        handleImageUpload(capturedImage.uri);
+      }
+    });
+  };
 
+  const handleUploadFile = () => {
+    launchImageLibrary({ mediaType: 'photo', includeBase64: false }, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorMessage) {
+        console.error('ImagePicker Error:', response.errorMessage);
+      } else if (response.assets && response.assets.length > 0) {
+        const uploadedImage = response.assets[0];
+        setSelectedImage(uploadedImage.uri);
+        handleImageUpload(uploadedImage.uri);
+      }
+    });
+  };
+
+  const updateProfilePicture = async (avatarUrl) => {
+    const url = `${BASEURL}/api/v1/user/update-user`;
+    const payload = {
+      avatarUrl,
+      fullName: profile.data?.full_name || 'User',
+      role: profile.data?.role || 'fan',
+      phoneNumber: profile.data?.phone_number || 'undefined',
+    };
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    };
+    try {
+      const response = await axios.post(url, payload, { headers });
+      if (response.status === 201) {
+        Alert.alert('Profile Updated', 'Your profile picture has been updated.');
+        dispatch(setUserProfile(response.data.data));
+      } else {
+        Alert.alert('Error', 'Failed to update profile. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'Failed to update profile. Please try again.');
+    }
+  };
 
   const handleLogout = async () => {
     const url = `${BASEURL}/api/v1/auth/signout`;
@@ -197,8 +265,8 @@ const ProfileScreen = () => {
               <TouchableOpacity
                 onPress={() =>
                   Alert.alert('Change Profile Picture', 'Select an option', [
-                    { text: 'Take Picture', onPress: () => console.log('Take Picture') },
-                    { text: 'Upload File', onPress: () => console.log('Upload File') },
+                    { text: 'Take Picture', onPress: handleTakePicture },
+                    { text: 'Upload File', onPress: handleUploadFile },
                     { text: 'Cancel', style: 'cancel' },
                   ])
                 }
