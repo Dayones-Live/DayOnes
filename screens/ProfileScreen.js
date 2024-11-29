@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -22,18 +24,70 @@ import axios from 'axios';
 import { BASEURL } from '../assets/constants';
 import LinearGradient from 'react-native-linear-gradient';
 
-const { height } = Dimensions.get('window');
-
 const ProfileScreen = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isPasswordUpdateVisible, setPasswordUpdateVisible] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const dispatch = useDispatch();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState([]);
   const accessToken = useSelector((state) => state.accessToken);
   const profile = useSelector((state) => state.userProfile || {});
   const navigation = useNavigation();
+  const [optionsVisible, setOptionsVisible] = useState(false);
+
+
+  const fetchBlockedUsers = async () => {
+    try {
+      console.log('Fetching blocked users...');
+      const response = await axios.get(`${BASEURL}/api/v1/blocks`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const blockedUsersData = response.data.data.blocked_users || [];
+      console.log('Blocked Users Raw Response:', JSON.stringify(response.data, null, 2));
+
+      // Log each blocked user's full object
+      blockedUsersData.forEach((user, index) => {
+        console.log(`Blocked User ${index + 1}:`, JSON.stringify(user, null, 2));
+      });
+
+      setBlockedUsers(blockedUsersData);
+    } catch (error) {
+      console.error('Error fetching blocked users:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to fetch blocked users.');
+    }
+  };
+
+
+
+  const unblockUser = async (userId) => {
+    try {
+      console.log(`Unblocking user with ID: ${userId}`);
+      const response = await axios.delete(`${BASEURL}/api/v1/blocks/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      console.log('Unblock User Response:', response.data);
+
+      // Filter the blocked users list to remove the unblocked user
+      setBlockedUsers((prev) =>
+        prev.filter((user) => user.blockedUser.id !== userId)
+      );
+
+      Alert.alert('Success', 'User has been unblocked.');
+    } catch (error) {
+      console.error('Error unblocking user:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to unblock user.');
+    }
+  };
+
+
+
 
   const handleLogout = async () => {
     const url = `${BASEURL}/api/v1/auth/signout`;
@@ -114,6 +168,14 @@ const ProfileScreen = () => {
               <Icon name="home" size={24} color="#FFF" />
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.menuIcon}
+              onPress={() => setOptionsVisible(true)} // Show the options modal
+            >
+              <Icon name="ellipsis-v" size={24} color="#FFF" />
+            </TouchableOpacity>
+
+
             <View style={styles.logoContainer}>
               <Image source={require('../assets/images/1024.png')} style={styles.logo} />
             </View>
@@ -126,8 +188,8 @@ const ProfileScreen = () => {
                   selectedImage
                     ? { uri: selectedImage }
                     : profile.data?.avatar_url
-                    ? { uri: profile.data.avatar_url }
-                    : require('../assets/images/defaultProfileImage.png')
+                      ? { uri: profile.data.avatar_url }
+                      : require('../assets/images/defaultProfileImage.png')
                 }
                 style={styles.profilePicture}
               />
@@ -217,6 +279,71 @@ const ProfileScreen = () => {
                 <Text style={styles.logoutButtonText}>Logout</Text>
               </TouchableOpacity>
             </View>
+
+            <Modal visible={menuVisible} animationType="slide" transparent={false}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalHeader}>Blocked Users</Text>
+                <FlatList
+                  data={blockedUsers}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={({ item }) => (
+                    <View style={styles.blockedUserContainer}>
+                      <Image
+                        source={
+                          item.blockedUser.avatar_url
+                            ? { uri: item.blockedUser.avatar_url }
+                            : require('../assets/images/defaultProfileImage.png') // Default image if no avatar
+                        }
+                        style={styles.blockedUserAvatar}
+                      />
+                      <Text style={styles.blockedUserText}>
+                        {item.blockedUser.full_name || 'Unknown User'}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => unblockUser(item.blockedUser.id)} // Use `blockedUser.id`
+                        style={styles.unblockButton}
+                      >
+                        <Text style={styles.unblockButtonText}>Unblock</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+
+                <TouchableOpacity
+                  onPress={() => setMenuVisible(false)}
+                  style={styles.closeModalButton}
+                >
+                  <Text style={styles.closeModalText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </Modal>
+            <Modal visible={optionsVisible} animationType="fade" transparent={true}>
+              <TouchableWithoutFeedback onPress={() => setOptionsVisible(false)}>
+                <View style={styles.optionsModalContainer}>
+                  <View style={styles.optionsBox}>
+                    <TouchableOpacity
+                      style={styles.optionButton}
+                      onPress={() => {
+                        setOptionsVisible(false); // Close the options menu
+                        setMenuVisible(true); // Open the Blocked Users modal
+                        fetchBlockedUsers();
+                      }}
+                    >
+                      <Text style={styles.optionText}>View Blocked Users</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.optionButton}
+                      onPress={() => setOptionsVisible(false)} // Close the options menu
+                    >
+                      <Text style={styles.optionText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
+
+
+
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -234,6 +361,64 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 40,
     left: 20,
+    padding: 10,
+    zIndex: 10,
+  },
+  blockedUserAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#D500F9',
+  },
+  modalHeader: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFF',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  optionsModalContainer: {
+    flex: 1,
+    backgroundColor: 'transparent', // Make the background transparent
+    justifyContent: 'flex-start', // Align to the top
+    alignItems: 'flex-end', // Align to the right
+  },
+  optionsBox: {
+    backgroundColor: '#1C1C1E',
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 50, // Adjust this to match the position of the three dots
+    marginRight: 20, // Adjust this to align with the three dots
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  optionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#FFF',
+  },
+  blockedUserContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: 10,
+    padding: 10,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 8,
+  },
+
+  menuIcon: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
     padding: 10,
     zIndex: 10,
   },
@@ -320,6 +505,41 @@ const styles = StyleSheet.create({
   passwordForm: {
     width: '100%',
     marginTop: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 20,
+  },
+  blockedUserContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  blockedUserText: {
+    color: '#FFF',
+    fontSize: 16,
+  },
+  unblockButton: {
+    backgroundColor: '#D500F9',
+    padding: 10,
+    borderRadius: 8,
+  },
+  unblockButtonText: {
+    color: '#FFF',
+  },
+  closeModalButton: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#FF453A',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  closeModalText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
