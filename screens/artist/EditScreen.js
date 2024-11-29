@@ -202,7 +202,7 @@ const EditScreen = ({ route, navigation }) => {
         <Icon name="times" size={24} color="#fff" />
       </TouchableOpacity>
       <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }} style={styles.viewShot}>
-        <Image source={{ uri: selectedImage.uri }} style={styles.image} resizeMode="cover" />
+        <Image source={{ uri: selectedImage.uri }} style={styles.image} resizeMode="contain" />
         {selectedSignature && (
           <Animated.View
             style={[styles.signatureContainer, draggedSignaturePosition.getLayout()]}

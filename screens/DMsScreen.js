@@ -117,7 +117,7 @@ const DMsScreen = () => {
       >
         <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         <View style={styles.messageInfo}>
-          <Text style={styles.senderName}>{senderName} sent you a message</Text>
+          <Text style={styles.senderName}>{senderName} sent you a private message</Text>
           <Text style={styles.lastMessage}>Tap to view message - {lastMessageTime}</Text>
         </View>
       </TouchableOpacity>
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   conversationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1b0248',
+    backgroundColor: 'black',
     padding: 15,
     marginVertical: 8,
     borderRadius: 10,

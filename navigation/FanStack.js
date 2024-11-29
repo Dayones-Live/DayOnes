@@ -26,7 +26,7 @@ const FanStack = () => {
             case 'DayOnes': // DayOnes icon
               iconName = 'comment'; // Different messaging icon for DayOnes
               break;
-            case 'DMs':
+            case "DM's":
               iconName = 'envelope-o'; // Regular DMs icon
               break;
             default:
@@ -61,9 +61,9 @@ const FanStack = () => {
         options={{ tabBarLabel: 'DayOnes' }}
       />
       <Tab.Screen
-        name="DMs"
+        name="DM's"
         component={DMsScreen}
-        options={{ tabBarLabel: 'DMs' }}
+        options={{ tabBarLabel: "DM's" }}
       />
     </Tab.Navigator>
   );

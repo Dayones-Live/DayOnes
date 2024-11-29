@@ -12,7 +12,6 @@ import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
-import ProfilePictureButton from '../../assets/components/ProfilePictureButton2';
 import ImageViewing from 'react-native-image-viewing'; // Import the image viewing library
 
 const MyCollectionsPage = ({ navigation }) => {
@@ -47,7 +46,6 @@ const MyCollectionsPage = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ProfilePictureButton navigation={navigation} />
       <ScrollView style={[styles.scrollView, { paddingTop: 30 }]} contentContainerStyle={styles.imageGrid}>
         {posts.length === 0 ? (
           <Text style={styles.noPostsText}>Nothing in your collection right now</Text>

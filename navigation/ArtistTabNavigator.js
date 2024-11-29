@@ -23,7 +23,7 @@ const ArtistTabNavigator = () => {
             case 'Notifications':
               iconName = 'bell-o';
               break;
-            case 'DMs':
+            case "DM's":
               iconName = 'envelope-o';
               break;
             default:
@@ -45,7 +45,7 @@ const ArtistTabNavigator = () => {
       <Tab.Screen name="Main" component={HHomePage} />
       <Tab.Screen name="Posts" component={ArtistPostsPage} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} />
-      <Tab.Screen name="DMs" component={DMsScreen} />
+      <Tab.Screen name="DM's" component={DMsScreen} />
     </Tab.Navigator>
   );
 };

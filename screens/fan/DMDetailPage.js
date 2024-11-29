@@ -425,20 +425,29 @@ const submitCommentReport = async () => {
           extraScrollHeight={80}
         >
           {post.user && post.user.avatar_url && (
-            <View style={styles.userInfoContainer}>
-              <Image source={{ uri: post.user.avatar_url }} style={styles.userAvatar} />
-              <Text style={styles.userName}>{post.user.full_name}</Text>
-  
-              <TouchableOpacity onPress={toggleMenu}>
-                <Entypo
-                  name="dots-three-horizontal"
-                  size={30}
-                  color="white"
-                  style={styles.menuIcon}
-                />
-              </TouchableOpacity>
-            </View>
-          )}
+  <View style={styles.userInfoContainer}>
+    <Image source={{ uri: post.user.avatar_url }} style={styles.userAvatar} />
+    <Text style={styles.userName}>{post.user.full_name}</Text>
+
+    <TouchableOpacity onPress={toggleMenu}>
+      <Entypo
+        name="dots-three-horizontal"
+        size={30}
+        color="white"
+        style={styles.menuIcon}
+      />
+    </TouchableOpacity>
+  </View>
+)}
+
+{post.message && (
+  <View style={styles.postMessageContainer}>
+    <Text style={styles.postMessageText}>{post.message}</Text>
+  </View>
+)}
+
+
+
   
   {menuVisible && (
   <Modal
@@ -852,6 +861,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     fontWeight: "bold",
+  },
+  postMessageText: {
+    color: '#FFF',
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: 'left',
+  },
+  postMessageContainer: {
+    marginTop: 5,
+    marginBottom: 10, // Add spacing between the message and the image
+    paddingHorizontal: 10, // Align text with the padding of other elements
   },
   
   

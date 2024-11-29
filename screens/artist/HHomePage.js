@@ -159,44 +159,59 @@ const HHomePage = () => {
   };
 
   const createPost = async () => {
+    // Animate the send button for visual feedback
     animateButton();
-
-    // Validate selected image for INVITE_PHOTO type
+  
+    // Validate selected image for the 'INVITE_PHOTO' post type
     if (postType === 'INVITE_PHOTO' && !selectedImage) {
       Alert.alert('Warning', 'You must select a photo when choosing "Invite + Photo."');
       return;
     }
-
+  
+    console.log("Starting post creation...");
+  
     Geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-
+        console.log("User's current position:", { latitude, longitude });
+  
         try {
           let postImageUrl = null;
-
+  
           // Step 1: Upload image to S3 if required
           if (postType === 'INVITE_PHOTO') {
-            console.log('Uploading image to S3...');
+            console.log("Uploading image to S3...");
+            if (!selectedImage) {
+              console.error("No image selected for upload.");
+              Alert.alert('Error', 'No image selected for upload.');
+              return;
+            }
+  
+            console.log("Image URI before upload:", selectedImage.uri);
             postImageUrl = await uploadImageToS3(selectedImage.uri);
-            console.log('Received S3 URL in createPost:', postImageUrl);
+            console.log("S3 URL received:", postImageUrl);
           }
-
-          // Step 2: Get locale information
+  
+          // Step 2: Get locale information based on geolocation
+          console.log("Fetching location details...");
           const locale = await getLocale(latitude, longitude);
-
-          // Step 3: Prepare post data
+          console.log("Locale determined:", locale);
+  
+          // Step 3: Prepare post data to be sent
           const postData = {
-            imageUrl: postImageUrl,
-            range: isMaxRange ? 1000 : 100,
-            type: postType,
-            latitude: latitude.toString(),
-            longitude: longitude.toString(),
-            locale: locale,
+            imageUrl: postImageUrl, // Null if post type is 'INVITE_ONLY'
+            range: isMaxRange ? 1000 : 100, // Range in feet
+            type: postType, // INVITE_PHOTO or INVITE_ONLY
+            latitude: latitude.toString(), // Latitude as string
+            longitude: longitude.toString(), // Longitude as string
+            locale: locale || "Unknown location",
+            message:"Welcome to my exclusive DayOnes group! Here, you're more than just a fan, you're family.🔥 💯 🔥"
           };
-
-          console.log('Creating post with data:', postData);
-
-          // Step 4: Send post request
+  
+          console.log("Post data prepared:", postData);
+  
+          // Step 4: Send POST request to create a new post
+          console.log("Sending API request to create post...");
           const response = await fetch(`${BASEURL}/api/v1/post/`, {
             method: 'POST',
             headers: {
@@ -205,27 +220,31 @@ const HHomePage = () => {
             },
             body: JSON.stringify(postData),
           });
-
+  
           const jsonResponse = await response.json();
-
+          console.log("API response received:", jsonResponse);
+  
           if (response.ok) {
             Alert.alert('Success', 'Post created successfully!');
-            clearSelectedImage(); // Clear the image after successful post
+            console.log("Post created successfully!");
+            clearSelectedImage(); // Clear the selected image after a successful post
           } else {
+            console.error("Failed to create post:", jsonResponse);
             Alert.alert('Error', `Failed to create post: ${jsonResponse.message || 'Unknown error'}`);
           }
         } catch (error) {
-          console.error('Error during post creation:', error);
+          console.error("Error during post creation:", error);
           Alert.alert('Error', 'An error occurred while creating the post.');
         }
       },
       (error) => {
-        console.error('Error getting location:', error);
+        console.error("Error getting location:", error);
         Alert.alert('Error', 'Failed to get your location. Please enable location services.');
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
   };
+  
 
 
 
@@ -243,7 +262,7 @@ const HHomePage = () => {
             case 'Notifications':
               iconName = 'bell-o';
               break;
-            case 'DMs':
+            case "DM's":
               iconName = 'envelope-o';
               break;
             default:
@@ -390,7 +409,7 @@ const HHomePage = () => {
       </Tab.Screen>
       <Tab.Screen name="Posts" component={ArtistPostsPage} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} />
-      <Tab.Screen name="DMs" component={DMsScreen} />
+      <Tab.Screen name="DM's" component={DMsScreen} />
     </Tab.Navigator>
   );
 };

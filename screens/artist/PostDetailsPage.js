@@ -337,17 +337,15 @@ const PostDetailPage = () => {
     setReportMenuVisible(false);
   };
 
-  const openReportModal = (commentId) => {
-    setSelectedCommentId(commentId);
-    setReportDescription("");
+  const openReportModal = () => {
+    closeReportMenu(); // Close the report menu before opening the modal
+    setReportDescription(""); // Clear previous input
     setReportModalVisible(true);
   };
 
   const closeReportModal = () => {
-    setReportModalVisible(false);
-    closeReportMenu();
     setReportDescription("");
-    setSelectedCommentId(null);
+    setReportModalVisible(false);
   };
 
   const submitCommentReport = async () => {
@@ -830,6 +828,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 6,
     elevation: 10,
+    bottom:"3.5%"
   },
   reportModalTitle: {
     fontSize: 18,
@@ -1013,7 +1012,7 @@ const styles = StyleSheet.create({
   userName: { fontSize: 16, fontWeight: 'bold', color: '#000' },
   userLocation: { fontSize: 13, color: '#666' },
   postText: { fontSize: 14, color: '#FFF', marginVertical: 10 },
-  postImage: { width: '100%', height: 500, borderRadius: 10, marginVertical: 10, backgroundColor: '#ddd' },
+  postImage: { width: '100%', height: 500, borderRadius: 10, marginVertical: 10, backgroundColor: '#000' },
   interactionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
   iconText: { marginLeft: 5, fontSize: 14, color: '#FFF' },
   commentContainer: {

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -24,9 +25,10 @@ const { height } = Dimensions.get('window');
 
 const ProfileScreen = () => {
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isPasswordUpdateVisible, setPasswordUpdateVisible] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
   const dispatch = useDispatch();
   const accessToken = useSelector(state => state.accessToken);
   const profile = useSelector(state => state.userProfile || {});
@@ -51,119 +53,70 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleImageUpload = async (imageUri) => {
-    try {
-      const s3Url = await uploadImageToBucket(imageUri, 'profile-pictures', accessToken);
-      setSelectedImage(s3Url);
-      await updateProfilePicture(s3Url);
-    } catch (error) {
-      console.error('Failed to upload image:', error);
-      Alert.alert('Error', 'Image upload failed. Please try again.');
-    }
-  };
-
-  const handleTakePicture = () => {
-    launchCamera({ mediaType: 'photo', includeBase64: false }, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorMessage) {
-        console.error('ImagePicker Error:', response.errorMessage);
-      } else if (response.assets && response.assets.length > 0) {
-        const capturedImage = response.assets[0];
-        setSelectedImage(capturedImage.uri);
-        handleImageUpload(capturedImage.uri);
-      }
-    });
-  };
-
-  const handleUploadFile = () => {
-    launchImageLibrary({ mediaType: 'photo', includeBase64: false }, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorMessage) {
-        console.error('ImagePicker Error:', response.errorMessage);
-      } else if (response.assets && response.assets.length > 0) {
-        const uploadedImage = response.assets[0];
-        setSelectedImage(uploadedImage.uri);
-        handleImageUpload(uploadedImage.uri);
-      }
-    });
-  };
-
-  const updateProfilePicture = async (avatarUrl) => {
-    const url = `${BASEURL}/api/v1/user/update-user`;
-    const payload = {
-      avatarUrl,
-      fullName: profile.data?.full_name || 'User',
-      role: profile.data?.role || 'fan',
-      phoneNumber: profile.data?.phone_number || 'undefined',
-    };
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    };
-
-    try {
-      const response = await axios.post(url, payload, { headers });
-      if (response.status === 201) {
-        Alert.alert('Profile Updated', 'Your profile picture has been updated.');
-        dispatch(setUserProfile(response.data.data));
-      } else {
-        Alert.alert('Error', 'Failed to update profile. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
-    }
-  };
-
-  const handleUpdatePassword = async () => {
+  const updatePasswordHandler = async () => {
+    // Validate inputs
     if (!currentPassword || !newPassword) {
-      Alert.alert('Error', 'Please fill in all fields.');
+      Alert.alert('Error', 'Both Current Password and New Password are required.');
       return;
     }
   
-    setIsUpdatingPassword(true);
-    const url = `${BASEURL}/api/v1/user/update-user`;
-    const payload = {
-      currentPassword, // Test field
-      newPassword,     // Test field
-    };
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'New Password and Confirm New Password do not match.');
+      return;
+    }
   
     try {
-      const response = await axios.post(url, payload, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+      // Make the API request
+      const response = await axios.post(
+        `${BASEURL}/api/v1/auth/update-password`,
+        {
+          currentPassword,
+          newPassword,
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`, // Ensure token is valid
+            'Content-Type': 'application/json',
+          },
+        }
+      );
   
-      console.log('Response from update-user:', response.data);
-      if (response.status === 200 || response.status === 201) {
-        Alert.alert('Success', 'Password update attempted. Check response for confirmation.');
+      // Handle successful response
+      if (response.status === 200) {
+        Alert.alert('Success', 'Password updated successfully!');
+        // Reset form
+        setPasswordUpdateVisible(false);
         setCurrentPassword('');
         setNewPassword('');
-      } else {
-        Alert.alert('Error', 'Failed to update password. Check server response.');
+        setConfirmPassword('');
       }
     } catch (error) {
-      console.error('Error testing update-user endpoint:', error.response || error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message ||
-          'An error occurred while testing the endpoint.'
-      );
-    } finally {
-      setIsUpdatingPassword(false);
+      // Log the error for debugging
+      console.error('Error updating password:', error.response?.data || error.message);
+  
+      // Extract server response or fallback to default message
+      const errorMessage =
+        error.response?.data?.message || 'Failed to update password. Please try again.';
+      Alert.alert('Error', errorMessage);
     }
   };
   
+
+  const handleNavigateHome = () => {
+    if (profile.data?.role === 'ARTIST') {
+      navigation.navigate('HHomePage');
+    } else if (profile.data?.role === 'USER') {
+      navigation.navigate('FanStack');
+    } else {
+      Alert.alert('Error', 'Unknown role. Cannot navigate to the home page.');
+    }
+  };
 
   return (
     <>
       <StatusBar backgroundColor="#000" barStyle="light-content" />
-      <View style={styles.container}>
-        <TouchableOpacity style={styles.homeButton} onPress={() => navigation.goBack()}>
+      <ScrollView style={styles.container}>
+        <TouchableOpacity style={styles.homeButton} onPress={handleNavigateHome}>
           <Icon name="home" size={24} color="#FFF" />
         </TouchableOpacity>
 
@@ -209,38 +162,64 @@ const ProfileScreen = () => {
             editable={false}
           />
 
-          <View style={styles.passwordUpdateSection}>
-            <Text style={styles.sectionTitle}>Update Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Current Password"
-              placeholderTextColor="#FFF"
-              secureTextEntry
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="New Password"
-              placeholderTextColor="#FFF"
-              secureTextEntry
-              value={newPassword}
-              onChangeText={setNewPassword}
-            />
-            <TouchableOpacity onPress={handleUpdatePassword} disabled={isUpdatingPassword}>
+          <View style={[styles.line, { marginBottom: 15 }]} />
+
+          {profile.data?.role === 'ARTIST' && (
+            <TouchableOpacity onPress={() => navigation.navigate('SignaturePage')}>
               <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.gradientButtonFullWidth}>
-                <Text style={styles.buttonText}>
-                  {isUpdatingPassword ? 'Updating...' : 'Update Password'}
-                </Text>
+                <Text style={styles.buttonText}>Manage Signatures/Texts</Text>
               </LinearGradient>
             </TouchableOpacity>
-          </View>
+          )}
+
+          {/* Update Password Section */}
+          <TouchableOpacity
+            onPress={() => setPasswordUpdateVisible(!isPasswordUpdateVisible)}
+            style={styles.gradientButtonFullWidth}
+          >
+            <Text style={styles.buttonText}>
+              {isPasswordUpdateVisible ? 'Cancel Password Update' : 'Update Password'}
+            </Text>
+          </TouchableOpacity>
+
+          {isPasswordUpdateVisible && (
+            <View style={styles.passwordForm}>
+              <TextInput
+  style={styles.input}
+  placeholder="Current Password"
+  placeholderTextColor="#AAAAAA"
+  secureTextEntry
+  value={currentPassword}
+  onChangeText={setCurrentPassword}
+/>
+<TextInput
+  style={styles.input}
+  placeholder="New Password"
+  placeholderTextColor="#AAAAAA"
+  secureTextEntry
+  value={newPassword}
+  onChangeText={setNewPassword}
+/>
+<TextInput
+  style={styles.input}
+  placeholder="Confirm New Password"
+  placeholderTextColor="#AAAAAA"
+  secureTextEntry
+  value={confirmPassword}
+  onChangeText={setConfirmPassword}
+/>
+
+              <TouchableOpacity style={styles.logoutButton} onPress={updatePasswordHandler}>
+                <Text style={styles.logoutButtonText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutButtonText}>Logout</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </>
   );
 };
@@ -249,88 +228,100 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
-    justifyContent: 'center',
     padding: 20,
-    height: height,
   },
   homeButton: {
     position: 'absolute',
-    top: 30,
-    left: 10,
+    top: 40,
+    left: 20,
     padding: 10,
+    zIndex: 10,
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 10,
     marginBottom: 20,
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: 80,
+    height: 80,
+    marginTop: "11%",
     resizeMode: 'contain',
-    marginBottom: 40,
-    marginTop: -40,
   },
   profileSection: {
-    backgroundColor: '#111',
-    borderRadius: 10,
-    paddingVertical: 30,
-    paddingHorizontal: 25,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    padding: 20,
     alignItems: 'center',
-    width: '95%',
+    width: '100%',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
     alignSelf: 'center',
   },
   sectionTitle: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   profilePicture: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#D500F9',
   },
   input: {
-    backgroundColor: '#333',
-    color: '#FFF',
-    padding: 10,
+    backgroundColor: '#2C2C2E', // Dark background for the input
+    color: '#FFF', // Change to a lighter color like '#FFFFFF' for better contrast
+    placeholderTextColor: '#AAAAAA', // Make the placeholder slightly lighter
+    padding: 12,
     marginVertical: 10,
-    borderRadius: 5,
+    borderRadius: 8,
     width: '100%',
     textAlign: 'center',
+    fontSize: 16,
   },
-  passwordUpdateSection: {
-    marginTop: 20,
+ 
+  line: {
     width: '100%',
+    height: 1,
+    backgroundColor: '#444',
+    marginVertical: 15,
   },
   gradientButtonFullWidth: {
-    paddingVertical: 10,
-    borderRadius: 5,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    marginVertical: 5,
-    paddingHorizontal: 25,
+    marginVertical: 10,
     width: '100%',
-    marginBottom: 15,
+    elevation: 2,
   },
   buttonText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontWeight: '600',
+    fontSize: 16,
   },
   logoutButton: {
-    backgroundColor: '#FF0000',
-    paddingVertical: 10,
-    borderRadius: 5,
+    backgroundColor: '#FF453A',
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    marginVertical: 30,
-    marginBottom: -15,
-    paddingHorizontal: 30,
+    marginVertical: 20,
+    width: '100%',
   },
   logoutButtonText: {
     color: '#FFF',
-    fontWeight: 'bold',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  passwordForm: {
+    width: '100%',
+    marginTop: 10,
   },
 });
 
