@@ -1,10 +1,23 @@
 import React from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet, SafeAreaView } from 'react-native'; // Import SafeAreaView
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  StyleSheet,
+  SafeAreaView,
+  Button, // Import Button for navigation
+} from 'react-native';
+import { useSelector } from 'react-redux'; // To access user information from the store
+import { useNavigation } from '@react-navigation/native'; // Navigation for Super Admin button
 import useTodos from '../assets/hooks/useTodos'; // Adjust the path if necessary
-import ProfilePictureButton from '../assets/components/ProfilePictureButton'; // Import the ProfilePictureButton
+import ProfilePictureButton from '../assets/components/ProfilePictureButton';
 
 const NotificationsScreen = () => {
   const { data, error, isLoading } = useTodos();
+  const userProfile = useSelector((state) => state.userProfile); // Access user profile from Redux
+  const userEmail = userProfile?.data?.email; // Extract email for role-based rendering
+  const navigation = useNavigation(); // Initialize navigation
 
   if (isLoading) {
     return (
@@ -25,7 +38,6 @@ const NotificationsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Add Profile Picture Button in the top-left corner */}
       <ProfilePictureButton />
 
       <Text style={styles.text}>Notifications</Text>
@@ -38,6 +50,17 @@ const NotificationsScreen = () => {
           </View>
         )}
       />
+
+      {/* Render Button Only for Super Admin */}
+      {userEmail === 'dayonesflorida@gmail.com' && (
+        <>
+          <Text style={styles.adminText}>You have admin access.</Text>
+          <Button
+            title="Go to Super Admin Dashboard"
+            onPress={() => navigation.navigate('SuperAdminDashboard')}
+          />
+        </>
+      )}
     </SafeAreaView>
   );
 };
@@ -45,7 +68,7 @@ const NotificationsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000', // Navy blue background color
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -64,6 +87,12 @@ const styles = StyleSheet.create({
   itemText: {
     color: '#fff',
     fontSize: 18,
+  },
+  adminText: {
+    fontSize: 16,
+    color: '#00ff00',
+    marginTop: 20,
+    textAlign: 'center',
   },
 });
 

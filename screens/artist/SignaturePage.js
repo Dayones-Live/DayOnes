@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, SafeAreaView,ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
@@ -13,6 +13,8 @@ const SignaturePage = () => {
   const navigation = useNavigation();
   const [selectedImage, setSelectedImage] = useState(null);
   const accessToken = useSelector(state => state.accessToken);
+  const [isLoading, setIsLoading] = useState(false);
+
 
   const options = {
     mediaType: 'photo',
@@ -50,7 +52,8 @@ const SignaturePage = () => {
       Alert.alert("Please take a picture or upload a file.");
       return;
     }
-
+  
+    setIsLoading(true); // Show loading indicator
     try {
       const s3Url = await uploadSignatureFile(accessToken, selectedImage.uri);
       const payload = new URLSearchParams({ url: s3Url }).toString();
@@ -58,9 +61,9 @@ const SignaturePage = () => {
         'Content-Type': 'application/x-www-form-urlencoded',
         Authorization: `Bearer ${accessToken}`,
       };
-
+  
       const response = await axios.post(`${BASEURL}/api/v1/signature/create`, payload, { headers });
-
+  
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Success', 'Signature created successfully!');
       } else {
@@ -69,8 +72,11 @@ const SignaturePage = () => {
     } catch (error) {
       console.error('Error creating signature:', error);
       Alert.alert('Error', 'An error occurred while creating the signature.');
+    } finally {
+      setIsLoading(false); // Hide loading indicator
     }
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -110,6 +116,14 @@ const SignaturePage = () => {
           <Text style={styles.buttonText}>Upload File</Text>
         </TouchableOpacity>
       </View>
+
+      {isLoading && (
+  <View style={styles.loadingOverlay}>
+    <ActivityIndicator size="large" color="#D500F9" />
+    <Text style={styles.loadingText}>Creating signature...</Text>
+  </View>
+)}
+
 
       {selectedImage && (
         <TouchableOpacity style={styles.createButton} onPress={createSignature}>
@@ -214,6 +228,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#ffffff',
+    fontSize: 16,
+  },
+  
 });
 
 export default SignaturePage;

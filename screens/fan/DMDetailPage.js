@@ -67,6 +67,39 @@ const closeReportCommentModal = () => {
   setReportCommentModalVisible(false);
 };
 
+const handleBlockUser = (userId) => {
+  Alert.alert(
+    "Block User",
+    "Are you sure you want to block this user? Blocking will prevent you from viewing their past posts, including this one, and interacting with any future content they create. ",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Block",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const response = await axios.post(
+              `${BASEURL}/api/v1/blocks`,
+              { blockedUser: userId },
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
+
+            if (response.status === 200 || response.status === 201) {
+              Alert.alert("Success", "The user has been blocked.");
+            } else {
+              Alert.alert("Error", "Failed to block the user.");
+            }
+          } catch (error) {
+            console.error("Error blocking user:", error);
+            Alert.alert("Error", "An error occurred while blocking the user.");
+          }
+        },
+      },
+    ]
+  );
+};
+
+
 const submitCommentReport = async () => {
   if (!commentReportDescription.trim()) {
     Alert.alert("Error", "Please provide a reason for reporting the comment.");
@@ -449,14 +482,14 @@ const submitCommentReport = async () => {
 
 
   
-  {menuVisible && (
+{menuVisible && (
   <Modal
     transparent={true}
     animationType="fade"
     visible={menuVisible}
     onRequestClose={toggleMenu}
   >
-     <TouchableWithoutFeedback onPress={toggleMenu}>
+    <TouchableWithoutFeedback onPress={toggleMenu}>
       <View style={styles.modalOverlay}>
         <View style={styles.menuContainer}>
           <TouchableOpacity
@@ -469,11 +502,22 @@ const submitCommentReport = async () => {
             <Ionicons name="warning-outline" size={24} color="red" />
             <Text style={styles.menuText}>Flag Post</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              toggleMenu();
+              handleBlockUser(post.user?.id); // Block the post creator
+            }}
+          >
+            <Ionicons name="ban" size={24} color="red" />
+            <Text style={styles.menuText}>Block User</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableWithoutFeedback>
   </Modal>
 )}
+
 
   
           {post.image_url && (
@@ -556,30 +600,41 @@ const submitCommentReport = async () => {
             </TouchableOpacity>
 
             {activeCommentMenu === comment.id && (
-              <Modal
-                transparent={true}
-                animationType="fade"
-                visible={activeCommentMenu === comment.id}
-                onRequestClose={() => setActiveCommentMenu(null)}
-              >
-                <TouchableWithoutFeedback onPress={() => setActiveCommentMenu(null)}>
-                  <View style={styles.modalOverlay}>
-                    <View style={styles.menuContainer}>
-                      <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => {
-                          setActiveCommentMenu(null); // Close menu
-                          openReportCommentModal(comment.id); // Open report modal
-                        }}
-                      >
-                        <Ionicons name="warning-outline" size={24} color="red" />
-                        <Text style={styles.menuText}>Flag Comment</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </TouchableWithoutFeedback>
-              </Modal>
-            )}
+  <Modal
+    transparent={true}
+    animationType="fade"
+    visible={activeCommentMenu === comment.id}
+    onRequestClose={() => setActiveCommentMenu(null)}
+  >
+    <TouchableWithoutFeedback onPress={() => setActiveCommentMenu(null)}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.menuContainer}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              setActiveCommentMenu(null); // Close menu
+              openReportCommentModal(comment.id); // Open report modal
+            }}
+          >
+            <Ionicons name="warning-outline" size={24} color="red" />
+            <Text style={styles.menuText}>Flag Comment</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              setActiveCommentMenu(null); // Close menu
+              handleBlockUser(comment.user?.id); // Block the comment author
+            }}
+          >
+            <Ionicons name="ban" size={24} color="red" />
+            <Text style={styles.menuText}>Block User</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableWithoutFeedback>
+  </Modal>
+)}
+
           </>
         )}
       </View>

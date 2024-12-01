@@ -248,6 +248,83 @@ const PostDetailPage = () => {
     }
   };
 
+  const handleBlockUser = (commentId) => {
+    let userToBlock = null;
+  
+    // Search for the comment or reply in post.comments
+    post.comments.forEach((comment) => {
+      if (comment.id === commentId) {
+        // Top-level comment
+        userToBlock = comment.user?.id;
+      } else if (comment.replies) {
+        // Search in replies of top-level comments
+        const reply = comment.replies.find((reply) => reply.id === commentId);
+        if (reply) {
+          userToBlock = reply.user?.id;
+        }
+      }
+    });
+  
+    // Search for the comment or reply in artistComments
+    post.artistComments.forEach((artistComment) => {
+      if (artistComment.id === commentId) {
+        // Top-level artist comment
+        userToBlock = artistComment.user?.id;
+      } else if (artistComment.replies) {
+        // Search in replies of artist comments
+        const reply = artistComment.replies.find((reply) => reply.id === commentId);
+        if (reply) {
+          userToBlock = reply.user?.id;
+        }
+      }
+    });
+  
+    if (!userToBlock) {
+      console.error("User ID not found for the given comment/reply:", { commentId });
+      Alert.alert("Error", "Unable to block the user. User information is missing.");
+      return;
+    }
+  
+    Alert.alert(
+      "Block User",
+      "Are you sure you want to block this user?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await axios.post(
+                `${BASEURL}/api/v1/blocks`,
+                { blockedUser: userToBlock },
+                { headers: { Authorization: `Bearer ${accessToken}` } }
+              );
+  
+              if (response.status === 200 || response.status === 201) {
+                Alert.alert("Success", "The user has been blocked.");
+              } else {
+                Alert.alert("Error", "Failed to block the user.");
+              }
+            } catch (error) {
+              console.error("Error blocking user:", error);
+              Alert.alert("Error", "An error occurred while blocking the user.");
+            }
+          },
+        },
+      ]
+    );
+  };
+  
+
+  
+  
+  
+  
+  
+  
+  
+
   const likeComment = async (commentId) => {
     try {
       if (likedComments.includes(commentId)) {
@@ -396,27 +473,70 @@ const PostDetailPage = () => {
 
   const createOrNavigateConversation = async (userId) => {
     try {
+      console.log('createOrNavigateConversation: Starting process for userId:', userId);
+  
+      // Step 1: Attempt to block the user
+      console.log('Attempting to block the user...');
+      const blockResponse = await axios.post(
+        `${BASEURL}/api/v1/blocks`,
+        { blockedUser: userId },
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      console.log('Block response:', blockResponse.data);
+  
+      console.log('Block succeeded, now attempting to unblock...');
+      // Step 2: Immediately unblock the user
+      const unblockResponse = await axios.delete(`${BASEURL}/api/v1/blocks/${userId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      console.log('Unblock response:', unblockResponse.data);
+  
+      console.log('Proceeding to check for existing conversations...');
+      // Step 3: Check if a conversation already exists
       const existingConversation = await checkForExistingConversation(userId);
+      console.log('Existing conversation check:', existingConversation);
+  
       if (existingConversation) {
+        console.log('Existing conversation found. Navigating to ConversationThread...');
         navigation.navigate('ConversationThread', { conversationId: existingConversation.id });
       } else {
+        console.log('No existing conversation found. Creating a new conversation...');
+        // Step 4: Create a new conversation
         const response = await axios.post(
           `${BASEURL}/api/v1/conversation`,
           { recieverId: userId, lastMessage: 'Hello!' },
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
-
+  
+        console.log('Create conversation response:', response.data);
+  
         const newConversationId = response.data?.data?.id;
         if (newConversationId) {
+          console.log('New conversation created. Navigating to ConversationThread...');
           navigation.navigate('ConversationThread', { conversationId: newConversationId });
         } else {
-          Alert.alert('Error', 'Failed to create conversation. Please try again.');
+          console.error('Failed to retrieve conversation ID. Response:', response.data);
+          Alert.alert('Error', 'Failed to create a conversation. Please try again.');
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'An error occurred while handling the conversation request.');
+      console.error('Error in createOrNavigateConversation:', error.response?.data || error.message);
+  
+      // Step 5: Handle block failure due to being blocked by the recipient
+      if (
+        error.response?.status === 400 &&
+        error.response?.data?.message?.includes('already blocked by')
+      ) {
+        console.error('The user has already blocked you. Cannot proceed.');
+        Alert.alert('Error', 'You cannot message this user as they have blocked you.');
+      } else {
+        console.error('An unexpected error occurred:', error.response?.data || error.message);
+        Alert.alert('Error', 'An error occurred while handling the conversation request.');
+      }
     }
   };
+  
+  
 
   if (loading) {
     return (
@@ -771,29 +891,40 @@ const PostDetailPage = () => {
       </Modal>
 
       {reportMenuVisible && (
-        <Modal
-          transparent={true}
-          animationType="fade"
-          visible={reportMenuVisible}
-          onRequestClose={closeReportMenu}
+  <Modal
+    transparent={true}
+    animationType="fade"
+    visible={reportMenuVisible}
+    onRequestClose={closeReportMenu}
+  >
+    <TouchableOpacity
+      style={styles.reportMenuOverlay}
+      onPress={closeReportMenu}
+      activeOpacity={1}
+    >
+      <View style={styles.reportMenuContainer}>
+        {/* Report Comment */}
+        <TouchableOpacity
+          onPress={() => openReportModal(selectedCommentId)} // Pass the comment ID
+          style={styles.reportMenuItem}
         >
-          <TouchableOpacity
-            style={styles.reportMenuOverlay}
-            onPress={closeReportMenu}
-            activeOpacity={1}
-          >
-            <View style={styles.reportMenuContainer}>
-              <TouchableOpacity
-                onPress={() => openReportModal(selectedCommentId)} // Pass the comment ID
-                style={styles.reportMenuItem}
-              >
-                <Icon name="flag" size={20} color="red" style={styles.reportMenuFlagIcon} />
-                <Text style={styles.reportMenuText}>Report Comment</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
-      )}
+          <Icon name="flag" size={20} color="red" style={styles.reportMenuFlagIcon} />
+          <Text style={styles.reportMenuText}>Report Comment</Text>
+        </TouchableOpacity>
+
+        {/* Block User */}
+        <TouchableOpacity
+          onPress={() => handleBlockUser(selectedCommentId)} // Handle block user
+          style={styles.reportMenuItem}
+        >
+          <Icon name="ban" size={20} color="#ff4444" style={styles.reportMenuFlagIcon} />
+          <Text style={styles.reportMenuText}>Block User</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  </Modal>
+)}
+
 
 
       <ImageViewing

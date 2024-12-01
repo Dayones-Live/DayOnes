@@ -182,6 +182,8 @@ const LoginScreen = () => {
     value={username}
     onChangeText={setUsername}
     editable={!isLoading}
+    textContentType='oneTimeCode'
+    
   />
 </View>
 
@@ -194,6 +196,11 @@ const LoginScreen = () => {
     value={password}
     onChangeText={setPassword}
     editable={!isLoading}
+    textContentType='oneTimeCode'
+    secureTextEntry
+    autoCapitalize="none"
+  returnKeyType="done"
+
   />
 </View>
 

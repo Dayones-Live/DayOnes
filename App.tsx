@@ -25,6 +25,7 @@ import PostDetailPage from './screens/artist/PostDetailsPage';
 import VerifyAccount from './screens/VerifyAccount';
 import DayOnesScreen from './screens/fan/DayOnesScreen';
 import DMDetailPage from './screens/fan/DMDetailPage';
+import SuperAdminDashboard from './screens/superadmin/SuperAdminDashboard'; // Import the new screen
 
 const Stack = createStackNavigator();
 const queryClient = new QueryClient();
@@ -156,6 +157,11 @@ const App = () => {
               name="DMDetailPage"
               component={DMDetailPage}
               options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="SuperAdminDashboard"
+              component={SuperAdminDashboard}
+              options={{ headerShown: false }} // Add the Super Admin Dashboard
             />
           </Stack.Navigator>
         </NavigationContainer>
