@@ -36,10 +36,16 @@ const PermissionsScreen = () => {
   const navigation = useNavigation();
   const profile = useSelector(state => state.userProfile);
 
+  const permissionsInfo = {
+    camera: 'Camera access is optional and used for uploading photos and videos.',
+    library: 'Photo Library access is optional and used to select images for your profile.',
+    notifications: 'Notifications are optional to keep you updated on app activities.',
+    location: 'Location access is mandatory. It is used to let you access invites from artists and experience personalized, location-specific content.',
+  };
+
   useEffect(() => {
     checkAllPermissions();
 
-    // Listen to app state changes to refresh permissions when returning from settings
     const appStateListener = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
         checkAllPermissions();
@@ -78,13 +84,8 @@ const PermissionsScreen = () => {
       setNotificationsPermission(notifications === RESULTS.GRANTED);
       setLocationPermission(location === RESULTS.GRANTED);
 
-      if (
-        camera === RESULTS.GRANTED &&
-        notifications === RESULTS.GRANTED &&
-        location === RESULTS.GRANTED
-      ) {
-        await storePermissionsStatus(); // Store permissions status
-        navigateToAppropriateStack(profile.data.role); // Navigate to the next screen
+      if (location === RESULTS.GRANTED) {
+        await storePermissionsStatus();
       }
 
       setLoading(false);
@@ -119,14 +120,6 @@ const PermissionsScreen = () => {
     );
   };
 
-  const navigateToAppropriateStack = role => {
-    if (role === 'ARTIST') {
-      navigation.navigate('ArtistStack');
-    } else if (role === 'USER') {
-      navigation.navigate('FanStack');
-    }
-  };
-
   const storePermissionsStatus = async () => {
     try {
       await AsyncStorage.setItem('permissionsGranted', 'true');
@@ -137,31 +130,17 @@ const PermissionsScreen = () => {
   };
 
   const handleContinue = async () => {
-    if (!cameraPermission || !libraryPermission || !notificationsPermission || !locationPermission) {
+    if (!locationPermission) {
       Alert.alert(
-        'Warning',
-        'Not all permissions are granted. Some app features may not work correctly.',
-        [
-          {
-            text: 'Continue Anyway',
-            onPress: async () => {
-              await AsyncStorage.setItem('permissionsGranted', 'false'); // Mark as incomplete
-              navigation.navigate('LoginPage'); // Navigate to login
-            },
-          },
-          { text: 'Go Back', style: 'cancel' },
-        ],
+        'Location Required',
+        'Location access is mandatory to enable geofenced content and ensure the app functions as intended. It is used to let you access invites from artists and experience personalized, location-specific content.',
+        [{ text: 'OK' }],
       );
     } else {
-      await AsyncStorage.setItem('permissionsGranted', 'true'); // Mark as granted
-      navigation.navigate('LoginPage'); // Proceed to login
+      await AsyncStorage.setItem('permissionsGranted', 'true');
+      navigation.navigate('LoginPage');
     }
   };
-
-  useEffect(() => {
-    checkAllPermissions();
-  }, []);
-
 
   return (
     <SafeAreaView style={styles.safeAreaView}>
@@ -181,7 +160,9 @@ const PermissionsScreen = () => {
               <PermissionItem
                 icon="camera"
                 title="Camera"
+                description={permissionsInfo.camera}
                 enabled={cameraPermission}
+                mandatory={false}
                 onPress={() =>
                   requestPermission(
                     Platform.OS === 'ios'
@@ -194,7 +175,9 @@ const PermissionsScreen = () => {
               <PermissionItem
                 icon="folder"
                 title="Library"
+                description={permissionsInfo.library}
                 enabled={libraryPermission}
+                mandatory={false}
                 onPress={() =>
                   requestPermission(
                     Platform.OS === 'ios'
@@ -207,7 +190,9 @@ const PermissionsScreen = () => {
               <PermissionItem
                 icon="bell"
                 title="Push Notifications"
+                description={permissionsInfo.notifications}
                 enabled={notificationsPermission}
+                mandatory={false}
                 onPress={async () => {
                   const notificationResult = await requestNotifications([
                     'alert',
@@ -217,13 +202,15 @@ const PermissionsScreen = () => {
                   setNotificationsPermission(
                     notificationResult.status === RESULTS.GRANTED,
                   );
-                  checkAllPermissions(); // Recheck all permissions
+                  checkAllPermissions();
                 }}
               />
               <PermissionItem
                 icon="map-marker"
                 title="Location"
+                description={permissionsInfo.location}
                 enabled={locationPermission}
+                mandatory={true}
                 onPress={() =>
                   requestPermission(
                     Platform.OS === 'ios'
@@ -251,10 +238,15 @@ const PermissionsScreen = () => {
   );
 };
 
-const PermissionItem = ({ icon, title, enabled, onPress }) => (
+const PermissionItem = ({ icon, title, description, enabled, onPress, mandatory }) => (
   <View style={styles.permissionItem}>
     <Icon name={icon} size={24} color="#fff" />
-    <Text style={styles.permissionText}>{title}</Text>
+    <View style={{ flex: 1, marginLeft: 10 }}>
+      <Text style={styles.permissionText}>
+        {title} {mandatory ? "(Mandatory)" : "(Optional)"}
+      </Text>
+      <Text style={styles.permissionDescription}>{description}</Text>
+    </View>
     <TouchableOpacity
       onPress={onPress}
       style={[
@@ -263,7 +255,7 @@ const PermissionItem = ({ icon, title, enabled, onPress }) => (
       ]}
     >
       <Text style={styles.permissionButtonText}>
-        {enabled ? 'Enabled' : 'Allow'}
+        {enabled ? 'Enabled' : 'Enable'}
       </Text>
     </TouchableOpacity>
   </View>
@@ -311,8 +303,11 @@ const styles = StyleSheet.create({
   permissionText: {
     color: '#fff',
     fontSize: 18,
-    flex: 1,
-    marginLeft: 10,
+  },
+  permissionDescription: {
+    color: '#aaa',
+    fontSize: 14,
+    marginTop: 5,
   },
   permissionButton: {
     paddingVertical: 8,

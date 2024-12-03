@@ -41,35 +41,32 @@ const LoginScreen = () => {
 
   const checkAllPermissions = async () => {
     try {
-      const camera = await check(
-        Platform.select({
-          ios: PERMISSIONS.IOS.CAMERA,
-          android: PERMISSIONS.ANDROID.CAMERA,
-        }),
-      );
-      const library = await check(
-        Platform.OS === 'ios'
-          ? PERMISSIONS.IOS.PHOTO_LIBRARY
-          : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
-      );
-      const notifications = (await checkNotifications()).status;
       const location = await check(
         Platform.OS === 'ios'
           ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
           : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
       );
-
-      return (
-        camera === RESULTS.GRANTED &&
-        notifications === RESULTS.GRANTED &&
-        location === RESULTS.GRANTED &&
-        library === RESULTS.GRANTED
-      );
+  
+      // Only check if location is granted
+      return location === RESULTS.GRANTED;
     } catch (error) {
       console.log('Error checking permissions:', error);
       return false;
     }
   };
+  
+  useEffect(() => {
+    if (role && !isLoading) {
+      checkAllPermissions().then((permissionsGranted) => {
+        setPermissionsGranted(permissionsGranted);
+        if (permissionsGranted) {
+          navigateToAppropriateStack();
+        } else {
+          navigation.navigate('PermissionsScreen');
+        }
+      });
+    }
+  }, [role, isLoading]);
 
   const navigateToAppropriateStack = () => {
     if (!role) {

@@ -42,19 +42,22 @@ const App = () => {
     try {
       const termsAccepted = await AsyncStorage.getItem('termsAccepted');
       const permissionsGranted = await AsyncStorage.getItem('permissionsGranted');
-
-      if (termsAccepted === 'true' && permissionsGranted === 'true') {
-        setInitialRoute('LoginPage'); // Skip TOS and Permissions if both are satisfied
-      } else if (termsAccepted !== 'true') {
-        setInitialRoute('TermsAndPrivacyScreen'); // Show TOS first
+  
+      if (termsAccepted === 'true') {
+        if (permissionsGranted === 'true') {
+          setInitialRoute('LoginPage'); // Skip TOS and Permissions if both are satisfied
+        } else {
+          setInitialRoute('PermissionsScreen'); // Show permissions if location is not granted
+        }
       } else {
-        setInitialRoute('PermissionsScreen'); // Show permissions if TOS is accepted
+        setInitialRoute('TermsAndPrivacyScreen'); // Show TOS first
       }
     } catch (error) {
       console.error('Error checking app setup status:', error);
       setInitialRoute('TermsAndPrivacyScreen'); // Default to TOS on error
     }
   };
+  
 
   if (initialRoute === null) return null; // Prevent rendering until initial route is determined
 

@@ -68,6 +68,66 @@ const ProfileScreen = () => {
     }
   };
 
+  const deleteUser = async () => {
+    const url = `${BASEURL}/api/v1/user/delete-user`;
+  
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log("Deleting user with ID:", profile.id);
+  
+              // Make the API call to delete the user
+              const response = await axios.post(
+                url,
+                { id: profile.id }, // Profile ID from Redux state
+                {
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+  
+              if (response.status === 200) {
+                Alert.alert("Account Deleted", "Your account has been deleted successfully.");
+  
+                // Clear the session data
+                await AsyncStorage.removeItem('accessToken');
+                await AsyncStorage.removeItem('userProfile');
+  
+                // Clear Redux state
+                dispatch(setUserProfile(null));
+  
+                // Navigate to the Login Page
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'LoginPage' }], // Replace with your Login Page route name
+                });
+              }
+            } catch (error) {
+              console.error("Error deleting user:", error.response?.data || error.message);
+              Alert.alert(
+                "Error",
+                error.response?.data?.message || "Failed to delete user. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+  
+  
+  
+  
+
 
 
   const unblockUser = async (userId) => {
@@ -310,6 +370,13 @@ const ProfileScreen = () => {
                   {isPasswordUpdateVisible ? 'Cancel Password Update' : 'Update Password'}
                 </Text>
               </TouchableOpacity>
+              <TouchableOpacity
+  style={styles.deleteAccountButton}
+  onPress={deleteUser}
+>
+  <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
+</TouchableOpacity>
+
 
               {isPasswordUpdateVisible && (
                 <View style={styles.passwordForm}>
@@ -609,6 +676,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  deleteAccountButton: {
+    backgroundColor: "#FF3B30",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginVertical: 10,
+    width: "100%",
+  },
+  deleteAccountButtonText: {
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  
 });
 
 export default ProfileScreen;
