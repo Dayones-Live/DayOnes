@@ -75,8 +75,8 @@ const FHomePage = ({ navigation }) => {
   };
 
   const startInvitePolling = () => {
-    const id = setInterval(() => {
-      fetchInvites();
+    const id = setInterval(async () => {
+      await fetchInvites();
       setCountdown((prevCountdown) => {
         if (prevCountdown <= 1) {
           clearInterval(id);
@@ -96,7 +96,7 @@ const FHomePage = ({ navigation }) => {
     setIsLoading(false); // Hide the modal
     setCountdown(60);    // Reset countdown
   };
-  
+
 
   const fetchInvites = async () => {
     try {
@@ -111,18 +111,22 @@ const FHomePage = ({ navigation }) => {
         const responseData = await response.json();
         const pendingInvites = responseData.data.filter((invite) => invite.status === 'PENDING');
 
+        console.log("Pending invites:", pendingInvites);
+
         setInvites(pendingInvites);
 
+        // Stop polling if a pending invite is found
         if (pendingInvites.length > 0) {
           handleCancel();
         }
       }
     } catch (error) {
+      console.error('Error fetching invites:', error);
       Alert.alert('Error', 'Failed to fetch invites.');
     }
   };
 
-  const handleConfirmInvite = async (inviteId) => {
+  const handleConfirmInvite = async (inviteId, artistPostId) => {
     try {
       await fetch(`${BASEURL}/api/v1/invites/${inviteId}`, {
         method: 'PATCH',
@@ -132,12 +136,17 @@ const FHomePage = ({ navigation }) => {
         },
         body: JSON.stringify({ status: 'ACCEPTED' }),
       });
-      fetchInvites();
+
       Alert.alert('Success', 'Invite confirmed.');
+
+      // Navigate to DMDetailPage with the artist_post_id
+      navigation.navigate('DMDetailPage', { postId: artistPostId });
     } catch (error) {
+      console.error('Error confirming invite:', error);
       Alert.alert('Error', 'Failed to confirm invite.');
     }
   };
+
 
   const handleDenyInvite = async (inviteId) => {
     Alert.alert(
@@ -195,16 +204,23 @@ const FHomePage = ({ navigation }) => {
         </View>
         <Text style={styles.inviteText}>Invite valid until: {new Date(item.valid_till).toLocaleString()}</Text>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={[styles.inviteButton, styles.confirmButton]} onPress={() => handleConfirmInvite(item.id)}>
+          <TouchableOpacity
+            style={[styles.inviteButton, styles.confirmButton]}
+            onPress={() => handleConfirmInvite(item.id, item.artist_post_id)} // Pass artist_post_id
+          >
             <Text style={styles.buttonText}>Confirm</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.inviteButton, styles.denyButton]} onPress={() => handleDenyInvite(item.id)}>
+          <TouchableOpacity
+            style={[styles.inviteButton, styles.denyButton]}
+            onPress={() => handleDenyInvite(item.id)}
+          >
             <Text style={styles.buttonText}>Deny</Text>
           </TouchableOpacity>
         </View>
       </View>
     </LinearGradient>
   );
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -253,15 +269,15 @@ const FHomePage = ({ navigation }) => {
         </View>
       )}
 
-<Modal visible={isLoading} transparent={true} animationType="fade">
-  <View style={styles.modalBackground}>
-    <ActivityIndicator size="large" color="#D500F9" />
-    <Text style={styles.countdownText}>Checking invites... {countdown}s</Text>
-    <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-      <Text style={styles.cancelButtonText}>Cancel</Text>
-    </TouchableOpacity>
-  </View>
-</Modal>
+      <Modal visible={isLoading} transparent={true} animationType="fade">
+        <View style={styles.modalBackground}>
+          <ActivityIndicator size="large" color="#D500F9" />
+          <Text style={styles.countdownText}>Checking invites... {countdown}s</Text>
+          <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -280,7 +296,7 @@ const styles = StyleSheet.create({
     width: wp('15%'), // Adjust to desired size
     height: hp('6%'),
     resizeMode: 'contain',
-    top:'-10%',
+    top: '-10%',
   },
   cancelButton: {
     marginTop: 20,
@@ -376,7 +392,7 @@ const styles = StyleSheet.create({
     width: wp('125%'),
     height: hp('100%'),
     resizeMode: 'contain',
-    top:'-38.4%',
+    top: '-38.4%',
   },
   staticOverlayText: {
     position: 'absolute',

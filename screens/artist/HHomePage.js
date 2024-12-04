@@ -161,23 +161,23 @@ const HHomePage = () => {
   const createPost = async () => {
     // Animate the send button for visual feedback
     animateButton();
-  
+
     // Validate selected image for the 'INVITE_PHOTO' post type
     if (postType === 'INVITE_PHOTO' && !selectedImage) {
       Alert.alert('Warning', 'You must select a photo when choosing "Invite + Photo."');
       return;
     }
-  
+
     console.log("Starting post creation...");
-  
+
     Geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
         console.log("User's current position:", { latitude, longitude });
-  
+
         try {
           let postImageUrl = null;
-  
+
           // Step 1: Upload image to S3 if required
           if (postType === 'INVITE_PHOTO') {
             console.log("Uploading image to S3...");
@@ -186,17 +186,17 @@ const HHomePage = () => {
               Alert.alert('Error', 'No image selected for upload.');
               return;
             }
-  
+
             console.log("Image URI before upload:", selectedImage.uri);
             postImageUrl = await uploadImageToS3(selectedImage.uri);
             console.log("S3 URL received:", postImageUrl);
           }
-  
+
           // Step 2: Get locale information based on geolocation
           console.log("Fetching location details...");
           const locale = await getLocale(latitude, longitude);
           console.log("Locale determined:", locale);
-  
+
           // Step 3: Prepare post data to be sent
           const postData = {
             imageUrl: postImageUrl, // Null if post type is 'INVITE_ONLY'
@@ -205,11 +205,11 @@ const HHomePage = () => {
             latitude: latitude.toString(), // Latitude as string
             longitude: longitude.toString(), // Longitude as string
             locale: locale || "Unknown location",
-            message:"Welcome to my exclusive DayOnes group! Here, you're more than just a fan, you're family.🔥 💯 🔥"
+            message: "Welcome to my exclusive DayOnes group! Here, you're more than just a fan, you're family.🔥 💯 🔥",
           };
-  
+
           console.log("Post data prepared:", postData);
-  
+
           // Step 4: Send POST request to create a new post
           console.log("Sending API request to create post...");
           const response = await fetch(`${BASEURL}/api/v1/post/`, {
@@ -220,13 +220,22 @@ const HHomePage = () => {
             },
             body: JSON.stringify(postData),
           });
-  
+
           const jsonResponse = await response.json();
           console.log("API response received:", jsonResponse);
-  
+
           if (response.ok) {
+            const newPostId = jsonResponse.data?.id; // Extract the new post ID
             Alert.alert('Success', 'Post created successfully!');
             console.log("Post created successfully!");
+
+            // Navigate to PostDetailPage with the new post ID
+            if (newPostId) {
+              navigation.navigate('PostDetailPage', { postId: newPostId });
+            } else {
+              console.error("Post ID not returned in response.");
+            }
+
             clearSelectedImage(); // Clear the selected image after a successful post
           } else {
             console.error("Failed to create post:", jsonResponse);
@@ -244,7 +253,8 @@ const HHomePage = () => {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
   };
-  
+
+
 
 
 
