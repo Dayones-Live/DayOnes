@@ -33,7 +33,7 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [role, setRole] = useState(null);
   const [permissionsGranted, setPermissionsGranted] = useState(false);
-  
+
 
   const navigation = useNavigation();
   const userProfile = useSelector((state) => state.userProfile);
@@ -46,7 +46,7 @@ const LoginScreen = () => {
           ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
           : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
       );
-  
+
       // Only check if location is granted
       return location === RESULTS.GRANTED;
     } catch (error) {
@@ -54,7 +54,7 @@ const LoginScreen = () => {
       return false;
     }
   };
-  
+
   useEffect(() => {
     if (role && !isLoading) {
       checkAllPermissions().then((permissionsGranted) => {
@@ -81,13 +81,21 @@ const LoginScreen = () => {
 
   useEffect(() => {
     if (userProfile?.data?.role) {
-        setRole(userProfile.data.role);
-        console.log('useEffect triggered: userProfile role is:', userProfile.data.role);
+      setRole(userProfile.data.role);
+      console.log('useEffect triggered: userProfile role is:', userProfile.data.role);
     } else {
-        console.log('useEffect triggered: No role found in userProfile.');
+      console.log('useEffect triggered: No role found in userProfile.');
     }
     setIsLoading(false);
-}, [userProfile]);
+  }, [userProfile]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setRole(null);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
 
 
   useEffect(() => {
@@ -109,22 +117,22 @@ const LoginScreen = () => {
       return;
     }
     setIsLoading(true);
-  
+
     loginUser(
       { email: username, password },
       {
         onSuccess: (data) => {
           setIsLoading(false);
-  
+
           const userRole = data?.role || userProfile?.data?.role;
           setRole(userRole);
-          
+
           // Debugging statements
           console.log('Data from API:', data);
           console.log('User Profile from Redux:', userProfile);
           console.log('Role from API or Redux:', userRole);
           console.log('Final role value used for navigation:', userRole);
-  
+
           if (userRole === 'ARTIST' || userRole === 'USER') {
             checkAllPermissions().then((permissionsGranted) => {
               setPermissionsGranted(permissionsGranted);
@@ -138,22 +146,10 @@ const LoginScreen = () => {
         },
         onError: (error) => {
           setIsLoading(false);
-  
-          if (error.toString().includes('User is not confirmed')) {
-            alert('Account Not Confirmed', 'Please confirm your account to proceed.');
-            navigation.navigate('VerifyAccount', { email: username });
-          } else if (error.toString().includes('401')) {
-            alert('Login Failed', 'Invalid username or password.');
-          } else if (error.toString().includes('404')) {
-            alert('Login Failed', 'User not found.');
-          } else {
-            alert('Login Failed', 'An unexpected error occurred.');
-          }
         },
       }
     );
   };
-  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -170,38 +166,38 @@ const LoginScreen = () => {
         </View>
 
         <View style={styles.middleSection}>
-        <View style={styles.inputContainer}>
-  <TextInput
-    key="Email"
-    style={styles.input}
-    placeholder="Email"
-    placeholderTextColor="#888"
-    value={username}
-    onChangeText={setUsername}
-    editable={!isLoading}
-    textContentType='oneTimeCode'
-    
-  />
-</View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              key="Email"
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#888"
+              value={username}
+              onChangeText={setUsername}
+              editable={!isLoading}
+              textContentType='oneTimeCode'
 
-<View style={styles.passwordfield}>
-  <TextInput
-    key="Password"
-    style={styles.passwordfield}
-    placeholder="Password"
-    placeholderTextColor="#888"
-    value={password}
-    onChangeText={setPassword}
-    editable={!isLoading}
-    textContentType='oneTimeCode'
-    secureTextEntry
-    autoCapitalize="none"
-  returnKeyType="done"
+            />
+          </View>
 
-  />
-</View>
+          <View style={styles.passwordfield}>
+            <TextInput
+              key="Password"
+              style={styles.passwordfield}
+              placeholder="Password"
+              placeholderTextColor="#888"
+              value={password}
+              onChangeText={setPassword}
+              editable={!isLoading}
+              textContentType='oneTimeCode'
+              secureTextEntry
+              autoCapitalize="none"
+              returnKeyType="done"
 
-          
+            />
+          </View>
+
+
 
 
           <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.loginButton}>
@@ -239,17 +235,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  passwordfield:{
+  passwordfield: {
     height: 50,
-    width:'100%',
+    width: '100%',
     backgroundColor: '#333',
     borderRadius: 8,
     paddingHorizontal: 8,
     color: '#fff',
     marginBottom: 40,
     fontSize: 18,
-    marginRight:0,
-    textAlign:'left' ,
+    marginRight: 0,
+    textAlign: 'left',
   },
   contentContainer: {
     flex: 1,

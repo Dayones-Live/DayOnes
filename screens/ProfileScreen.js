@@ -25,7 +25,7 @@ import { BASEURL } from '../assets/constants';
 import LinearGradient from 'react-native-linear-gradient';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../utils';
-import { setUserProfile } from '../assets/redux/actions'; // Adjust the path as needed
+import { setAccessToken, setUserProfile } from '../assets/redux/actions'; // Adjust the path as needed
 
 
 const ProfileScreen = () => {
@@ -70,7 +70,7 @@ const ProfileScreen = () => {
 
   const deleteUser = async () => {
     const url = `${BASEURL}/api/v1/user/delete-user`;
-  
+
     Alert.alert(
       "Delete Account",
       "Are you sure you want to delete your account? This action cannot be undone.",
@@ -82,7 +82,13 @@ const ProfileScreen = () => {
           onPress: async () => {
             try {
               console.log("Deleting user with ID:", profile.id);
-  
+
+              // Navigate to the login page first
+              navigation.navigate('LoginPage');
+
+              // Give a slight delay to ensure navigation occurs before proceeding
+              await new Promise(resolve => setTimeout(resolve, 500));
+
               // Make the API call to delete the user
               const response = await axios.post(
                 url,
@@ -94,22 +100,14 @@ const ProfileScreen = () => {
                   },
                 }
               );
-  
+
               if (response.status === 200) {
                 Alert.alert("Account Deleted", "Your account has been deleted successfully.");
-  
-                // Clear the session data
-                await AsyncStorage.removeItem('accessToken');
-                await AsyncStorage.removeItem('userProfile');
-  
+
                 // Clear Redux state
+                dispatch(setAccessToken(null));
                 dispatch(setUserProfile(null));
-  
-                // Navigate to the Login Page
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'LoginPage' }], // Replace with your Login Page route name
-                });
+
               }
             } catch (error) {
               console.error("Error deleting user:", error.response?.data || error.message);
@@ -117,16 +115,20 @@ const ProfileScreen = () => {
                 "Error",
                 error.response?.data?.message || "Failed to delete user. Please try again."
               );
+
+              // Optionally navigate back to the previous screen if deletion failed
+              navigation.navigate('ProfilePage'); // Replace with your profile or previous screen
             }
           },
         },
       ]
     );
   };
-  
-  
-  
-  
+
+
+
+
+
 
 
 
@@ -371,11 +373,11 @@ const ProfileScreen = () => {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-  style={styles.deleteAccountButton}
-  onPress={deleteUser}
->
-  <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
-</TouchableOpacity>
+                style={styles.deleteAccountButton}
+                onPress={deleteUser}
+              >
+                <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
+              </TouchableOpacity>
 
 
               {isPasswordUpdateVisible && (
@@ -689,7 +691,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
   },
-  
+
 });
 
 export default ProfileScreen;
