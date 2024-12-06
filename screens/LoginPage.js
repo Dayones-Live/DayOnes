@@ -20,6 +20,7 @@ import {
   check,
   PERMISSIONS,
   RESULTS,
+  checkNotifications,
 } from 'react-native-permissions';
 import { Platform } from 'react-native';
 
@@ -31,18 +32,75 @@ const LoginScreen = () => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false); // State to toggle password visibility
   const [isLoading, setIsLoading] = useState(false);
   const [role, setRole] = useState(null);
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
 
   const navigation = useNavigation();
   const userProfile = useSelector((state) => state.userProfile);
   const { mutate: loginUser } = useLogin();
 
+  const checkAllPermissions = async () => {
+    try {
+      const location = await check(
+        Platform.OS === 'ios'
+          ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
+          : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION
+      );
+
+      return location === RESULTS.GRANTED;
+    } catch (error) {
+      console.log('Error checking permissions:', error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    if (role && !isLoading) {
+      checkAllPermissions().then((permissionsGranted) => {
+        setPermissionsGranted(permissionsGranted);
+        if (permissionsGranted) {
+          navigateToAppropriateStack();
+        } else {
+          navigation.navigate('PermissionsScreen');
+        }
+      });
+    }
+  }, [role, isLoading]);
+
+  const navigateToAppropriateStack = () => {
+    if (!role) {
+      return;
+    }
+    if (role === 'ARTIST') {
+      navigation.navigate('ArtistStack');
+    } else if (role === 'USER') {
+      navigation.navigate('FanStack');
+    }
+  };
+
+  useEffect(() => {
+    if (userProfile?.data?.role) {
+      setRole(userProfile.data.role);
+      console.log('useEffect triggered: userProfile role is:', userProfile.data.role);
+    } else {
+      console.log('useEffect triggered: No role found in userProfile.');
+    }
+    setIsLoading(false);
+  }, [userProfile]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setRole(null);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   const togglePasswordVisibility = () => {
     setIsPasswordVisible((prev) => !prev);
   };
 
-  const handleLogin = () => {
+  const handleLogin = (retry = false) => {
     if (!username || !password) {
-      Alert.alert('Validation Error', 'Please enter both username and password.');
+      alert('Validation Error', 'Please enter both username and password.');
       return;
     }
     setIsLoading(true);
@@ -52,14 +110,27 @@ const LoginScreen = () => {
       {
         onSuccess: (data) => {
           setIsLoading(false);
+
           const userRole = data?.role || userProfile?.data?.role;
           setRole(userRole);
 
+          console.log('Data from API:', data);
+          console.log('User Profile from Redux:', userProfile);
+          console.log('Role from API or Redux:', userRole);
+          console.log('Final role value used for navigation:', userRole);
+
           if (userRole === 'ARTIST' || userRole === 'USER') {
-            navigation.navigate(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
+            checkAllPermissions().then((permissionsGranted) => {
+              setPermissionsGranted(permissionsGranted);
+              if (permissionsGranted) {
+                navigateToAppropriateStack();
+              }
+            });
+          } else {
+            console.log('Unrecognized role, handling silently.');
           }
         },
-        onError: () => {
+        onError: (error) => {
           setIsLoading(false);
         },
       }
