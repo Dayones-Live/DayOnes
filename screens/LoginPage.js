@@ -9,19 +9,17 @@ import {
   StatusBar,
   Dimensions,
   Image,
-  Alert
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import Feather from 'react-native-vector-icons/Feather';
 import useLogin from '../assets/hooks/useLogin';
 import {
   check,
   PERMISSIONS,
   RESULTS,
-  checkNotifications,
 } from 'react-native-permissions';
 import { Platform } from 'react-native';
 
@@ -30,90 +28,21 @@ const { width } = Dimensions.get('window');
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false); // State to toggle password visibility
   const [isLoading, setIsLoading] = useState(false);
   const [role, setRole] = useState(null);
-  const [permissionsGranted, setPermissionsGranted] = useState(false);
-
 
   const navigation = useNavigation();
   const userProfile = useSelector((state) => state.userProfile);
   const { mutate: loginUser } = useLogin();
 
-  const checkAllPermissions = async () => {
-    try {
-      const location = await check(
-        Platform.OS === 'ios'
-          ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
-          : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
-      );
-
-      // Only check if location is granted
-      return location === RESULTS.GRANTED;
-    } catch (error) {
-      console.log('Error checking permissions:', error);
-      return false;
-    }
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible((prev) => !prev);
   };
 
-  useEffect(() => {
-    if (role && !isLoading) {
-      checkAllPermissions().then((permissionsGranted) => {
-        setPermissionsGranted(permissionsGranted);
-        if (permissionsGranted) {
-          navigateToAppropriateStack();
-        } else {
-          navigation.navigate('PermissionsScreen');
-        }
-      });
-    }
-  }, [role, isLoading]);
-
-  const navigateToAppropriateStack = () => {
-    if (!role) {
-      return;
-    }
-    if (role === 'ARTIST') {
-      navigation.navigate('ArtistStack');
-    } else if (role === 'USER') {
-      navigation.navigate('FanStack');
-    }
-  };
-
-  useEffect(() => {
-    if (userProfile?.data?.role) {
-      setRole(userProfile.data.role);
-      console.log('useEffect triggered: userProfile role is:', userProfile.data.role);
-    } else {
-      console.log('useEffect triggered: No role found in userProfile.');
-    }
-    setIsLoading(false);
-  }, [userProfile]);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      setRole(null);
-    });
-    return unsubscribe;
-  }, [navigation]);
-
-
-
-  useEffect(() => {
-    if (role && !isLoading) {
-      checkAllPermissions().then((permissions) => {
-        setPermissionsGranted(permissions);
-        if (permissions) {
-          navigateToAppropriateStack();
-        } else {
-          navigation.navigate('PermissionsScreen');
-        }
-      });
-    }
-  }, [role, isLoading]);
-
-  const handleLogin = (retry = false) => {
+  const handleLogin = () => {
     if (!username || !password) {
-      alert('Validation Error', 'Please enter both username and password.');
+      Alert.alert('Validation Error', 'Please enter both username and password.');
       return;
     }
     setIsLoading(true);
@@ -123,28 +52,14 @@ const LoginScreen = () => {
       {
         onSuccess: (data) => {
           setIsLoading(false);
-
           const userRole = data?.role || userProfile?.data?.role;
           setRole(userRole);
 
-          // Debugging statements
-          console.log('Data from API:', data);
-          console.log('User Profile from Redux:', userProfile);
-          console.log('Role from API or Redux:', userRole);
-          console.log('Final role value used for navigation:', userRole);
-
           if (userRole === 'ARTIST' || userRole === 'USER') {
-            checkAllPermissions().then((permissionsGranted) => {
-              setPermissionsGranted(permissionsGranted);
-              if (permissionsGranted) {
-                navigateToAppropriateStack();
-              }
-            });
-          } else {
-            console.log('Unrecognized role, handling silently.');
+            navigation.navigate(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
           }
         },
-        onError: (error) => {
+        onError: () => {
           setIsLoading(false);
         },
       }
@@ -157,7 +72,6 @@ const LoginScreen = () => {
 
       <View style={styles.contentContainer}>
         <View style={styles.topSection}>
-          {/* Updated the size to 2.5x */}
           <Image
             source={require('../assets/images/1024.png')}
             style={styles.logo}
@@ -175,33 +89,39 @@ const LoginScreen = () => {
               value={username}
               onChangeText={setUsername}
               editable={!isLoading}
-              textContentType='oneTimeCode'
-
+              textContentType="oneTimeCode"
             />
           </View>
 
-          <View style={styles.passwordfield}>
+          <View style={styles.passwordContainer}>
             <TextInput
               key="Password"
-              style={styles.passwordfield}
+              style={styles.passwordInput}
               placeholder="Password"
               placeholderTextColor="#888"
               value={password}
               onChangeText={setPassword}
               editable={!isLoading}
-              textContentType='oneTimeCode'
-              secureTextEntry
+              textContentType="oneTimeCode"
+              secureTextEntry={!isPasswordVisible} // Toggles visibility
               autoCapitalize="none"
               returnKeyType="done"
-
             />
+            <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIcon}>
+              <Feather
+                name={isPasswordVisible ? 'eye' : 'eye-off'}
+                size={20}
+                color="#888"
+              />
+            </TouchableOpacity>
           </View>
 
-
-
-
           <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.loginButton}>
-            <TouchableOpacity onPress={() => handleLogin()} style={styles.fullWidth} disabled={isLoading}>
+            <TouchableOpacity
+              onPress={handleLogin}
+              style={styles.fullWidth}
+              disabled={isLoading}
+            >
               <Text style={styles.buttonText}>{isLoading ? 'Logging in...' : 'Login'}</Text>
             </TouchableOpacity>
           </LinearGradient>
@@ -209,7 +129,12 @@ const LoginScreen = () => {
 
         <Text style={styles.signupText}>
           Are you an Artist?{' '}
-          <Text onPress={() => Alert.alert('Artists!', 'Email DayOnesMedia@gmail.com for more infomation on how to partner with DayOnes.')} style={styles.signupLink}>
+          <Text
+            onPress={() =>
+              Alert.alert('Artists!', 'Email DayOnesMedia@gmail.com for more infomation on how to partner with DayOnes.')
+            }
+            style={styles.signupLink}
+          >
             Contact Us!
           </Text>
         </Text>
@@ -235,17 +160,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  passwordfield: {
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 50,
     width: '100%',
     backgroundColor: '#333',
     borderRadius: 8,
     paddingHorizontal: 8,
-    color: '#fff',
     marginBottom: 40,
+  },
+  passwordInput: {
+    flex: 1,
+    color: '#fff',
     fontSize: 18,
-    marginRight: 0,
     textAlign: 'left',
+  },
+  eyeIcon: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
   },
   contentContainer: {
     flex: 1,
@@ -258,8 +192,8 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   logo: {
-    width: 200,  // Increased width 2.5x
-    height: 140, // Increased height 2.5x
+    width: 200,
+    height: 140,
   },
   middleSection: {
     justifyContent: 'center',
@@ -279,46 +213,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 18,
   },
-  fullWidth: {
-    width: '100%',
-    alignItems: 'center',
-  },
   loginButton: {
     borderRadius: 10,
     paddingVertical: 15,
     width: '100%',
     alignItems: 'center',
     marginBottom: 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 3,
   },
   buttonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  iconContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  iconButton: {
-    backgroundColor: '#fff',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 15,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 3,
   },
   signupText: {
     color: '#888',
@@ -343,11 +248,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     width: '100%',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 3,
     marginBottom: 20,
   },
   signupArtistText: {

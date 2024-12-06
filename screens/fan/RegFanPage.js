@@ -16,6 +16,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Feather from 'react-native-vector-icons/Feather'; // Import for the eye icon
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
 import CountryPicker from 'react-native-country-picker-modal';
@@ -32,6 +33,8 @@ const RegFanPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [countryCode, setCountryCode] = useState('US');
   const [callingCode, setCallingCode] = useState('1');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false); // For password visibility
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false); // For confirm password visibility
 
   const handleSignup = async () => {
     if (!email || !password || !confirmPassword || !name) {
@@ -52,12 +55,11 @@ const RegFanPage = () => {
         name,
       };
 
-      // Add phoneNumber only if it is provided
       if (phoneNumber) {
         payload.phoneNumber = `+${callingCode}${phoneNumber.replace(/\D/g, '')}`;
       }
 
-      console.log('Signup Payload:', payload); // Log the payload for testing
+      console.log('Signup Payload:', payload);
 
       const response = await axios.post(`${BASEURL}/api/v1/auth/signup`, payload);
 
@@ -70,7 +72,6 @@ const RegFanPage = () => {
     } catch (error) {
       console.log(error);
 
-      // Check if the error is due to a duplicate key constraint
       if (
         error.response &&
         error.response.data &&
@@ -87,7 +88,6 @@ const RegFanPage = () => {
       }
     }
   };
-
 
   return (
     <SafeAreaView style={styles.container}>
@@ -118,28 +118,51 @@ const RegFanPage = () => {
                   keyboardType="email-address"
                 />
               </View>
+
               <View style={styles.inputWrapper}>
                 <Icon name="lock" size={20} color="#888" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Password"
                   placeholderTextColor="#888"
-                  secureTextEntry
+                  secureTextEntry={!isPasswordVisible} // Toggles visibility
                   value={password}
                   onChangeText={setPassword}
                 />
+                <TouchableOpacity
+                  onPress={() => setIsPasswordVisible((prev) => !prev)}
+                  style={styles.eyeIcon}
+                >
+                  <Feather
+                    name={isPasswordVisible ? 'eye' : 'eye-off'}
+                    size={20}
+                    color="#888"
+                  />
+                </TouchableOpacity>
               </View>
+
               <View style={styles.inputWrapper}>
                 <Icon name="lock" size={20} color="#888" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Confirm Password"
                   placeholderTextColor="#888"
-                  secureTextEntry
+                  secureTextEntry={!isConfirmPasswordVisible} // Toggles visibility
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                 />
+                <TouchableOpacity
+                  onPress={() => setIsConfirmPasswordVisible((prev) => !prev)}
+                  style={styles.eyeIcon}
+                >
+                  <Feather
+                    name={isConfirmPasswordVisible ? 'eye' : 'eye-off'}
+                    size={20}
+                    color="#888"
+                  />
+                </TouchableOpacity>
               </View>
+
               <View style={styles.inputWrapper}>
                 <Icon name="user" size={20} color="#888" style={styles.inputIcon} />
                 <TextInput
@@ -173,15 +196,14 @@ const RegFanPage = () => {
                     style={styles.phoneInput}
                     placeholder="Phone Number (Optional)"
                     placeholderTextColor="#888"
-                    keyboardType="default" // Changed to default to show Done button
+                    keyboardType="default"
                     value={phoneNumber}
                     onChangeText={setPhone}
-                    onSubmitEditing={Keyboard.dismiss} // Dismiss keyboard on "Done" press
+                    onSubmitEditing={Keyboard.dismiss}
                     returnKeyType="done"
                   />
                 </View>
               </View>
-
             </View>
 
             <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.signupButton}>
@@ -330,6 +352,11 @@ const styles = StyleSheet.create({
   loginLink: {
     color: '#00ccff',
     textDecorationLine: 'underline',
+  },
+  eyeIcon: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 10,
   },
 });
 
