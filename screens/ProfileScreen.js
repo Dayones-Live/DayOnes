@@ -26,7 +26,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../utils';
 import { setAccessToken, setUserProfile } from '../assets/redux/actions'; // Adjust the path as needed
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ProfileScreen = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -126,12 +126,6 @@ const ProfileScreen = () => {
   };
 
 
-
-
-
-
-
-
   const unblockUser = async (userId) => {
     try {
       console.log(`Unblocking user with ID: ${userId}`);
@@ -165,6 +159,7 @@ const ProfileScreen = () => {
       Alert.alert('Error', 'Image upload failed. Please try again.');
     }
   };
+
   const handleTakePicture = () => {
     launchCamera({ mediaType: 'photo', includeBase64: false }, (response) => {
       if (response.didCancel) {
@@ -222,13 +217,24 @@ const ProfileScreen = () => {
   const handleLogout = async () => {
     const url = `${BASEURL}/api/v1/auth/signout`;
     try {
-      const response = await axios.post(url, {}, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await axios.post(
+        url,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
       if (response.status === 200) {
+        // Clear local storage
+        await AsyncStorage.removeItem('authToken');
+        await AsyncStorage.removeItem('userRole');
+        console.log('User logged out and AsyncStorage cleared');
+
+        // Notify user and navigate to login page
         Alert.alert('Logged Out', 'You have been logged out successfully.');
         navigation.navigate('LoginPage');
       }
@@ -237,6 +243,7 @@ const ProfileScreen = () => {
       Alert.alert('Error', 'Failed to log out. Please try again.');
     }
   };
+
 
   const updatePasswordHandler = async () => {
     if (!currentPassword || !newPassword) {

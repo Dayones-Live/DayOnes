@@ -42,22 +42,44 @@ const App = () => {
     try {
       const termsAccepted = await AsyncStorage.getItem('termsAccepted');
       const permissionsGranted = await AsyncStorage.getItem('permissionsGranted');
-  
-      if (termsAccepted === 'true') {
+      const authToken = await AsyncStorage.getItem('authToken');
+      const userRole = await AsyncStorage.getItem('userRole');
+
+      // Log AsyncStorage values for debugging
+      console.log('termsAccepted:', termsAccepted);
+      console.log('permissionsGranted:', permissionsGranted);
+      console.log('authToken:', authToken);
+      console.log('userRole:', userRole);
+
+      if (authToken && userRole) {
+        // Check if the token is valid (example for JWT, adjust as needed)
+        const tokenPayload = JSON.parse(atob(authToken.split('.')[1])); // Decode JWT payload
+        const isTokenExpired = tokenPayload.exp * 1000 < Date.now();
+        if (isTokenExpired) {
+          console.warn('Auth token is expired.');
+          setInitialRoute('LoginPage');
+          return;
+        }
+
+        // User is logged in; navigate to the appropriate stack
+        setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
+      } else if (termsAccepted === 'true') {
         if (permissionsGranted === 'true') {
-          setInitialRoute('LoginPage'); // Skip TOS and Permissions if both are satisfied
+          setInitialRoute('LoginPage');
         } else {
-          setInitialRoute('PermissionsScreen'); // Show permissions if location is not granted
+          setInitialRoute('PermissionsScreen');
         }
       } else {
-        setInitialRoute('TermsAndPrivacyScreen'); // Show TOS first
+        setInitialRoute('TermsAndPrivacyScreen');
       }
     } catch (error) {
       console.error('Error checking app setup status:', error);
       setInitialRoute('TermsAndPrivacyScreen'); // Default to TOS on error
     }
   };
-  
+
+
+
 
   if (initialRoute === null) return null; // Prevent rendering until initial route is determined
 

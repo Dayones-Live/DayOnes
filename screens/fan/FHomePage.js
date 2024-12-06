@@ -18,21 +18,48 @@ import { setInvitesEnabled } from '../../assets/redux/actions';
 import { BASEURL } from '../../assets/constants';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton1';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import useFetchUser from '../../assets/hooks/useFetchUser';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FHomePage = ({ navigation }) => {
   const dispatch = useDispatch();
   const invitesFromRedux = useSelector((state) => state.invitesEnabled);
-  const accessToken = useSelector((state) => state.accessToken);
+  const { mutate: fetchUser } = useFetchUser();
+
 
   const [isInviteEnabled, setIsInviteEnabled] = useState(invitesFromRedux);
   const [invites, setInvites] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
+  const [isPolling, setIsPolling] = useState(false);
   const [intervalId, setIntervalId] = useState(null);
+
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const accessToken = await AsyncStorage.getItem('authToken');
+        if (accessToken) {
+          console.log('Access token:', accessToken);
+          fetchUser(); // Fetch user data
+        } else {
+          console.error('No access token found in AsyncStorage.');
+        }
+      } catch (error) {
+        console.error('Error fetching access token:', error);
+      }
+    };
+
+    fetchUserData();
+  }, [fetchUser]); // Include `fetchUser` in the dependency array
+
+
+  const accessToken = useSelector((state) => state.accessToken);
 
   useEffect(() => {
     setIsInviteEnabled(invitesFromRedux);
   }, [invitesFromRedux]);
+
 
   const toggleInviteAndFetch = () => {
     setIsLoading(true);
@@ -74,29 +101,39 @@ const FHomePage = ({ navigation }) => {
     }
   };
 
+
   const startInvitePolling = () => {
+    if (isPolling) {
+      console.log('Polling is already running, skipping new interval setup.');
+      return;
+    }
+
+    setIsPolling(true);
     const id = setInterval(async () => {
       await fetchInvites();
       setCountdown((prevCountdown) => {
         if (prevCountdown <= 1) {
           clearInterval(id);
+          setIsPolling(false);
           setIsLoading(false);
         }
         return prevCountdown - 1;
       });
-    }, 1000);
+    }, 5000); // Poll every 5 seconds
     setIntervalId(id);
+    console.log('Polling started with interval ID:', id);
   };
 
   const handleCancel = () => {
     if (intervalId) {
+      console.log('Clearing interval:', intervalId);
       clearInterval(intervalId);
       setIntervalId(null);
+      setIsPolling(false); // Reset the polling state
     }
-    setIsLoading(false); // Hide the modal
-    setCountdown(60);    // Reset countdown
+    setIsLoading(false); // Hide the loading modal
+    setCountdown(60); // Reset the countdown timer
   };
-
 
   const fetchInvites = async () => {
     try {
@@ -107,17 +144,17 @@ const FHomePage = ({ navigation }) => {
           Authorization: `Bearer ${accessToken}`,
         },
       });
+
       if (response.ok) {
         const responseData = await response.json();
         const pendingInvites = responseData.data.filter((invite) => invite.status === 'PENDING');
 
-        console.log("Pending invites:", pendingInvites);
-
+        console.log('Pending invites:', pendingInvites);
         setInvites(pendingInvites);
 
-        // Stop polling if a pending invite is found
         if (pendingInvites.length > 0) {
-          handleCancel();
+          console.log('Pending invite detected, stopping polling.');
+          handleCancel(); // Stop polling if a pending invite is detected
         }
       }
     } catch (error) {
@@ -125,6 +162,22 @@ const FHomePage = ({ navigation }) => {
       Alert.alert('Error', 'Failed to fetch invites.');
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (intervalId) {
+        console.log('Clearing interval on component unmount:', intervalId);
+        clearInterval(intervalId);
+      }
+      setIsPolling(false); // Ensure polling state is reset
+    };
+  }, [intervalId]);
+
+
+
+
+
+
 
   const handleConfirmInvite = async (inviteId, artistPostId) => {
     try {

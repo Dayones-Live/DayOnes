@@ -4,16 +4,27 @@ import Geolocation from '@react-native-community/geolocation';
 import { useDispatch, useSelector } from 'react-redux';
 import { setFcmToken, setLocation } from '../redux/actions'; // Replace with your actual import paths
 import axios from 'axios'; // For sending the data to your backend
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASEURL } from '../constants'; // Replace with your actual BASEURL
 
 const useSetupNotificationsAndLocation = () => {
   const dispatch = useDispatch();
-  const accessToken = useSelector(state => state.accessToken); // Assuming you have accessToken in Redux
+  const accessTokenFromRedux = useSelector(state => state.accessToken); // Try to get accessToken from Redux
 
   useEffect(() => {
     const setupNotificationsAndLocation = async () => {
-      // Set FCM Token and send to endpoint
       try {
+        // Fetch access token from Redux or AsyncStorage
+        let accessToken = accessTokenFromRedux;
+        if (!accessToken) {
+          accessToken = await AsyncStorage.getItem('authToken');
+          if (!accessToken) {
+            console.error('Access token not found in Redux or AsyncStorage.');
+            return; // Stop execution if no token is found
+          }
+        }
+
+        // Set FCM Token and send to backend
         await messaging().registerDeviceForRemoteMessages();
         const fcmToken = await messaging().getToken();
         dispatch(setFcmToken(fcmToken)); // Store in Redux
@@ -21,29 +32,29 @@ const useSetupNotificationsAndLocation = () => {
 
         // Send FCM Token to your backend
         await updateNotificationToken(accessToken, fcmToken);
+
+        // Set Location and send to backend
+        Geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            dispatch(setLocation({ latitude, longitude })); // Store in Redux
+            console.log('Location set:', { latitude, longitude });
+
+            // Send location to your backend
+            await updateLocation(accessToken, latitude, longitude);
+          },
+          (error) => {
+            console.error('Error fetching location:', error);
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
+        );
       } catch (error) {
-        console.error('Error fetching FCM Token:', error);
+        console.error('Error setting up notifications and location:', error);
       }
-
-      // Set Location and send to endpoint
-      Geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          dispatch(setLocation({ latitude, longitude })); // Store in Redux
-          console.log('Location set:', { latitude, longitude });
-
-          // Send location to your backend
-          await updateLocation(accessToken, latitude, longitude);
-        },
-        (error) => {
-          console.error('Error fetching location:', error);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
-      );
     };
 
     setupNotificationsAndLocation();
-  }, [dispatch, accessToken]);
+  }, [dispatch, accessTokenFromRedux]);
 };
 
 // The functions for sending FCM Token and Location to the backend

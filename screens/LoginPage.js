@@ -14,16 +14,14 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import Feather from 'react-native-vector-icons/Feather';
 import useLogin from '../assets/hooks/useLogin';
 import {
   check,
   PERMISSIONS,
   RESULTS,
-  checkNotifications,
 } from 'react-native-permissions';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -111,45 +109,78 @@ const LoginScreen = () => {
     }
   }, [role, isLoading]);
 
+  useEffect(() => {
+    const saveRoleToAsyncStorage = async () => {
+      if (userProfile?.data?.role) {
+        try {
+          await AsyncStorage.setItem('userRole', userProfile.data.role);
+          console.log('Role updated and saved to AsyncStorage:', userProfile.data.role);
+        } catch (error) {
+          console.error('Error saving role to AsyncStorage:', error);
+        }
+      }
+    };
+
+    saveRoleToAsyncStorage();
+  }, [userProfile]);
+
+
   const handleLogin = (retry = false) => {
     if (!username || !password) {
-      alert('Validation Error', 'Please enter both username and password.');
+      Alert.alert('Validation Error', 'Please enter both username and password.');
       return;
     }
-    setIsLoading(true);
 
+    setIsLoading(true);
     loginUser(
       { email: username, password },
       {
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
           setIsLoading(false);
 
+          // Extract role and token
           const userRole = data?.role || userProfile?.data?.role;
-          setRole(userRole);
+          const token = data?.token;
 
-          // Debugging statements
-          console.log('Data from API:', data);
-          console.log('User Profile from Redux:', userProfile);
-          console.log('Role from API or Redux:', userRole);
-          console.log('Final role value used for navigation:', userRole);
+          if (!token) {
+            Alert.alert('Error', 'Token missing in response.');
+            return;
+          }
 
-          if (userRole === 'ARTIST' || userRole === 'USER') {
-            checkAllPermissions().then((permissionsGranted) => {
-              setPermissionsGranted(permissionsGranted);
-              if (permissionsGranted) {
-                navigateToAppropriateStack();
-              }
-            });
-          } else {
-            console.log('Unrecognized role, handling silently.');
+          try {
+            // Save token immediately
+            await AsyncStorage.setItem('authToken', token);
+
+            // Save role if available, or wait for it in the effect
+            if (userRole) {
+              await AsyncStorage.setItem('userRole', userRole);
+              console.log('Role saved to AsyncStorage:', userRole);
+            } else {
+              console.log('Role not available immediately. Waiting for it...');
+            }
+
+            // Navigate based on role
+            if (userRole === 'ARTIST') {
+              navigation.navigate('ArtistStack');
+            } else if (userRole === 'USER') {
+              navigation.navigate('FanStack');
+            } else {
+              console.log('Unexpected userRole:', userRole);
+            }
+          } catch (error) {
+            console.error('Error saving login state to AsyncStorage:', error);
           }
         },
         onError: (error) => {
           setIsLoading(false);
+          console.error('Login failed:', error);
+          Alert.alert('Error', 'Login failed. Please try again.');
         },
       }
     );
   };
+
+
 
   return (
     <SafeAreaView style={styles.container}>

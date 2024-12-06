@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   Alert,
   Image,
   SafeAreaView,
@@ -13,7 +12,6 @@ import {
   Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import AntDesign from 'react-native-vector-icons/AntDesign';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
@@ -30,6 +28,9 @@ import { uploadImageToBucket } from '../../utils';
 import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotificationsAndLocation';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import useFetchUser from '../../assets/hooks/useFetchUser';
+
 
 const Tab = createBottomTabNavigator();
 
@@ -40,15 +41,38 @@ const HHomePage = () => {
   const [postType, setPostType] = useState('INVITE_PHOTO');
   const [scaleValue] = useState(new Animated.Value(1));
 
-
+  const { mutate: fetchUser } = useFetchUser();
   const navigation = useNavigation();
   const route = useRoute();
-  const accessToken = useSelector(state => state.accessToken);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const accessToken = await AsyncStorage.getItem('authToken');
+        if (accessToken) {
+          console.log('Access token:', accessToken);
+          fetchUser(); // Fetch user data
+        } else {
+          console.error('No access token found in AsyncStorage.');
+        }
+      } catch (error) {
+        console.error('Error fetching access token:', error);
+      }
+    };
+
+    fetchUserData();
+  }, [fetchUser]); // Include `fetchUser` in the dependency array
+
+  useEffect(() => {
+    console.log('UserProfile from Redux:', userProfile);
+  }, [userProfile]);
 
   const userProfile = useSelector(state => state.userProfile) || {
     username: 'unknown',
     fullName: 'Unknown User',
   };
+
+  const accessToken = useSelector(state => state.accessToken)
 
   useEffect(() => {
     console.log('UserProfile from Redux:', userProfile);
@@ -61,13 +85,6 @@ const HHomePage = () => {
       setSelectedImage(route.params.editedImage);
     }
   }, [route.params?.editedImage]);
-
-
-  const geolocationData = useSelector(state => state.geolocationData) || {
-    latitude: 0.0,
-    longitude: 0.0,
-    geohash: 'abc123',
-  };
 
   const options = {
     mediaType: 'photo',
