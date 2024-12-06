@@ -10,6 +10,7 @@ import {
   Switch,
   ScrollView,
   Animated,
+  ActivityIndicator
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
@@ -44,6 +45,7 @@ const HHomePage = () => {
   const { mutate: fetchUser } = useFetchUser();
   const navigation = useNavigation();
   const route = useRoute();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -176,12 +178,16 @@ const HHomePage = () => {
   };
 
   const createPost = async () => {
+    setIsLoading(true);
+
     // Animate the send button for visual feedback
     animateButton();
 
     // Validate selected image for the 'INVITE_PHOTO' post type
     if (postType === 'INVITE_PHOTO' && !selectedImage) {
+      
       Alert.alert('Warning', 'You must select a photo when choosing "Invite + Photo."');
+      setIsLoading(false);
       return;
     }
 
@@ -242,6 +248,7 @@ const HHomePage = () => {
           console.log("API response received:", jsonResponse);
 
           if (response.ok) {
+            setIsLoading(false);
             const newPostId = jsonResponse.data?.id; // Extract the new post ID
             Alert.alert('Success', 'Post created successfully!');
             console.log("Post created successfully!");
@@ -259,6 +266,7 @@ const HHomePage = () => {
             Alert.alert('Error', `Failed to create post: ${jsonResponse.message || 'Unknown error'}`);
           }
         } catch (error) {
+          setIsLoading(false);
           console.error("Error during post creation:", error);
           Alert.alert('Error', 'An error occurred while creating the post.');
         }
@@ -266,6 +274,7 @@ const HHomePage = () => {
       (error) => {
         console.error("Error getting location:", error);
         Alert.alert('Error', 'Failed to get your location. Please enable location services.');
+        setIsLoading(false);
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
@@ -416,19 +425,24 @@ const HHomePage = () => {
               </View>
 
               <View style={styles.sendButtonContainer}>
-                <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
-                  <LinearGradient
-                    colors={['#00E5FF', '#D500F9']}
-                    style={styles.sendButtonGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    <TouchableOpacity style={styles.sendButton} onPress={createPost}>
-                      <Text style={styles.sendButtonText}>Send Invite</Text>
-                    </TouchableOpacity>
-                  </LinearGradient>
-                </Animated.View>
-              </View>
+  <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+    <LinearGradient
+      colors={['#00E5FF', '#D500F9']}
+      style={styles.sendButtonGradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+    >
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#FFF" />
+      ) : (
+        <TouchableOpacity style={styles.sendButton} onPress={createPost}>
+          <Text style={styles.sendButtonText}>Send Invite</Text>
+        </TouchableOpacity>
+      )}
+    </LinearGradient>
+  </Animated.View>
+</View>
+
 
             </ScrollView>
           </SafeAreaView>
