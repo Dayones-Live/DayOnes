@@ -11,6 +11,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
+import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
@@ -50,6 +51,10 @@ const LoginScreen = () => {
       console.log('Error checking permissions:', error);
       return false;
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible((prev) => !prev);
   };
 
   useEffect(() => {
