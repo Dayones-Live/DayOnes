@@ -13,8 +13,9 @@ import ImageViewing from 'react-native-image-viewing';
 import { uploadImageToBucket } from '../../utils';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {  launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { TouchableWithoutFeedback } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 
 const MAX_COMMENT_LENGTH = 200;
@@ -37,125 +38,126 @@ const DMDetailPage = ({ route }) => {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportDescription, setReportDescription] = useState("");
   const [reportCommentModalVisible, setReportCommentModalVisible] = useState(false);
-const [reportedCommentId, setReportedCommentId] = useState(null);
-const [commentReportDescription, setCommentReportDescription] = useState("");
-const [commentIcons, setCommentIcons] = useState({});
-const [openCommentMenuId, setOpenCommentMenuId] = useState(null);
-const [activeCommentMenu, setActiveCommentMenu] = useState(null);
+  const [reportedCommentId, setReportedCommentId] = useState(null);
+  const [commentReportDescription, setCommentReportDescription] = useState("");
+  const [commentIcons, setCommentIcons] = useState({});
+  const [openCommentMenuId, setOpenCommentMenuId] = useState(null);
+  const [activeCommentMenu, setActiveCommentMenu] = useState(null);
+  const navigation = useNavigation();
 
-// Function to open the menu and set text specific to the comment
-const openCommentMenu = (commentId, text) => {
-  setActiveCommentMenu(commentId);
-  setCommentText((prev) => ({
-    ...prev,
-    [commentId]: text, // Assign text or actions to the specific comment
-  }));
-};
-
-
-
-
-const openReportCommentModal = (commentId) => {
-  setReportedCommentId(commentId);
-  setCommentReportDescription(""); // Clear previous input
-  setReportCommentModalVisible(true);
-};
-
-const closeReportCommentModal = () => {
-  setReportedCommentId(null);
-  setCommentReportDescription("");
-  setReportCommentModalVisible(false);
-};
-
-const handleBlockUser = (userId) => {
-  Alert.alert(
-    "Block User",
-    "Are you sure you want to block this user? Blocking will prevent you from viewing their past posts, including this one, and interacting with any future content they create. ",
-    [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Block",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const response = await axios.post(
-              `${BASEURL}/api/v1/blocks`,
-              { blockedUser: userId },
-              { headers: { Authorization: `Bearer ${accessToken}` } }
-            );
-
-            if (response.status === 200 || response.status === 201) {
-              Alert.alert("Success", "The user has been blocked.");
-            } else {
-              Alert.alert("Error", "Failed to block the user.");
-            }
-          } catch (error) {
-            console.error("Error blocking user:", error);
-            Alert.alert("Error", "An error occurred while blocking the user.");
-          }
-        },
-      },
-    ]
-  );
-};
-
-
-const submitCommentReport = async () => {
-  if (!commentReportDescription.trim()) {
-    Alert.alert("Error", "Please provide a reason for reporting the comment.");
-    return;
-  }
-
-  // Prepare the payload
-  const reportPayload = {
-    description: commentReportDescription.trim(),
-    reportedCommentId: reportedCommentId,
+  // Function to open the menu and set text specific to the comment
+  const openCommentMenu = (commentId, text) => {
+    setActiveCommentMenu(commentId);
+    setCommentText((prev) => ({
+      ...prev,
+      [commentId]: text, // Assign text or actions to the specific comment
+    }));
   };
 
-  // Log the payload
-  console.log("Comment Report API Payload:", reportPayload);
 
-  try {
-    const response = await axios.post(
-      `${BASEURL}/api/v1/report`,
-      reportPayload,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+
+
+  const openReportCommentModal = (commentId) => {
+    setReportedCommentId(commentId);
+    setCommentReportDescription(""); // Clear previous input
+    setReportCommentModalVisible(true);
+  };
+
+  const closeReportCommentModal = () => {
+    setReportedCommentId(null);
+    setCommentReportDescription("");
+    setReportCommentModalVisible(false);
+  };
+
+  const handleBlockUser = (userId) => {
+    Alert.alert(
+      "Block User",
+      "Are you sure you want to block this user? Blocking will prevent you from viewing their past posts, including this one, and interacting with any future content they create. ",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await axios.post(
+                `${BASEURL}/api/v1/blocks`,
+                { blockedUser: userId },
+                { headers: { Authorization: `Bearer ${accessToken}` } }
+              );
+
+              if (response.status === 200 || response.status === 201) {
+                Alert.alert("Success", "The user has been blocked.");
+              } else {
+                Alert.alert("Error", "Failed to block the user.");
+              }
+            } catch (error) {
+              console.error("Error blocking user:", error);
+              Alert.alert("Error", "An error occurred while blocking the user.");
+            }
+          },
+        },
+      ]
     );
+  };
 
-    // Log the response
-    console.log("Comment Report API Response:", response);
 
-    if (response.status === 200 || response.status === 201) {
-      Alert.alert("Success", "The comment has been reported successfully.");
-      closeReportCommentModal();
-    } else {
-      Alert.alert("Error", "Failed to report the comment.");
+  const submitCommentReport = async () => {
+    if (!commentReportDescription.trim()) {
+      Alert.alert("Error", "Please provide a reason for reporting the comment.");
+      return;
     }
-  } catch (error) {
-    console.error("Error reporting comment:", error);
-    Alert.alert("Error", "An unexpected error occurred while reporting the comment.");
-  }
-};
+
+    // Prepare the payload
+    const reportPayload = {
+      description: commentReportDescription.trim(),
+      reportedCommentId: reportedCommentId,
+    };
+
+    // Log the payload
+    console.log("Comment Report API Payload:", reportPayload);
+
+    try {
+      const response = await axios.post(
+        `${BASEURL}/api/v1/report`,
+        reportPayload,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      // Log the response
+      console.log("Comment Report API Response:", response);
+
+      if (response.status === 200 || response.status === 201) {
+        Alert.alert("Success", "The comment has been reported successfully.");
+        closeReportCommentModal();
+      } else {
+        Alert.alert("Error", "Failed to report the comment.");
+      }
+    } catch (error) {
+      console.error("Error reporting comment:", error);
+      Alert.alert("Error", "An unexpected error occurred while reporting the comment.");
+    }
+  };
 
 
   const openReportModal = () => {
     setReportModalVisible(true);
   };
-  
+
   const closeReportModal = () => {
     setReportDescription("");
     setReportModalVisible(false);
   };
-  
+
   const submitReport = async () => {
     if (!reportDescription.trim()) {
       Alert.alert("Error", "Please provide a reason for reporting the post.");
       return;
     }
-  
+
     try {
       console.log("Submitting report for post ID:", postId);
-  
+
       const response = await axios.post(
         `${BASEURL}/api/v1/report`,
         {
@@ -166,9 +168,9 @@ const submitCommentReport = async () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-  
+
       console.log("Report API Response:", response);
-  
+
       if (response.status === 200 || response.status === 201) {
         // Use a user-friendly success message
         Alert.alert("Success", "Your report has been submitted successfully. Thank you!");
@@ -190,8 +192,8 @@ const submitCommentReport = async () => {
       }
     }
   };
-  
-  
+
+
 
 
   const toggleMenu = () => {
@@ -206,7 +208,7 @@ const submitCommentReport = async () => {
   const reportPost = async () => {
     try {
       console.log("Attempting to report the post with ID:", postId);
-  
+
       const response = await axios.post(
         `${BASEURL}/api/v1/report`,
         {
@@ -217,9 +219,9 @@ const submitCommentReport = async () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-  
+
       console.log("API Response:", response);
-  
+
       if (response.status === 200 || response.status === 201) {
         Alert.alert("Success", "The post has been reported.");
       } else {
@@ -236,8 +238,8 @@ const submitCommentReport = async () => {
       Alert.alert("Error", "An unexpected error occurred while reporting the post.");
     }
   };
-  
-  
+
+
 
   const fetchPostDetails = async () => {
     try {
@@ -321,10 +323,6 @@ const submitCommentReport = async () => {
     });
   };
 
-  
-
-
-
   const toggleLike = async () => {
     try {
       if (!liked) {
@@ -351,7 +349,6 @@ const submitCommentReport = async () => {
       Alert.alert("Error", "An unexpected error occurred.");
     }
   };
-
 
   const addComment = async () => {
     if (!commentText.trim() && !selectedMedia) {
@@ -401,8 +398,6 @@ const submitCommentReport = async () => {
       Alert.alert('Error', 'Failed to add comment.');
     }
   };
-
-
 
   const likeComment = async (commentId) => {
     if (!commentId) {
@@ -458,194 +453,192 @@ const submitCommentReport = async () => {
           extraScrollHeight={80}
         >
           {post.user && post.user.avatar_url && (
-  <View style={styles.userInfoContainer}>
-    <Image source={{ uri: post.user.avatar_url }} style={styles.userAvatar} />
-    <Text style={styles.userName}>{post.user.full_name}</Text>
+            <View style={styles.headerContainer}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color="white" />
+              </TouchableOpacity>
+              <Image source={{ uri: post.user.avatar_url }} style={styles.userAvatar} />
+              <Text style={styles.userName}>{post.user.full_name}</Text>
+              <TouchableOpacity onPress={toggleMenu}>
+                <Entypo name="dots-three-horizontal" size={30} color="white" style={styles.menuIcon} />
+              </TouchableOpacity>
+            </View>
 
-    <TouchableOpacity onPress={toggleMenu}>
-      <Entypo
-        name="dots-three-horizontal"
-        size={30}
-        color="white"
-        style={styles.menuIcon}
-      />
-    </TouchableOpacity>
-  </View>
-)}
+          )}
 
-{post.message && (
-  <View style={styles.postMessageContainer}>
-    <Text style={styles.postMessageText}>{post.message}</Text>
-  </View>
-)}
+          {post.message && (
+            <View style={styles.postMessageContainer}>
+              <Text style={styles.postMessageText}>{post.message}</Text>
+            </View>
+          )}
 
 
 
-  
-{menuVisible && (
-  <Modal
-    transparent={true}
-    animationType="fade"
-    visible={menuVisible}
-    onRequestClose={toggleMenu}
-  >
-    <TouchableWithoutFeedback onPress={toggleMenu}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.menuContainer}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              toggleMenu();
-              openReportModal(); // Open the report modal
-            }}
-          >
-            <Ionicons name="warning-outline" size={24} color="red" />
-            <Text style={styles.menuText}>Flag Post</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              toggleMenu();
-              handleBlockUser(post.user?.id); // Block the post creator
-            }}
-          >
-            <Ionicons name="ban" size={24} color="red" />
-            <Text style={styles.menuText}>Block User</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </TouchableWithoutFeedback>
-  </Modal>
-)}
+
+          {menuVisible && (
+            <Modal
+              transparent={true}
+              animationType="fade"
+              visible={menuVisible}
+              onRequestClose={toggleMenu}
+            >
+              <TouchableWithoutFeedback onPress={toggleMenu}>
+                <View style={styles.modalOverlay}>
+                  <View style={styles.menuContainer}>
+                    <TouchableOpacity
+                      style={styles.menuItem}
+                      onPress={() => {
+                        toggleMenu();
+                        openReportModal(); // Open the report modal
+                      }}
+                    >
+                      <Ionicons name="warning-outline" size={24} color="red" />
+                      <Text style={styles.menuText}>Flag Post</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.menuItem}
+                      onPress={() => {
+                        toggleMenu();
+                        handleBlockUser(post.user?.id); // Block the post creator
+                      }}
+                    >
+                      <Ionicons name="ban" size={24} color="red" />
+                      <Text style={styles.menuText}>Block User</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
+          )}
 
 
-  
+
           {post.image_url && (
             <TouchableOpacity onPress={() => openImageViewer(post.image_url)}>
               <Image source={{ uri: post.image_url }} style={styles.postImage} />
             </TouchableOpacity>
           )}
-  
+
           <View style={styles.interactionContainer}>
             <TouchableOpacity onPress={toggleLike}>
               <EvilIcons name="heart" size={30} color={liked ? "#FF0000" : "#FFFFFF"} />
             </TouchableOpacity>
           </View>
-  
+
           <View style={styles.commentsContainer}>
-          {post.artistComments
-  .map((comment) => ({ ...comment, isArtistComment: true }))
-  .concat(post.comments, post.artistReplies)
-  .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-  .map((comment, index) => (
-    <View
-      key={index}
-      style={[
-        styles.commentCard,
-        comment.isArtistComment
-          ? styles.artistCommentContainer
-          : styles.fanCommentContainer,
-        { alignSelf: comment.isArtistComment ? "flex-start" : "flex-end" },
-      ]}
-    >
-      {comment.user && comment.user.avatar_url && (
-        <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
-      )}
-      <View style={styles.commentTextContainer}>
-        <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
-        <Text style={styles.commentText}>{comment.message}</Text>
+            {post.artistComments
+              .map((comment) => ({ ...comment, isArtistComment: true }))
+              .concat(post.comments, post.artistReplies)
+              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+              .map((comment, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.commentCard,
+                    comment.isArtistComment
+                      ? styles.artistCommentContainer
+                      : styles.fanCommentContainer,
+                    { alignSelf: comment.isArtistComment ? "flex-start" : "flex-end" },
+                  ]}
+                >
+                  {comment.user && comment.user.avatar_url && (
+                    <Image source={{ uri: comment.user.avatar_url }} style={styles.avatar} />
+                  )}
+                  <View style={styles.commentTextContainer}>
+                    <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
+                    <Text style={styles.commentText}>{comment.message}</Text>
 
-        {comment.media_type === "PHOTO" && comment.url && (
-          <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
-            <Image source={{ uri: comment.url }} style={styles.largeMedia} />
-          </TouchableOpacity>
-        )}
-        {comment.media_type === "VIDEO" && comment.url && (
-          <Video
-            source={{ uri: comment.url }}
-            style={styles.largeMedia}
-            resizeMode="contain"
-            paused={true}
-            controls
-          />
-        )}
-      </View>
+                    {comment.media_type === "PHOTO" && comment.url && (
+                      <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
+                        <Image source={{ uri: comment.url }} style={styles.largeMedia} />
+                      </TouchableOpacity>
+                    )}
+                    {comment.media_type === "VIDEO" && comment.url && (
+                      <Video
+                        source={{ uri: comment.url }}
+                        style={styles.largeMedia}
+                        resizeMode="contain"
+                        paused={true}
+                        controls
+                      />
+                    )}
+                  </View>
 
-      {/* Actions */}
-      <View style={styles.commentActions}>
-        {(comment.isArtistComment || likedComments.includes(comment.id)) && (
-          <TouchableOpacity
-            onPress={() =>
-              likedComments.includes(comment.id)
-                ? dislikeComment(comment.id)
-                : likeComment(comment.id)
-            }
-            style={styles.heartIconOutside}
-          >
-            <EvilIcons
-              name="heart"
-              size={28}
-              color={likedComments.includes(comment.id) ? "#FF0000" : "#FFFFFF"}
-            />
-          </TouchableOpacity>
-        )}
+                  {/* Actions */}
+                  <View style={styles.commentActions}>
+                    {(comment.isArtistComment || likedComments.includes(comment.id)) && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          likedComments.includes(comment.id)
+                            ? dislikeComment(comment.id)
+                            : likeComment(comment.id)
+                        }
+                        style={styles.heartIconOutside}
+                      >
+                        <EvilIcons
+                          name="heart"
+                          size={28}
+                          color={likedComments.includes(comment.id) ? "#FF0000" : "#FFFFFF"}
+                        />
+                      </TouchableOpacity>
+                    )}
 
-        {comment.isArtistComment && (
-          <>
-            <TouchableOpacity
-              onPress={() => setActiveCommentMenu(comment.id)}
-              style={styles.reportButton}
-            >
-              <Entypo name="dots-three-horizontal" size={24} color="#FFF" />
-            </TouchableOpacity>
+                    {comment.isArtistComment && (
+                      <>
+                        <TouchableOpacity
+                          onPress={() => setActiveCommentMenu(comment.id)}
+                          style={styles.reportButton}
+                        >
+                          <Entypo name="dots-three-horizontal" size={24} color="#FFF" />
+                        </TouchableOpacity>
 
-            {activeCommentMenu === comment.id && (
-  <Modal
-    transparent={true}
-    animationType="fade"
-    visible={activeCommentMenu === comment.id}
-    onRequestClose={() => setActiveCommentMenu(null)}
-  >
-    <TouchableWithoutFeedback onPress={() => setActiveCommentMenu(null)}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.menuContainer}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              setActiveCommentMenu(null); // Close menu
-              openReportCommentModal(comment.id); // Open report modal
-            }}
-          >
-            <Ionicons name="warning-outline" size={24} color="red" />
-            <Text style={styles.menuText}>Flag Comment</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              setActiveCommentMenu(null); // Close menu
-              handleBlockUser(comment.user?.id); // Block the comment author
-            }}
-          >
-            <Ionicons name="ban" size={24} color="red" />
-            <Text style={styles.menuText}>Block User</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </TouchableWithoutFeedback>
-  </Modal>
-)}
+                        {activeCommentMenu === comment.id && (
+                          <Modal
+                            transparent={true}
+                            animationType="fade"
+                            visible={activeCommentMenu === comment.id}
+                            onRequestClose={() => setActiveCommentMenu(null)}
+                          >
+                            <TouchableWithoutFeedback onPress={() => setActiveCommentMenu(null)}>
+                              <View style={styles.modalOverlay}>
+                                <View style={styles.menuContainer}>
+                                  <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => {
+                                      setActiveCommentMenu(null); // Close menu
+                                      openReportCommentModal(comment.id); // Open report modal
+                                    }}
+                                  >
+                                    <Ionicons name="warning-outline" size={24} color="red" />
+                                    <Text style={styles.menuText}>Flag Comment</Text>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => {
+                                      setActiveCommentMenu(null); // Close menu
+                                      handleBlockUser(comment.user?.id); // Block the comment author
+                                    }}
+                                  >
+                                    <Ionicons name="ban" size={24} color="red" />
+                                    <Text style={styles.menuText}>Block User</Text>
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                            </TouchableWithoutFeedback>
+                          </Modal>
+                        )}
 
-          </>
-        )}
-      </View>
-    </View>
-  ))}
+                      </>
+                    )}
+                  </View>
+                </View>
+              ))}
 
 
-</View>
+          </View>
 
         </KeyboardAwareScrollView>
-  
+
         <View style={styles.commentInputContainer}>
           {selectedMedia && (
             <View style={styles.previewContainer}>
@@ -667,7 +660,7 @@ const submitCommentReport = async () => {
               </TouchableOpacity>
             </View>
           )}
-  
+
           <TextInput
             style={styles.commentInput}
             placeholder="Write a comment..."
@@ -676,7 +669,7 @@ const submitCommentReport = async () => {
             onChangeText={(text) => setCommentText(text.slice(0, MAX_COMMENT_LENGTH))}
             multiline
           />
-  
+
           <TouchableOpacity onPress={handleSelectMedia} style={styles.icon}>
             <Icon name="image" size={24} color="#888" />
           </TouchableOpacity>
@@ -691,14 +684,14 @@ const submitCommentReport = async () => {
             <EvilIcons name="sc-telegram" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-  
+
         <ImageViewing
           images={[{ uri: selectedImageUri }]}
           imageIndex={0}
           visible={isImageViewerVisible}
           onRequestClose={() => setIsImageViewerVisible(false)}
         />
-  
+
         <Modal
           visible={reportModalVisible}
           transparent={true}
@@ -728,38 +721,38 @@ const submitCommentReport = async () => {
           </View>
         </Modal>
         <Modal
-  visible={reportCommentModalVisible}
-  transparent={true}
-  animationType="slide"
-  onRequestClose={closeReportCommentModal}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.reportModal}>
-      <Text style={styles.modalTitle}>Report Comment</Text>
-      <TextInput
-        style={styles.descriptionInput}
-        placeholder="Why are you reporting this comment?"
-        placeholderTextColor="#aaa"
-        multiline
-        value={commentReportDescription}
-        onChangeText={(text) => setCommentReportDescription(text)}
-      />
-      <View style={styles.modalButtons}>
-        <TouchableOpacity style={styles.cancelButton} onPress={closeReportCommentModal}>
-          <Text style={styles.buttonText}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.submitButton} onPress={submitCommentReport}>
-          <Text style={styles.buttonText}>Submit</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-</Modal>
+          visible={reportCommentModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={closeReportCommentModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.reportModal}>
+              <Text style={styles.modalTitle}>Report Comment</Text>
+              <TextInput
+                style={styles.descriptionInput}
+                placeholder="Why are you reporting this comment?"
+                placeholderTextColor="#aaa"
+                multiline
+                value={commentReportDescription}
+                onChangeText={(text) => setCommentReportDescription(text)}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.cancelButton} onPress={closeReportCommentModal}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.submitButton} onPress={submitCommentReport}>
+                  <Text style={styles.buttonText}>Submit</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
-  
+
 
 };
 
@@ -786,18 +779,23 @@ const styles = StyleSheet.create({
   commentInput: { flex: 1, color: '#ffffff', paddingHorizontal: 15, paddingVertical: 10, borderWidth: 1, borderColor: '#555', borderRadius: 25, backgroundColor: 'rgba(51, 51, 51, 0.6)', fontSize: 16 },
   characterCounter: { color: '#aaa', marginLeft: 10, fontSize: 12 },
   sendButton: { marginLeft: 10, padding: 10, borderRadius: 25, backgroundColor: '#FF0080' },
-  icon: { marginLeft: 10, padding: 10, borderRadius: 25,  },
+  icon: { marginLeft: 10, padding: 10, borderRadius: 25, },
   warning: { right: "-100%", alignItems: 'flex-end', marginRight: '30%' },
   menuIcon: {
     marginLeft: '50%',
   },
-
-
-
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  backButton: {
+    marginRight: 10,
+    padding: 5,
+  },
   menuContainer: {
     backgroundColor: 'black',
     borderRadius: 10,
-    
     width: 140,
     alignItems: 'flex-start',
     marginBottom: '100%',
@@ -808,31 +806,30 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-    right:"50%",
-    
+    right: "50%",
+
   },
   reportButton: {
     marginLeft: 10,
     padding: 5,
   },
-  
+
   commentActions: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 10,
   },
-  
+
 
   menuText: {
     marginLeft: 11,
     fontSize: 16,
     color: '#FFF',
-    
+
   },
   previewContainer: {
     position: 'relative',
@@ -860,9 +857,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    bottom:"5%",
+    bottom: "5%",
     backgroundColor: "rgba(0, 0, 0, .96)", // Dimmed background
-    
+
   },
   reportModal: {
     backgroundColor: "#222", // Modal background
@@ -892,8 +889,8 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   modalTitle: {
-    bottom:"5%",
-    color:"#c0c0c0"
+    bottom: "5%",
+    color: "#c0c0c0"
   },
   cancelButton: {
     backgroundColor: "#555",
@@ -928,8 +925,8 @@ const styles = StyleSheet.create({
     marginBottom: 10, // Add spacing between the message and the image
     paddingHorizontal: 10, // Align text with the padding of other elements
   },
-  
-  
+
+
 
 
 });
