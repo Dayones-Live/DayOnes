@@ -326,7 +326,7 @@ const ProfileScreen = () => {
                     ? { uri: selectedImage }
                     : profile.data?.avatar_url
                       ? { uri: profile.data.avatar_url }
-                      : require('../assets/images/defaultProfileImage.png')
+                      : require('../assets/images/defaultProfileImage.jpg')
                 }
                 style={styles.profilePicture}
               />
@@ -436,7 +436,7 @@ const ProfileScreen = () => {
                         source={
                           item.blockedUser.avatar_url
                             ? { uri: item.blockedUser.avatar_url }
-                            : require('../assets/images/defaultProfileImage.png') // Default image if no avatar
+                            : require('../assets/images/defaultProfileImage.jpg') // Default image if no avatar
                         }
                         style={styles.blockedUserAvatar}
                       />

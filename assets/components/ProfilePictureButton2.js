@@ -16,7 +16,7 @@ const ProfilePictureButton = () => {
     <View style={styles.container}>
       <TouchableOpacity onPress={() => navigation.navigate('ProfileScreen')}>
         <Image
-          source={profile.avatar_url ? { uri: profile.avatar_url } : require('../images/defaultProfileImage.png')}
+          source={profile.avatar_url ? { uri: profile.avatar_url } : require('../images/defaultProfileImage.jpg')}
           style={styles.profilePicture}
         />
       </TouchableOpacity>
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     top: '6%',
-    marginBottom:"5%",
+    marginBottom: "5%",
     left: 20,
     zIndex: 1,
   },
