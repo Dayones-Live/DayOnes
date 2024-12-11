@@ -2,7 +2,7 @@
   "project_info": {
     "project_number": "308003099454",
     "project_id": "dayones-8d64e",
-    "storage_bucket": "dayones-8d64e.appspot.com"
+    "storage_bucket": "dayones-8d64e.firebasestorage.app"
   },
   "client": [
     {
@@ -10,6 +10,25 @@
         "mobilesdk_app_id": "1:308003099454:android:bb41abcbcf4e567e6f926f",
         "android_client_info": {
           "package_name": "com.dayones"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLmLhlQLIJHVlfHCGBwHfZoykk1-cLfYM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:308003099454:android:599778db004916d56f926f",
+        "android_client_info": {
+          "package_name": "com.dayoneslive"
         }
       },
       "oauth_client": [],

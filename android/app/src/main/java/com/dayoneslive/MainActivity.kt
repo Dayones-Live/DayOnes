@@ -1,4 +1,4 @@
-package com.dayones
+package com.dayoneslive
 
 import android.os.Bundle
 import com.facebook.react.ReactActivity

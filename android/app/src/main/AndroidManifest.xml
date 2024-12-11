@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.dayones">  <!-- Ensure this matches your actual package name -->
+    package="com.dayoneslive">  <!-- Ensure this matches your actual package name -->
 
     <!-- Permission for Internet access -->
     <uses-permission android:name="android.permission.INTERNET" />
