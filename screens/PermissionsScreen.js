@@ -38,7 +38,7 @@ const PermissionsScreen = () => {
 
   const permissionsInfo = {
     camera: 'Camera access is optional and used for uploading photos and videos.',
-    library: 'Photo Library access is optional and used to select images for your profile.',
+    library: 'Photo Library access is optional and used to select images for your profile. Scoped permissions for newer Android versions are supported.',
     notifications: 'Notifications are optional to keep you updated on app activities.',
     location: 'Location access is mandatory. It is used to let you access invites from artists and experience personalized, location-specific content.',
   };
@@ -68,8 +68,11 @@ const PermissionsScreen = () => {
       const library = await check(
         Platform.OS === 'ios'
           ? PERMISSIONS.IOS.PHOTO_LIBRARY
-          : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+          : Platform.Version >= 33
+            ? PERMISSIONS.ANDROID.READ_MEDIA_IMAGES // Scoped permissions for Android 13+
+            : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE // Fallback for older versions
       );
+
       const notifications = (await checkNotifications()).status;
       const location = await check(
         Platform.OS === 'ios'
@@ -182,9 +185,12 @@ const PermissionsScreen = () => {
                   requestPermission(
                     Platform.OS === 'ios'
                       ? PERMISSIONS.IOS.PHOTO_LIBRARY
-                      : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+                      : Platform.Version >= 33
+                        ? PERMISSIONS.ANDROID.READ_MEDIA_IMAGES
+                        : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
                     setLibraryPermission,
                   )
+
                 }
               />
               <PermissionItem

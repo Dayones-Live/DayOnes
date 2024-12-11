@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, SafeAreaView,ActivityIndicator } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
 import { uploadSignatureFile } from '../../utils';
+import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 
 const SignaturePage = () => {
   const navigation = useNavigation();
@@ -35,14 +36,23 @@ const SignaturePage = () => {
   };
 
   const uploadFile = () => {
-    launchImageLibrary(options, (response) => {
+    launchImageLibrary(options, async (response) => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorMessage) {
         console.error('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
-        setSelectedImage(response.assets[0]);
-        console.log('Selected image:', response.assets[0]);
+        const selectedImage = response.assets[0];
+        try {
+          const fileUri = Platform.OS === 'android' && selectedImage.uri.startsWith('content://')
+            ? await convertToTemporaryFile(selectedImage.uri, 'png')
+            : selectedImage.uri;
+
+          setSelectedImage({ ...selectedImage, uri: fileUri });
+          console.log('Selected image:', { ...selectedImage, uri: fileUri });
+        } catch (error) {
+          console.error('Error handling selected file:', error);
+        }
       }
     });
   };
@@ -52,7 +62,7 @@ const SignaturePage = () => {
       Alert.alert("Please take a picture or upload a file.");
       return;
     }
-  
+
     setIsLoading(true); // Show loading indicator
     try {
       const s3Url = await uploadSignatureFile(accessToken, selectedImage.uri);
@@ -61,9 +71,9 @@ const SignaturePage = () => {
         'Content-Type': 'application/x-www-form-urlencoded',
         Authorization: `Bearer ${accessToken}`,
       };
-  
+
       const response = await axios.post(`${BASEURL}/api/v1/signature/create`, payload, { headers });
-  
+
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Success', 'Signature created successfully!');
       } else {
@@ -76,7 +86,7 @@ const SignaturePage = () => {
       setIsLoading(false); // Hide loading indicator
     }
   };
-  
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -118,11 +128,11 @@ const SignaturePage = () => {
       </View>
 
       {isLoading && (
-  <View style={styles.loadingOverlay}>
-    <ActivityIndicator size="large" color="#D500F9" />
-    <Text style={styles.loadingText}>Creating signature...</Text>
-  </View>
-)}
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#D500F9" />
+          <Text style={styles.loadingText}>Creating signature...</Text>
+        </View>
+      )}
 
 
       {selectedImage && (
@@ -243,7 +253,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
   },
-  
+
 });
 
 export default SignaturePage;

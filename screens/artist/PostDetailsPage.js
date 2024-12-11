@@ -26,6 +26,7 @@ import { uploadImageToBucket } from '../../utils';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
 import Video from 'react-native-video';
 import ImageViewing from 'react-native-image-viewing';
+import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 
 const PostDetailPage = () => {
   const [post, setPost] = useState(null);
@@ -177,11 +178,16 @@ const PostDetailPage = () => {
 
   const handleMediaUpload = async (uri) => {
     try {
+      // Use the helper function for Android scoped storage compatibility
+      const filePath = Platform.OS === 'android' && uri.startsWith('content://')
+        ? await convertToTemporaryFile(uri, mediaType === 'PHOTO' ? 'jpg' : 'mp4')
+        : uri;
+
       let s3Url;
       if (mediaType === 'PHOTO') {
-        s3Url = await uploadImageToBucket(uri, 'message-media', accessToken);
+        s3Url = await uploadImageToBucket(filePath, 'message-media', accessToken);
       } else if (mediaType === 'VIDEO') {
-        s3Url = await uploadVideoToBucket(uri, 'message-media', accessToken);
+        s3Url = await uploadVideoToBucket(filePath, 'message-media', accessToken);
       }
       return s3Url;
     } catch (error) {
@@ -192,11 +198,25 @@ const PostDetailPage = () => {
   };
 
   const handleSelectMedia = () => {
-    launchImageLibrary({ mediaType: 'mixed' }, (response) => {
+    launchImageLibrary({ mediaType: 'mixed' }, async (response) => {
       if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
-        setSelectedImage(asset.uri);
-        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
+        let mediaUri = asset.uri;
+
+        try {
+          // Use the helper function for scoped storage if needed
+          if (Platform.OS === 'android' && mediaUri.startsWith('content://')) {
+            mediaUri = await convertToTemporaryFile(
+              mediaUri,
+              asset.type.startsWith('image/') ? 'jpg' : 'mp4'
+            );
+          }
+
+          setSelectedImage(mediaUri);
+          setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
+        } catch (error) {
+          console.error('Error handling selected media:', error);
+        }
       }
     });
   };
@@ -250,7 +270,7 @@ const PostDetailPage = () => {
 
   const handleBlockUser = (commentId) => {
     let userToBlock = null;
-  
+
     // Search for the comment or reply in post.comments
     post.comments.forEach((comment) => {
       if (comment.id === commentId) {
@@ -264,7 +284,7 @@ const PostDetailPage = () => {
         }
       }
     });
-  
+
     // Search for the comment or reply in artistComments
     post.artistComments.forEach((artistComment) => {
       if (artistComment.id === commentId) {
@@ -278,13 +298,13 @@ const PostDetailPage = () => {
         }
       }
     });
-  
+
     if (!userToBlock) {
       console.error("User ID not found for the given comment/reply:", { commentId });
       Alert.alert("Error", "Unable to block the user. User information is missing.");
       return;
     }
-  
+
     Alert.alert(
       "Block User",
       "Are you sure you want to block this user?",
@@ -300,7 +320,7 @@ const PostDetailPage = () => {
                 { blockedUser: userToBlock },
                 { headers: { Authorization: `Bearer ${accessToken}` } }
               );
-  
+
               if (response.status === 200 || response.status === 201) {
                 Alert.alert("Success", "The user has been blocked.");
               } else {
@@ -315,15 +335,15 @@ const PostDetailPage = () => {
       ]
     );
   };
-  
 
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
 
   const likeComment = async (commentId) => {
     try {
@@ -474,7 +494,7 @@ const PostDetailPage = () => {
   const createOrNavigateConversation = async (userId) => {
     try {
       console.log('createOrNavigateConversation: Starting process for userId:', userId);
-  
+
       // Step 1: Attempt to block the user
       console.log('Attempting to block the user...');
       const blockResponse = await axios.post(
@@ -483,19 +503,19 @@ const PostDetailPage = () => {
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       console.log('Block response:', blockResponse.data);
-  
+
       console.log('Block succeeded, now attempting to unblock...');
       // Step 2: Immediately unblock the user
       const unblockResponse = await axios.delete(`${BASEURL}/api/v1/blocks/${userId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       console.log('Unblock response:', unblockResponse.data);
-  
+
       console.log('Proceeding to check for existing conversations...');
       // Step 3: Check if a conversation already exists
       const existingConversation = await checkForExistingConversation(userId);
       console.log('Existing conversation check:', existingConversation);
-  
+
       if (existingConversation) {
         console.log('Existing conversation found. Navigating to ConversationThread...');
         navigation.navigate('ConversationThread', { conversationId: existingConversation.id });
@@ -507,9 +527,9 @@ const PostDetailPage = () => {
           { recieverId: userId, lastMessage: 'Hello!' },
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
-  
+
         console.log('Create conversation response:', response.data);
-  
+
         const newConversationId = response.data?.data?.id;
         if (newConversationId) {
           console.log('New conversation created. Navigating to ConversationThread...');
@@ -521,7 +541,7 @@ const PostDetailPage = () => {
       }
     } catch (error) {
       console.error('Error in createOrNavigateConversation:', error.response?.data || error.message);
-  
+
       // Step 5: Handle block failure due to being blocked by the recipient
       if (
         error.response?.status === 400 &&
@@ -535,8 +555,8 @@ const PostDetailPage = () => {
       }
     }
   };
-  
-  
+
+
 
   if (loading) {
     return (
@@ -891,39 +911,39 @@ const PostDetailPage = () => {
       </Modal>
 
       {reportMenuVisible && (
-  <Modal
-    transparent={true}
-    animationType="fade"
-    visible={reportMenuVisible}
-    onRequestClose={closeReportMenu}
-  >
-    <TouchableOpacity
-      style={styles.reportMenuOverlay}
-      onPress={closeReportMenu}
-      activeOpacity={1}
-    >
-      <View style={styles.reportMenuContainer}>
-        {/* Report Comment */}
-        <TouchableOpacity
-          onPress={() => openReportModal(selectedCommentId)} // Pass the comment ID
-          style={styles.reportMenuItem}
+        <Modal
+          transparent={true}
+          animationType="fade"
+          visible={reportMenuVisible}
+          onRequestClose={closeReportMenu}
         >
-          <Icon name="flag" size={20} color="red" style={styles.reportMenuFlagIcon} />
-          <Text style={styles.reportMenuText}>Report Comment</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.reportMenuOverlay}
+            onPress={closeReportMenu}
+            activeOpacity={1}
+          >
+            <View style={styles.reportMenuContainer}>
+              {/* Report Comment */}
+              <TouchableOpacity
+                onPress={() => openReportModal(selectedCommentId)} // Pass the comment ID
+                style={styles.reportMenuItem}
+              >
+                <Icon name="flag" size={20} color="red" style={styles.reportMenuFlagIcon} />
+                <Text style={styles.reportMenuText}>Report Comment</Text>
+              </TouchableOpacity>
 
-        {/* Block User */}
-        <TouchableOpacity
-          onPress={() => handleBlockUser(selectedCommentId)} // Handle block user
-          style={styles.reportMenuItem}
-        >
-          <Icon name="ban" size={20} color="#ff4444" style={styles.reportMenuFlagIcon} />
-          <Text style={styles.reportMenuText}>Block User</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  </Modal>
-)}
+              {/* Block User */}
+              <TouchableOpacity
+                onPress={() => handleBlockUser(selectedCommentId)} // Handle block user
+                style={styles.reportMenuItem}
+              >
+                <Icon name="ban" size={20} color="#ff4444" style={styles.reportMenuFlagIcon} />
+                <Text style={styles.reportMenuText}>Block User</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
 
 
 
@@ -959,7 +979,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 6,
     elevation: 10,
-    bottom:"3.5%"
+    bottom: "3.5%"
   },
   reportModalTitle: {
     fontSize: 18,

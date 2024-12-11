@@ -11,6 +11,7 @@ import { uploadImageToBucket } from '../../utils';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Video from 'react-native-video';
+import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 
 
 const ArtistPostsPage = () => {
@@ -27,8 +28,6 @@ const ArtistPostsPage = () => {
   const navigation = useNavigation();
   const [mediaType, setMediaType] = useState(null);
   const [genericPostId, setGenericPostId] = useState(null);
-
-
 
 
   const fetchArtistPosts = async (pageNum = 1) => {
@@ -147,10 +146,17 @@ const ArtistPostsPage = () => {
 
 
   const uploadFile = () => {
-    launchImageLibrary({ mediaType: 'mixed' }, (response) => {
+    launchImageLibrary({ mediaType: 'mixed' }, async (response) => {
       if (!response.didCancel && !response.errorCode) {
-        const { uri, type } = response.assets[0];
-        setSelectedImage(uri.startsWith('file://') ? uri : `file://${uri}`);
+        const asset = response.assets[0];
+        const { uri, type } = asset;
+
+        // Handle Android scoped storage: Convert content URI to file path
+        const fileUri = uri.startsWith('content://')
+          ? await convertToTemporaryFile(uri, type.startsWith('image/') ? 'jpg' : 'mp4')
+          : uri;
+
+        setSelectedImage(fileUri.startsWith('file://') ? fileUri : `file://${fileUri}`);
         setMediaType(type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
       }
     });
@@ -239,6 +245,7 @@ const ArtistPostsPage = () => {
       Alert.alert('Error', `An error occurred: ${error.response?.data?.message || 'An error occurred'}`);
     }
   };
+
 
   const renderPostItem = (post, index) => {
     const postDate = new Date(post.created_at).toLocaleString();

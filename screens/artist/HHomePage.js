@@ -31,6 +31,7 @@ import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useFetchUser from '../../assets/hooks/useFetchUser';
+import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 
 
 const Tab = createBottomTabNavigator();
@@ -125,7 +126,14 @@ const HHomePage = () => {
 
   const uploadImageToS3 = async (imageUri) => {
     try {
-      const s3Url = await uploadImageToBucket(imageUri, 'posts', accessToken);
+      let filePath = imageUri;
+
+      // Use helper function for Android scoped storage
+      if (Platform.OS === 'android' && imageUri.startsWith('content://')) {
+        filePath = await convertToTemporaryFile(imageUri, 'jpg');
+      }
+
+      const s3Url = await uploadImageToBucket(filePath, 'posts', accessToken);
 
       if (!s3Url) {
         throw new Error('S3 URL is undefined or null');
@@ -142,20 +150,26 @@ const HHomePage = () => {
     }
   };
 
-
   const uploadFile = () => {
-    launchImageLibrary(options, response => {
+    launchImageLibrary(options, async (response) => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorMessage) {
         console.log('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         const uploadedImage = response.assets[0];
+
+        // Use helper function for Android scoped storage
+        if (Platform.OS === 'android' && uploadedImage.uri.startsWith('content://')) {
+          uploadedImage.uri = await convertToTemporaryFile(uploadedImage.uri, 'jpg');
+        }
+
         setSelectedImage(uploadedImage);
         navigation.navigate('EditScreen', { selectedImage: uploadedImage });
       }
     });
   };
+
 
   const clearSelectedImage = () => {
     setSelectedImage(null);
@@ -185,7 +199,7 @@ const HHomePage = () => {
 
     // Validate selected image for the 'INVITE_PHOTO' post type
     if (postType === 'INVITE_PHOTO' && !selectedImage) {
-      
+
       Alert.alert('Warning', 'You must select a photo when choosing "Invite + Photo."');
       setIsLoading(false);
       return;
@@ -425,23 +439,23 @@ const HHomePage = () => {
               </View>
 
               <View style={styles.sendButtonContainer}>
-  <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
-    <LinearGradient
-      colors={['#00E5FF', '#D500F9']}
-      style={styles.sendButtonGradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-    >
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#FFF" />
-      ) : (
-        <TouchableOpacity style={styles.sendButton} onPress={createPost}>
-          <Text style={styles.sendButtonText}>Send Invite</Text>
-        </TouchableOpacity>
-      )}
-    </LinearGradient>
-  </Animated.View>
-</View>
+                <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+                  <LinearGradient
+                    colors={['#00E5FF', '#D500F9']}
+                    style={styles.sendButtonGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator size="large" color="#FFF" />
+                    ) : (
+                      <TouchableOpacity style={styles.sendButton} onPress={createPost}>
+                        <Text style={styles.sendButtonText}>Send Invite</Text>
+                      </TouchableOpacity>
+                    )}
+                  </LinearGradient>
+                </Animated.View>
+              </View>
 
 
             </ScrollView>

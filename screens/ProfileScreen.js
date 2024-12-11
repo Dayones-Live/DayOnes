@@ -27,6 +27,7 @@ import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../utils';
 import { setAccessToken, setUserProfile } from '../assets/redux/actions'; // Adjust the path as needed
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { convertToTemporaryFile } from '../assets/components/convertToTemporaryFileHelper';
 
 const ProfileScreen = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -151,13 +152,47 @@ const ProfileScreen = () => {
 
   const handleImageUpload = async (imageUri) => {
     try {
-      const s3Url = await uploadImageToBucket(imageUri, 'profile-pictures', accessToken);
+      // Use the helper function for Android scoped storage compatibility
+      const filePath = Platform.OS === 'android' && imageUri.startsWith('content://')
+        ? await convertToTemporaryFile(imageUri, 'jpg')
+        : imageUri;
+
+      const s3Url = await uploadImageToBucket(filePath, 'profile-pictures', accessToken);
       setSelectedImage(s3Url);
       await updateProfilePicture(s3Url);
     } catch (error) {
       console.error('Failed to upload image:', error);
       Alert.alert('Error', 'Image upload failed. Please try again.');
     }
+  };
+
+  const handleUploadFile = () => {
+    launchImageLibrary(
+      { mediaType: 'photo', includeBase64: false },
+      async (response) => {
+        if (response.didCancel) {
+          console.log('User cancelled image picker');
+        } else if (response.errorMessage) {
+          console.error('ImagePicker Error:', response.errorMessage);
+        } else if (response.assets && response.assets.length > 0) {
+          const uploadedImage = response.assets[0];
+          let imageUri = uploadedImage.uri;
+
+          try {
+            // Use the helper function for scoped storage
+            if (Platform.OS === 'android' && imageUri.startsWith('content://')) {
+              imageUri = await convertToTemporaryFile(imageUri, 'jpg');
+            }
+
+            // Set the preview image and then upload
+            setSelectedImage(imageUri);
+            await handleImageUpload(imageUri);
+          } catch (error) {
+            console.error('Error uploading file:', error);
+          }
+        }
+      }
+    );
   };
 
   const handleTakePicture = () => {
@@ -174,19 +209,6 @@ const ProfileScreen = () => {
     });
   };
 
-  const handleUploadFile = () => {
-    launchImageLibrary({ mediaType: 'photo', includeBase64: false }, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorMessage) {
-        console.error('ImagePicker Error:', response.errorMessage);
-      } else if (response.assets && response.assets.length > 0) {
-        const uploadedImage = response.assets[0];
-        setSelectedImage(uploadedImage.uri);
-        handleImageUpload(uploadedImage.uri);
-      }
-    });
-  };
 
   const updateProfilePicture = async (avatarUrl) => {
     const url = `${BASEURL}/api/v1/user/update-user`;

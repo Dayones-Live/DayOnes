@@ -24,6 +24,8 @@ import { uploadVideoToBucket } from '../utils/videoUploadService';
 import Video from 'react-native-video';
 import { BASEURL } from '../assets/constants';
 import ImageViewing from 'react-native-image-viewing';
+import { convertToTemporaryFile } from '../assets/components/convertToTemporaryFileHelper';
+
 
 const formatTime = (date) => {
   const options = { hour: 'numeric', minute: 'numeric' };
@@ -105,12 +107,21 @@ const ConversationThread = () => {
 
   const handleMediaUpload = async (uri) => {
     try {
+      let filePath = uri;
+
+      // Use helper function for Android scoped storage
+      if (Platform.OS === 'android' && uri.startsWith('content://')) {
+        const extension = mediaType === 'PHOTO' ? 'jpg' : 'mp4';
+        filePath = await convertToTemporaryFile(uri, extension);
+      }
+
       let s3Url;
       if (mediaType === 'PHOTO') {
-        s3Url = await uploadImageToBucket(uri, 'message-media', accessToken);
+        s3Url = await uploadImageToBucket(filePath, 'message-media', accessToken);
       } else if (mediaType === 'VIDEO') {
-        s3Url = await uploadVideoToBucket(uri, 'message-media', accessToken);
+        s3Url = await uploadVideoToBucket(filePath, 'message-media', accessToken);
       }
+
       return s3Url;
     } catch (error) {
       console.error('Failed to upload media:', error);
@@ -119,15 +130,24 @@ const ConversationThread = () => {
     }
   };
 
-  const handleSelectMedia = () => {
-    launchImageLibrary({ mediaType: 'mixed' }, (response) => {
+  const handleSelectMedia = async () => {
+    launchImageLibrary({ mediaType: 'mixed' }, async (response) => {
       if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
-        setSelectedMedia(asset.uri);
+        let uri = asset.uri;
+
+        // Use helper function for Android scoped storage
+        if (Platform.OS === 'android' && uri.startsWith('content://')) {
+          const extension = asset.type.startsWith('image/') ? 'jpg' : 'mp4';
+          uri = await convertToTemporaryFile(uri, extension);
+        }
+
+        setSelectedMedia(uri);
         setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
       }
     });
   };
+
 
   const handleTakeMedia = () => {
     launchCamera({ mediaType: 'mixed' }, (response) => {
@@ -177,6 +197,7 @@ const ConversationThread = () => {
       setIsSending(false); // Re-enable the button
     }
   };
+
 
 
   const toggleMenu = () => {

@@ -16,6 +16,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { TouchableWithoutFeedback } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 
 
 const MAX_COMMENT_LENGTH = 200;
@@ -299,12 +300,18 @@ const DMDetailPage = ({ route }) => {
 
   const handleMediaUpload = async (uri) => {
     try {
+      // Ensure compliance with scoped storage
+      const filePath = uri.startsWith('content://')
+        ? await convertToTemporaryFile(uri, mediaType === 'PHOTO' ? 'jpg' : 'mp4')
+        : uri;
+
       let s3Url;
       if (mediaType === 'PHOTO') {
-        s3Url = await uploadImageToBucket(uri, 'message-media', accessToken);
+        s3Url = await uploadImageToBucket(filePath, 'message-media', accessToken);
       } else if (mediaType === 'VIDEO') {
-        s3Url = await uploadVideoToBucket(uri, 'message-media', accessToken);
+        s3Url = await uploadVideoToBucket(filePath, 'message-media', accessToken);
       }
+
       return s3Url;
     } catch (error) {
       console.error('Failed to upload media:', error);
@@ -314,11 +321,19 @@ const DMDetailPage = ({ route }) => {
   };
 
   const handleSelectMedia = () => {
-    launchImageLibrary({ mediaType: 'mixed' }, (response) => {
+    launchImageLibrary({ mediaType: 'mixed' }, async (response) => {
       if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
-        setSelectedMedia(asset.uri);
-        setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
+        const uri = asset.uri;
+
+        // Ensure media is ready for use
+        const mediaType = asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO';
+        const filePath = uri.startsWith('content://')
+          ? await convertToTemporaryFile(uri, mediaType === 'PHOTO' ? 'jpg' : 'mp4')
+          : uri;
+
+        setSelectedMedia(filePath);
+        setMediaType(mediaType);
       }
     });
   };
