@@ -119,7 +119,7 @@ const FHomePage = ({ navigation }) => {
         }
         return prevCountdown - 1;
       });
-    }, 5000); // Poll every 5 seconds
+    }, 1000); // Poll every 5 seconds
     setIntervalId(id);
     console.log('Polling started with interval ID:', id);
   };
