@@ -130,7 +130,7 @@ const SignaturePage = () => {
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#D500F9" />
-          <Text style={styles.loadingText}>Creating signature...</Text>
+          <Text style={styles.loadingText}>Creating signature... 'this may take 10-15 seconds' </Text>
         </View>
       )}
 
