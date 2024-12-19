@@ -27,14 +27,16 @@ const useNotifications = () => {
           throw new Error('No access token available');
         }
         const notificationList = await fetchNotifications(accessToken);
-        return notificationList;
+        return notificationList; // Assuming this returns the notifications data
       } catch (error) {
         console.error('Notification fetch error:', error);
         throw error;
       }
     },
   });
-  return response.data;
+
+  // Return the entire response object for use in components
+  return response;
 };
 
 export default useNotifications;

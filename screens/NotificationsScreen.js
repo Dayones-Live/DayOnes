@@ -13,6 +13,7 @@ import {useNavigation} from '@react-navigation/native'; // Navigation for Super 
 import ProfilePictureButton from '../assets/components/ProfilePictureButton';
 import useNotifications from '../assets/hooks/useNotifications';
 import {formatDate} from '../utils/dateFormat';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 const NotificationsScreen = () => {
   const {data, error, isLoading} = useNotifications();
@@ -42,7 +43,7 @@ const NotificationsScreen = () => {
       <ProfilePictureButton />
       <Text style={styles.text}>Notifications</Text>
       <FlatList
-        data={data?.data}
+        data={data?.data?.data}
         keyExtractor={item => item.id.toString()}
         renderItem={({item}) => (
           <View style={styles.itemContainer}>
@@ -50,8 +51,18 @@ const NotificationsScreen = () => {
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.date}>{formatDate(item.created_at)}</Text>
             </View>
-            <Text style={styles.message}>{item.message}</Text>
-            <Text style={styles.type}>{item.type}</Text>
+            <View style={styles.contentRow}>
+              <Text style={styles.message}>{item.message}</Text>
+              {item.type === 'reaction' && (
+                <FontAwesome name="heart" size={20} color="red" />
+              )}
+              {item.type === 'comments' && (
+                <FontAwesome name="comment" size={20} color="white" />
+              )}
+              {item.type === 'message' && (
+                <FontAwesome name="envelope" size={20} color="white" />
+              )}
+            </View>
           </View>
         )}
       />
@@ -83,6 +94,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 22,
   },
+  types: {
+    display: 'flex',
+  },
   itemText: {
     color: '#fff',
     fontSize: 18,
@@ -94,10 +108,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   itemContainer: {
-    padding: 16,
+    paddingTop: 8,
+    paddingHorizontal: 8,
     backgroundColor: '#1a1a1a',
-    marginVertical: 6,
-    marginHorizontal: 16,
+    marginVertical: 4,
+    marginHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#333',
@@ -106,11 +121,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+    width: '95%',
   },
   contentRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   title: {
     fontSize: 16,
@@ -125,6 +141,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#cccccc',
     marginBottom: 8,
+    width: '90%',
+    overflow: 'hidden',
   },
   type: {
     fontSize: 12,
