@@ -8,14 +8,16 @@ import {
   SafeAreaView,
   Button, // Import Button for navigation
 } from 'react-native';
-import { useSelector } from 'react-redux'; // To access user information from the store
-import { useNavigation } from '@react-navigation/native'; // Navigation for Super Admin button
-import useTodos from '../assets/hooks/useTodos'; // Adjust the path if necessary
+import {useSelector} from 'react-redux'; // To access user information from the store
+import {useNavigation} from '@react-navigation/native'; // Navigation for Super Admin button
 import ProfilePictureButton from '../assets/components/ProfilePictureButton';
+import useNotifications from '../assets/hooks/useNotifications';
+import {formatDate} from '../utils/dateFormat';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 const NotificationsScreen = () => {
-  const { data, error, isLoading } = useTodos();
-  const userProfile = useSelector((state) => state.userProfile); // Access user profile from Redux
+  const {data, error, isLoading} = useNotifications();
+  const userProfile = useSelector(state => state.userProfile); // Access user profile from Redux
   const userEmail = userProfile?.data?.email; // Extract email for role-based rendering
   const navigation = useNavigation(); // Initialize navigation
 
@@ -39,14 +41,28 @@ const NotificationsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ProfilePictureButton />
-
       <Text style={styles.text}>Notifications</Text>
       <FlatList
-        data={data}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
+        data={data?.data?.data}
+        keyExtractor={item => item.id.toString()}
+        renderItem={({item}) => (
           <View style={styles.itemContainer}>
-            <Text style={styles.itemText}>{item.title}</Text>
+            <View style={styles.contentRow}>
+              <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.date}>{formatDate(item.created_at)}</Text>
+            </View>
+            <View style={styles.contentRow}>
+              <Text style={styles.message}>{item.message}</Text>
+              {item.type === 'reaction' && (
+                <FontAwesome name="heart" size={20} color="red" />
+              )}
+              {item.type === 'comments' && (
+                <FontAwesome name="comment" size={20} color="white" />
+              )}
+              {item.type === 'message' && (
+                <FontAwesome name="envelope" size={20} color="white" />
+              )}
+            </View>
           </View>
         )}
       />
@@ -76,13 +92,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#fff',
     marginBottom: 20,
+    marginTop: 22,
   },
-  itemContainer: {
-    backgroundColor: '#1b1b1b',
-    padding: 15,
-    marginVertical: 8,
-    borderRadius: 10,
-    width: '90%',
+  types: {
+    display: 'flex',
   },
   itemText: {
     color: '#fff',
@@ -93,6 +106,48 @@ const styles = StyleSheet.create({
     color: '#00ff00',
     marginTop: 20,
     textAlign: 'center',
+  },
+  itemContainer: {
+    paddingTop: 8,
+    paddingHorizontal: 8,
+    backgroundColor: '#1a1a1a',
+    marginVertical: 4,
+    marginHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: '95%',
+  },
+  contentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  date: {
+    fontSize: 12,
+    color: '#888',
+  },
+  message: {
+    fontSize: 14,
+    color: '#cccccc',
+    marginBottom: 8,
+    width: '90%',
+    overflow: 'hidden',
+  },
+  type: {
+    fontSize: 12,
+    color: '#00b7ff',
+    textTransform: 'capitalize',
   },
 });
 
