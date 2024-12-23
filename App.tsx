@@ -25,7 +25,7 @@ import PostDetailPage from './screens/artist/PostDetailsPage';
 import VerifyAccount from './screens/VerifyAccount';
 import DayOnesScreen from './screens/fan/DayOnesScreen';
 import DMDetailPage from './screens/fan/DMDetailPage';
-import SuperAdminDashboard from './screens/superadmin/SuperAdminDashboard'; // Import the new screen
+import SuperAdminDashboard from './screens/superadmin/SuperAdminDashboard';
 import messaging from '@react-native-firebase/messaging';
 import {Alert} from 'react-native';
 
@@ -37,48 +37,42 @@ const App = () => {
 
   useEffect(() => {
     SplashScreen.hide();
+    getFCMToken(); // Fetch FCM token on app start
     checkAppSetupStatus();
   }, []);
 
-  // useEffect(() => {
-  //   // Listener for foreground messages
-  //   const unsubscribe = messaging().onMessage(async remoteMessage => {
-  //     // Display an alert with the notification title and body
-  //     Alert.alert(
-  //       'A New FCM Message Arrived!',
-  //       remoteMessage.notification?.body || 'No message body',
-  //     );
-  //   });
-
-  //   return unsubscribe; // Cleanup the listener on component unmount
-  // }, []);
+  // Function to get FCM token
+  const getFCMToken = async () => {
+    try {
+      const fcmToken = await messaging().getToken();
+      console.log('FCM Token:', fcmToken);
+      // Optionally store the token in AsyncStorage or send it to your backend
+      await AsyncStorage.setItem('fcmToken', fcmToken);
+    } catch (error) {
+      console.error('Error fetching FCM token:', error);
+    }
+  };
 
   const checkAppSetupStatus = async () => {
     try {
       const termsAccepted = await AsyncStorage.getItem('termsAccepted');
-      const permissionsGranted = await AsyncStorage.getItem(
-        'permissionsGranted',
-      );
+      const permissionsGranted = await AsyncStorage.getItem('permissionsGranted');
       const authToken = await AsyncStorage.getItem('authToken');
       const userRole = await AsyncStorage.getItem('userRole');
 
-      // Log AsyncStorage values for debugging
       console.log('termsAccepted:', termsAccepted);
       console.log('permissionsGranted:', permissionsGranted);
       console.log('authToken:', authToken);
       console.log('userRole:', userRole);
 
       if (authToken && userRole) {
-        // Check if the token is valid (example for JWT, adjust as needed)
-        const tokenPayload = JSON.parse(atob(authToken.split('.')[1])); // Decode JWT payload
+        const tokenPayload = JSON.parse(atob(authToken.split('.')[1]));
         const isTokenExpired = tokenPayload.exp * 1000 < Date.now();
         if (isTokenExpired) {
           console.warn('Auth token is expired.');
           setInitialRoute('LoginPage');
           return;
         }
-
-        // User is logged in; navigate to the appropriate stack
         setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
       } else if (termsAccepted === 'true') {
         if (permissionsGranted === 'true') {
@@ -91,11 +85,11 @@ const App = () => {
       }
     } catch (error) {
       console.error('Error checking app setup status:', error);
-      setInitialRoute('TermsAndPrivacyScreen'); // Default to TOS on error
+      setInitialRoute('TermsAndPrivacyScreen');
     }
   };
 
-  if (initialRoute === null) return null; // Prevent rendering until initial route is determined
+  if (initialRoute === null) return null;
 
   return (
     <Provider store={store}>
@@ -200,7 +194,7 @@ const App = () => {
             <Stack.Screen
               name="SuperAdminDashboard"
               component={SuperAdminDashboard}
-              options={{headerShown: false}} // Add the Super Admin Dashboard
+              options={{headerShown: false}}
             />
           </Stack.Navigator>
         </NavigationContainer>
