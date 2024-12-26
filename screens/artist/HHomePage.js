@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -10,29 +10,31 @@ import {
   Switch,
   ScrollView,
   Animated,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
 import Geocoder from 'react-native-geocoder-reborn';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useSelector } from 'react-redux';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {useSelector} from 'react-redux';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import NotificationsScreen from '../NotificationsScreen';
 import DMsScreen from '../DMsScreen';
 import ArtistPostsPage from './ArtistPostsPage';
-import { BASEURL } from '../../assets/constants';
-import { uploadImageToBucket } from '../../utils';
+import {BASEURL} from '../../assets/constants';
+import {uploadImageToBucket} from '../../utils';
 import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotificationsAndLocation';
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
-import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useFetchUser from '../../assets/hooks/useFetchUser';
-import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
-
+import {convertToTemporaryFile} from '../../assets/components/convertToTemporaryFileHelper';
 
 const Tab = createBottomTabNavigator();
 
@@ -43,7 +45,7 @@ const HHomePage = () => {
   const [postType, setPostType] = useState('INVITE_PHOTO');
   const [scaleValue] = useState(new Animated.Value(1));
 
-  const { mutate: fetchUser } = useFetchUser();
+  const {mutate: fetchUser} = useFetchUser();
   const navigation = useNavigation();
   const route = useRoute();
   const [isLoading, setIsLoading] = useState(false);
@@ -75,7 +77,7 @@ const HHomePage = () => {
     fullName: 'Unknown User',
   };
 
-  const accessToken = useSelector(state => state.accessToken)
+  const accessToken = useSelector(state => state.accessToken);
 
   useEffect(() => {
     console.log('UserProfile from Redux:', userProfile);
@@ -109,7 +111,6 @@ const HHomePage = () => {
     ]).start();
   };
 
-
   const takePicture = () => {
     launchCamera(options, response => {
       if (response.didCancel) {
@@ -119,12 +120,12 @@ const HHomePage = () => {
       } else if (response.assets && response.assets.length > 0) {
         const capturedImage = response.assets[0];
         setSelectedImage(capturedImage);
-        navigation.navigate('EditScreen', { selectedImage: capturedImage });
+        navigation.navigate('EditScreen', {selectedImage: capturedImage});
       }
     });
   };
 
-  const uploadImageToS3 = async (imageUri) => {
+  const uploadImageToS3 = async imageUri => {
     try {
       let filePath = imageUri;
 
@@ -151,7 +152,7 @@ const HHomePage = () => {
   };
 
   const uploadFile = () => {
-    launchImageLibrary(options, async (response) => {
+    launchImageLibrary(options, async response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorMessage) {
@@ -160,16 +161,21 @@ const HHomePage = () => {
         const uploadedImage = response.assets[0];
 
         // Use helper function for Android scoped storage
-        if (Platform.OS === 'android' && uploadedImage.uri.startsWith('content://')) {
-          uploadedImage.uri = await convertToTemporaryFile(uploadedImage.uri, 'jpg');
+        if (
+          Platform.OS === 'android' &&
+          uploadedImage.uri.startsWith('content://')
+        ) {
+          uploadedImage.uri = await convertToTemporaryFile(
+            uploadedImage.uri,
+            'jpg',
+          );
         }
 
         setSelectedImage(uploadedImage);
-        navigation.navigate('EditScreen', { selectedImage: uploadedImage });
+        navigation.navigate('EditScreen', {selectedImage: uploadedImage});
       }
     });
   };
-
 
   const clearSelectedImage = () => {
     setSelectedImage(null);
@@ -178,7 +184,10 @@ const HHomePage = () => {
 
   const getLocale = async (latitude, longitude) => {
     try {
-      const res = await Geocoder.geocodePosition({ lat: latitude, lng: longitude });
+      const res = await Geocoder.geocodePosition({
+        lat: latitude,
+        lng: longitude,
+      });
       if (res && res.length > 0) {
         const locality = res[0].locality || '';
         const adminArea = res[0].adminArea || '';
@@ -199,40 +208,42 @@ const HHomePage = () => {
 
     // Validate selected image for the 'INVITE_PHOTO' post type
     if (postType === 'INVITE_PHOTO' && !selectedImage) {
-
-      Alert.alert('Warning', 'You must select a photo when choosing "Invite + Photo."');
+      Alert.alert(
+        'Warning',
+        'You must select a photo when choosing "Invite + Photo."',
+      );
       setIsLoading(false);
       return;
     }
 
-    console.log("Starting post creation...");
+    console.log('Starting post creation...');
 
     Geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        console.log("User's current position:", { latitude, longitude });
+      async position => {
+        const {latitude, longitude} = position.coords;
+        console.log("User's current position:", {latitude, longitude});
 
         try {
           let postImageUrl = null;
 
           // Step 1: Upload image to S3 if required
           if (postType === 'INVITE_PHOTO') {
-            console.log("Uploading image to S3...");
+            console.log('Uploading image to S3...');
             if (!selectedImage) {
-              console.error("No image selected for upload.");
+              console.error('No image selected for upload.');
               Alert.alert('Error', 'No image selected for upload.');
               return;
             }
 
-            console.log("Image URI before upload:", selectedImage.uri);
+            console.log('Image URI before upload:', selectedImage.uri);
             postImageUrl = await uploadImageToS3(selectedImage.uri);
-            console.log("S3 URL received:", postImageUrl);
+            console.log('S3 URL received:', postImageUrl);
           }
 
           // Step 2: Get locale information based on geolocation
-          console.log("Fetching location details...");
+          console.log('Fetching location details...');
           const locale = await getLocale(latitude, longitude);
-          console.log("Locale determined:", locale);
+          console.log('Locale determined:', locale);
 
           // Step 3: Prepare post data to be sent
           const postData = {
@@ -241,14 +252,15 @@ const HHomePage = () => {
             type: postType, // INVITE_PHOTO or INVITE_ONLY
             latitude: latitude.toString(), // Latitude as string
             longitude: longitude.toString(), // Longitude as string
-            locale: locale || "Unknown location",
-            message: "Welcome to my exclusive DayOnes group! Here, you're more than just a fan, you're family.🔥 💯 🔥",
+            locale: locale || 'Unknown location',
+            message:
+              "Welcome to my exclusive DayOnes group! Here, you're more than just a fan, you're family.🔥 💯 🔥",
           };
 
-          console.log("Post data prepared:", postData);
+          console.log('Post data prepared:', postData);
 
           // Step 4: Send POST request to create a new post
-          console.log("Sending API request to create post...");
+          console.log('Sending API request to create post...');
           const response = await fetch(`${BASEURL}/api/v1/post/`, {
             method: 'POST',
             headers: {
@@ -259,51 +271,54 @@ const HHomePage = () => {
           });
 
           const jsonResponse = await response.json();
-          console.log("API response received:", jsonResponse);
+          console.log('API response received:', jsonResponse);
 
           if (response.ok) {
             setIsLoading(false);
             const newPostId = jsonResponse.data?.id; // Extract the new post ID
             Alert.alert('Success', 'Post created successfully!');
-            console.log("Post created successfully!");
+            console.log('Post created successfully!');
 
             // Navigate to PostDetailPage with the new post ID
             if (newPostId) {
-              navigation.navigate('PostDetailPage', { postId: newPostId });
+              navigation.navigate('PostDetailPage', {postId: newPostId});
             } else {
-              console.error("Post ID not returned in response.");
+              console.error('Post ID not returned in response.');
             }
 
             clearSelectedImage(); // Clear the selected image after a successful post
           } else {
-            console.error("Failed to create post:", jsonResponse);
-            Alert.alert('Error', `Failed to create post: ${jsonResponse.message || 'Unknown error'}`);
+            console.error('Failed to create post:', jsonResponse);
+            Alert.alert(
+              'Error',
+              `Failed to create post: ${
+                jsonResponse.message || 'Unknown error'
+              }`,
+            );
           }
         } catch (error) {
           setIsLoading(false);
-          console.error("Error during post creation:", error);
+          console.error('Error during post creation:', error);
           Alert.alert('Error', 'An error occurred while creating the post.');
         }
       },
-      (error) => {
-        console.error("Error getting location:", error);
-        Alert.alert('Error', 'Failed to get your location. Please enable location services.');
+      error => {
+        console.error('Error getting location:', error);
+        Alert.alert(
+          'Error',
+          'Failed to get your location. Please enable location services.',
+        );
         setIsLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
     );
   };
-
-
-
-
-
 
   return (
     <Tab.Navigator
       initialRouteName="Main"
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
+      screenOptions={({route}) => ({
+        tabBarIcon: ({color, size}) => {
           let iconName;
           switch (route.name) {
             case 'Posts':
@@ -328,11 +343,10 @@ const HHomePage = () => {
           borderTopWidth: 0,
         },
         headerShown: false,
-      })}
-    >
-      <Tab.Screen name="Main" options={{ tabBarLabel: 'Home' }}>
+      })}>
+      <Tab.Screen name="Main" options={{tabBarLabel: 'Home'}}>
         {() => (
-          <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
+          <SafeAreaView style={{flex: 1, backgroundColor: '#000'}}>
             <ScrollView contentContainerStyle={styles.container}>
               <ProfilePictureButton />
 
@@ -349,13 +363,12 @@ const HHomePage = () => {
                 {selectedImage ? (
                   <View style={styles.selectedImageContainer}>
                     <Image
-                      source={{ uri: selectedImage.uri }}
+                      source={{uri: selectedImage.uri}}
                       style={styles.selectedImage}
                     />
                     <TouchableOpacity
                       style={styles.clearButton}
-                      onPress={clearSelectedImage}
-                    >
+                      onPress={clearSelectedImage}>
                       <Icon name="times" size={20} color="#fff" />
                     </TouchableOpacity>
                   </View>
@@ -366,18 +379,18 @@ const HHomePage = () => {
                       style={styles.placeholderImage}
                     />
                     <View style={styles.overlayTextContainer}>
-                      <Text style={styles.overlayText}>Unleash Your Reach </Text>
+                      <Text style={styles.overlayText}>
+                        Unleash Your Reach{' '}
+                      </Text>
                     </View>
                   </View>
                 )}
               </View>
 
-
               <View style={styles.pictureContainer}>
                 <TouchableOpacity
                   style={styles.pictureButton}
-                  onPress={takePicture}
-                >
+                  onPress={takePicture}>
                   <FontAwesome5
                     name="camera"
                     size={35}
@@ -388,8 +401,7 @@ const HHomePage = () => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.pictureButton}
-                  onPress={uploadFile}
-                >
+                  onPress={uploadFile}>
                   <FontAwesome5
                     name="file-upload"
                     size={35}
@@ -404,10 +416,11 @@ const HHomePage = () => {
                 <Text style={styles.radioGroupLabel}>Choose what to send:</Text>
                 <TouchableOpacity
                   style={styles.radioButton}
-                  onPress={() => setPostType('INVITE_PHOTO')}
-                >
+                  onPress={() => setPostType('INVITE_PHOTO')}>
                   <Icon
-                    name={postType === 'INVITE_PHOTO' ? 'dot-circle-o' : 'circle-o'}
+                    name={
+                      postType === 'INVITE_PHOTO' ? 'dot-circle-o' : 'circle-o'
+                    }
                     size={24}
                     color="#fff"
                   />
@@ -415,10 +428,11 @@ const HHomePage = () => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.radioButton}
-                  onPress={() => setPostType('INVITE_ONLY')}
-                >
+                  onPress={() => setPostType('INVITE_ONLY')}>
                   <Icon
-                    name={postType === 'INVITE_ONLY' ? 'dot-circle-o' : 'circle-o'}
+                    name={
+                      postType === 'INVITE_ONLY' ? 'dot-circle-o' : 'circle-o'
+                    }
                     size={24}
                     color="#fff"
                   />
@@ -433,31 +447,30 @@ const HHomePage = () => {
                 <Switch
                   value={isMaxRange}
                   onValueChange={() => setIsMaxRange(!isMaxRange)}
-                  trackColor={{ false: '#FFF', true: '#E03FD8' }}
+                  trackColor={{false: '#FFF', true: '#E03FD8'}}
                   thumbColor={isMaxRange ? '#FFF' : '#FFF'}
                 />
               </View>
 
               <View style={styles.sendButtonContainer}>
-                <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+                <Animated.View style={{transform: [{scale: scaleValue}]}}>
                   <LinearGradient
                     colors={['#00E5FF', '#D500F9']}
                     style={styles.sendButtonGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 0}}>
                     {isLoading ? (
                       <ActivityIndicator size="large" color="#FFF" />
                     ) : (
-                      <TouchableOpacity style={styles.sendButton} onPress={createPost}>
+                      <TouchableOpacity
+                        style={styles.sendButton}
+                        onPress={createPost}>
                         <Text style={styles.sendButtonText}>Send Invite</Text>
                       </TouchableOpacity>
                     )}
                   </LinearGradient>
                 </Animated.View>
               </View>
-
-
             </ScrollView>
           </SafeAreaView>
         )}
@@ -623,7 +636,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '30%',
     left: '38%',
-    transform: [{ translateX: -50 }, { translateY: -50 }],
+    transform: [{translateX: -50}, {translateY: -50}],
     justifyContent: 'center',
     alignItems: 'center',
   },

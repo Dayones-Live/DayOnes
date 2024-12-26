@@ -45,6 +45,7 @@
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = DayOnes/main.m; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = DayOnes/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		15C82E4F28B7589495B5C7CB /* Pods-DayOnes.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes.release.xcconfig"; path = "Target Support Files/Pods-DayOnes/Pods-DayOnes.release.xcconfig"; sourceTree = "<group>"; };
+		1B5158E52D19873800D2383D /* DayOnesDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = DayOnesDebug.entitlements; path = DayOnes/DayOnesDebug.entitlements; sourceTree = "<group>"; };
 		67E9A5837AC6AE700ABAAA91 /* Pods_DayOnes.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DayOnes.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6AA3F40B2CB435B300A932DA /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		6AB8D0872CB5872100DFD91A /* DayOnesRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = DayOnesRelease.entitlements; path = DayOnes/DayOnesRelease.entitlements; sourceTree = "<group>"; };
@@ -97,6 +98,7 @@
 		13B07FAE1A68108700A75B9A /* DayOnes */ = {
 			isa = PBXGroup;
 			children = (
+				1B5158E52D19873800D2383D /* DayOnesDebug.entitlements */,
 				6AB8D0872CB5872100DFD91A /* DayOnesRelease.entitlements */,
 				6AA3F40B2CB435B300A932DA /* GoogleService-Info.plist */,
 				13B07FAF1A68108700A75B9A /* AppDelegate.h */,
@@ -184,7 +186,6 @@
 				00E356EA1AD99517003FC87E /* Sources */,
 				00E356EB1AD99517003FC87E /* Frameworks */,
 				00E356EC1AD99517003FC87E /* Resources */,
-				7C30DA14BBE42A770CC8772E /* [CP] Embed Pods Frameworks */,
 				CF59E64AC643F7B1F5D32978 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
@@ -206,7 +207,6 @@
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				EA3389D15D66CB4A91B4C154 /* [CP] Embed Pods Frameworks */,
 				E1609C28A1789DE06E0282FA /* [CP] Copy Pods Resources */,
 				A389331B3CDD9C595D5B8573 /* [CP-User] [RNFB] Core Configuration */,
 			);
@@ -300,23 +300,6 @@
 			shellPath = /bin/sh;
 			shellScript = "# Ensure to set -e to terminate if any command fails\nset -e\n\n# Ensure REACT_NATIVE_PATH is set correctly, or set it explicitly\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n# First, source the environment setup, then run the Xcode build script\n/bin/sh -c \"source $WITH_ENVIRONMENT && /bin/sh $REACT_NATIVE_XCODE\"\n";
 		};
-		7C30DA14BBE42A770CC8772E /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-DayOnes-DayOnesTests/Pods-DayOnes-DayOnesTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-DayOnes-DayOnesTests/Pods-DayOnes-DayOnesTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DayOnes-DayOnesTests/Pods-DayOnes-DayOnesTests-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 		8542F02494D97A327DD67647 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -384,23 +367,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DayOnes/Pods-DayOnes-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		EA3389D15D66CB4A91B4C154 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-DayOnes/Pods-DayOnes-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-DayOnes/Pods-DayOnes-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DayOnes/Pods-DayOnes-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		F18B60220E8C6458F6C44983 /* [CP] Check Pods Manifest.lock */ = {
@@ -515,6 +481,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = DayOnes/DayOnesDebug.entitlements;
 				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = U6ACSETZB3;
 				ENABLE_BITCODE = NO;
@@ -532,7 +499,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.dayoneslive;
 				PRODUCT_NAME = DayOnes;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -548,7 +515,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = DayOnes/DayOnesRelease.entitlements;
 				CURRENT_PROJECT_VERSION = 8;
-				DEVELOPMENT_TEAM = MJLZ899VA2;
+				DEVELOPMENT_TEAM = U6ACSETZB3;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FUSE_BUILD_SCRIPT_PHASES = YES;
 				INFOPLIST_FILE = DayOnes/Info.plist;
@@ -563,8 +530,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = com.ericdayones.Dayones;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dayoneslive;
 				PRODUCT_NAME = DayOnes;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -656,10 +622,13 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
-				USE_HERMES = true;
+				USE_HERMES = false;
 			};
 			name = Debug;
 		};
@@ -740,10 +709,13 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
-				USE_HERMES = true;
+				USE_HERMES = false;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;

@@ -43,8 +43,12 @@ target 'DayOnes' do
   use_frameworks! :linkage => :static
   $RNFirebaseAsStaticFramework = true
 
+  flags = get_default_flags()
+
   use_react_native!(
     :path => config[:reactNativePath],
+    :hermes_enabled => false,
+    :fabric_enabled => flags[:fabric_enabled],
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 

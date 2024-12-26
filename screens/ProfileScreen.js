@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -17,17 +17,17 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
+import {useSelector, useDispatch} from 'react-redux';
+import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import axios from 'axios';
-import { BASEURL } from '../assets/constants';
+import {BASEURL} from '../assets/constants';
 import LinearGradient from 'react-native-linear-gradient';
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
-import { uploadImageToBucket } from '../utils';
-import { setAccessToken, setUserProfile } from '../assets/redux/actions'; // Adjust the path as needed
+import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
+import {uploadImageToBucket} from '../utils';
+import {setAccessToken, setUserProfile} from '../assets/redux/actions'; // Adjust the path as needed
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { convertToTemporaryFile } from '../assets/components/convertToTemporaryFileHelper';
+import {convertToTemporaryFile} from '../assets/components/convertToTemporaryFileHelper';
 
 const ProfileScreen = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -37,13 +37,11 @@ const ProfileScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [menuVisible, setMenuVisible] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState([]);
-  const accessToken = useSelector((state) => state.accessToken);
-  const profile = useSelector((state) => state.userProfile || {});
+  const accessToken = useSelector(state => state.accessToken);
+  const profile = useSelector(state => state.userProfile || {});
   const navigation = useNavigation();
   const [optionsVisible, setOptionsVisible] = useState(false);
   const dispatch = useDispatch();
-
-
 
   const fetchBlockedUsers = async () => {
     try {
@@ -55,16 +53,25 @@ const ProfileScreen = () => {
       });
 
       const blockedUsersData = response.data.data.blocked_users || [];
-      console.log('Blocked Users Raw Response:', JSON.stringify(response.data, null, 2));
+      console.log(
+        'Blocked Users Raw Response:',
+        JSON.stringify(response.data, null, 2),
+      );
 
       // Log each blocked user's full object
       blockedUsersData.forEach((user, index) => {
-        console.log(`Blocked User ${index + 1}:`, JSON.stringify(user, null, 2));
+        console.log(
+          `Blocked User ${index + 1}:`,
+          JSON.stringify(user, null, 2),
+        );
       });
 
       setBlockedUsers(blockedUsersData);
     } catch (error) {
-      console.error('Error fetching blocked users:', error.response?.data || error.message);
+      console.error(
+        'Error fetching blocked users:',
+        error.response?.data || error.message,
+      );
       Alert.alert('Error', 'Failed to fetch blocked users.');
     }
   };
@@ -73,16 +80,16 @@ const ProfileScreen = () => {
     const url = `${BASEURL}/api/v1/user/delete-user`;
 
     Alert.alert(
-      "Delete Account",
-      "Are you sure you want to delete your account? This action cannot be undone.",
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone.',
       [
-        { text: "Cancel", style: "cancel" },
+        {text: 'Cancel', style: 'cancel'},
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: async () => {
             try {
-              console.log("Deleting user with ID:", profile.id);
+              console.log('Deleting user with ID:', profile.id);
 
               // Navigate to the login page first
               navigation.navigate('LoginPage');
@@ -93,28 +100,34 @@ const ProfileScreen = () => {
               // Make the API call to delete the user
               const response = await axios.post(
                 url,
-                { id: profile.id }, // Profile ID from Redux state
+                {id: profile.id}, // Profile ID from Redux state
                 {
                   headers: {
                     Authorization: `Bearer ${accessToken}`,
                     'Content-Type': 'application/json',
                   },
-                }
+                },
               );
 
               if (response.status === 200) {
-                Alert.alert("Account Deleted", "Your account has been deleted successfully.");
+                Alert.alert(
+                  'Account Deleted',
+                  'Your account has been deleted successfully.',
+                );
 
                 // Clear Redux state
                 dispatch(setAccessToken(null));
                 dispatch(setUserProfile(null));
-
               }
             } catch (error) {
-              console.error("Error deleting user:", error.response?.data || error.message);
+              console.error(
+                'Error deleting user:',
+                error.response?.data || error.message,
+              );
               Alert.alert(
-                "Error",
-                error.response?.data?.message || "Failed to delete user. Please try again."
+                'Error',
+                error.response?.data?.message ||
+                  'Failed to delete user. Please try again.',
               );
 
               // Optionally navigate back to the previous screen if deletion failed
@@ -122,42 +135,51 @@ const ProfileScreen = () => {
             }
           },
         },
-      ]
+      ],
     );
   };
 
-
-  const unblockUser = async (userId) => {
+  const unblockUser = async userId => {
     try {
       console.log(`Unblocking user with ID: ${userId}`);
-      const response = await axios.delete(`${BASEURL}/api/v1/blocks/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+      const response = await axios.delete(
+        `${BASEURL}/api/v1/blocks/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         },
-      });
+      );
       console.log('Unblock User Response:', response.data);
 
       // Filter the blocked users list to remove the unblocked user
-      setBlockedUsers((prev) =>
-        prev.filter((user) => user.blockedUser.id !== userId)
+      setBlockedUsers(prev =>
+        prev.filter(user => user.blockedUser.id !== userId),
       );
 
       Alert.alert('Success', 'User has been unblocked.');
     } catch (error) {
-      console.error('Error unblocking user:', error.response?.data || error.message);
+      console.error(
+        'Error unblocking user:',
+        error.response?.data || error.message,
+      );
       Alert.alert('Error', 'Failed to unblock user.');
     }
   };
 
-
-  const handleImageUpload = async (imageUri) => {
+  const handleImageUpload = async imageUri => {
     try {
       // Use the helper function for Android scoped storage compatibility
-      const filePath = Platform.OS === 'android' && imageUri.startsWith('content://')
-        ? await convertToTemporaryFile(imageUri, 'jpg')
-        : imageUri;
+      const filePath =
+        Platform.OS === 'android' && imageUri.startsWith('content://')
+          ? await convertToTemporaryFile(imageUri, 'jpg')
+          : imageUri;
 
-      const s3Url = await uploadImageToBucket(filePath, 'profile-pictures', accessToken);
+      const s3Url = await uploadImageToBucket(
+        filePath,
+        'profile-pictures',
+        accessToken,
+      );
       setSelectedImage(s3Url);
       await updateProfilePicture(s3Url);
     } catch (error) {
@@ -168,8 +190,8 @@ const ProfileScreen = () => {
 
   const handleUploadFile = () => {
     launchImageLibrary(
-      { mediaType: 'photo', includeBase64: false },
-      async (response) => {
+      {mediaType: 'photo', includeBase64: false},
+      async response => {
         if (response.didCancel) {
           console.log('User cancelled image picker');
         } else if (response.errorMessage) {
@@ -180,7 +202,10 @@ const ProfileScreen = () => {
 
           try {
             // Use the helper function for scoped storage
-            if (Platform.OS === 'android' && imageUri.startsWith('content://')) {
+            if (
+              Platform.OS === 'android' &&
+              imageUri.startsWith('content://')
+            ) {
               imageUri = await convertToTemporaryFile(imageUri, 'jpg');
             }
 
@@ -191,12 +216,12 @@ const ProfileScreen = () => {
             console.error('Error uploading file:', error);
           }
         }
-      }
+      },
     );
   };
 
   const handleTakePicture = () => {
-    launchCamera({ mediaType: 'photo', includeBase64: false }, (response) => {
+    launchCamera({mediaType: 'photo', includeBase64: false}, response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorMessage) {
@@ -209,8 +234,7 @@ const ProfileScreen = () => {
     });
   };
 
-
-  const updateProfilePicture = async (avatarUrl) => {
+  const updateProfilePicture = async avatarUrl => {
     const url = `${BASEURL}/api/v1/user/update-user`;
     const payload = {
       avatarUrl,
@@ -223,9 +247,12 @@ const ProfileScreen = () => {
       'Content-Type': 'application/json',
     };
     try {
-      const response = await axios.post(url, payload, { headers });
+      const response = await axios.post(url, payload, {headers});
       if (response.status === 201) {
-        Alert.alert('Profile Updated', 'Your profile picture has been updated.');
+        Alert.alert(
+          'Profile Updated',
+          'Your profile picture has been updated.',
+        );
         dispatch(setUserProfile(response.data.data));
       } else {
         Alert.alert('Error', 'Failed to update profile. Please try again.');
@@ -247,7 +274,7 @@ const ProfileScreen = () => {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
 
       if (response.status === 200) {
@@ -266,14 +293,19 @@ const ProfileScreen = () => {
     }
   };
 
-
   const updatePasswordHandler = async () => {
     if (!currentPassword || !newPassword) {
-      Alert.alert('Error', 'Both Previous Password and New Password are required.');
+      Alert.alert(
+        'Error',
+        'Both Previous Password and New Password are required.',
+      );
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'New Password and Confirm New Password do not match.');
+      Alert.alert(
+        'Error',
+        'New Password and Confirm New Password do not match.',
+      );
       return;
     }
     try {
@@ -288,7 +320,7 @@ const ProfileScreen = () => {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
       if (response.status === 200) {
         Alert.alert('Success', 'Password updated successfully!');
@@ -299,7 +331,8 @@ const ProfileScreen = () => {
       }
     } catch (error) {
       const errorMessage =
-        error.response?.data?.message?.join('\n') || 'Failed to update password. Please try again.';
+        error.response?.data?.message?.join('\n') ||
+        'Failed to update password. Please try again.';
       Alert.alert('Error', errorMessage);
     }
   };
@@ -318,12 +351,13 @@ const ProfileScreen = () => {
     <>
       <StatusBar backgroundColor="#000" barStyle="light-content" />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView style={styles.container}>
-            <TouchableOpacity style={styles.homeButton} onPress={handleNavigateHome}>
+            <TouchableOpacity
+              style={styles.homeButton}
+              onPress={handleNavigateHome}>
               <Icon name="home" size={24} color="#FFF" />
             </TouchableOpacity>
 
@@ -334,9 +368,11 @@ const ProfileScreen = () => {
               <Icon name="ellipsis-v" size={24} color="#FFF" />
             </TouchableOpacity>
 
-
             <View style={styles.logoContainer}>
-              <Image source={require('../assets/images/1024.png')} style={styles.logo} />
+              <Image
+                source={require('../assets/images/1024.png')}
+                style={styles.logo}
+              />
             </View>
 
             <View style={styles.profileSection}>
@@ -345,10 +381,10 @@ const ProfileScreen = () => {
               <Image
                 source={
                   selectedImage
-                    ? { uri: selectedImage }
+                    ? {uri: selectedImage}
                     : profile.data?.avatar_url
-                      ? { uri: profile.data.avatar_url }
-                      : require('../assets/images/defaultProfileImage.jpg')
+                    ? {uri: profile.data.avatar_url}
+                    : require('../assets/images/defaultProfileImage.jpg')
                 }
                 style={styles.profilePicture}
               />
@@ -356,13 +392,14 @@ const ProfileScreen = () => {
               <TouchableOpacity
                 onPress={() =>
                   Alert.alert('Change Profile Picture', 'Select an option', [
-                    { text: 'Take Picture', onPress: handleTakePicture },
-                    { text: 'Upload File', onPress: handleUploadFile },
-                    { text: 'Cancel', style: 'cancel' },
+                    {text: 'Take Picture', onPress: handleTakePicture},
+                    {text: 'Upload File', onPress: handleUploadFile},
+                    {text: 'Cancel', style: 'cancel'},
                   ])
-                }
-              >
-                <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.gradientButtonFullWidth}>
+                }>
+                <LinearGradient
+                  colors={['#00E5FF', '#D500F9']}
+                  style={styles.gradientButtonFullWidth}>
                   <Text style={styles.buttonText}>Change Picture</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -383,31 +420,39 @@ const ProfileScreen = () => {
                 editable={false}
               />
 
-              <View style={[styles.line, { marginBottom: 15 }]} />
+              <View style={[styles.line, {marginBottom: 15}]} />
 
               {profile.data?.role === 'ARTIST' && (
-                <TouchableOpacity onPress={() => navigation.navigate('SignaturePage')}>
-                  <LinearGradient colors={['#00E5FF', '#D500F9']} style={styles.gradientButtonFullWidth}>
-                    <Text style={styles.buttonText}>Manage Signatures/Texts</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('SignaturePage')}>
+                  <LinearGradient
+                    colors={['#00E5FF', '#D500F9']}
+                    style={styles.gradientButtonFullWidth}>
+                    <Text style={styles.buttonText}>
+                      Manage Signatures/Texts
+                    </Text>
                   </LinearGradient>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                onPress={() => setPasswordUpdateVisible(!isPasswordUpdateVisible)}
-                style={styles.gradientButtonFullWidth}
-              >
+                onPress={() =>
+                  setPasswordUpdateVisible(!isPasswordUpdateVisible)
+                }
+                style={styles.gradientButtonFullWidth}>
                 <Text style={styles.buttonText}>
-                  {isPasswordUpdateVisible ? 'Cancel Password Update' : 'Update Password'}
+                  {isPasswordUpdateVisible
+                    ? 'Cancel Password Update'
+                    : 'Update Password'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteAccountButton}
-                onPress={deleteUser}
-              >
-                <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
+                onPress={deleteUser}>
+                <Text style={styles.deleteAccountButtonText}>
+                  Delete Account
+                </Text>
               </TouchableOpacity>
-
 
               {isPasswordUpdateVisible && (
                 <View style={styles.passwordForm}>
@@ -435,29 +480,36 @@ const ProfileScreen = () => {
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                   />
-                  <TouchableOpacity style={styles.logoutButton} onPress={updatePasswordHandler}>
+                  <TouchableOpacity
+                    style={styles.logoutButton}
+                    onPress={updatePasswordHandler}>
                     <Text style={styles.logoutButtonText}>Submit</Text>
                   </TouchableOpacity>
                 </View>
               )}
 
-              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}>
                 <Text style={styles.logoutButtonText}>Logout</Text>
               </TouchableOpacity>
             </View>
 
-            <Modal visible={menuVisible} animationType="slide" transparent={false}>
+            <Modal
+              visible={menuVisible}
+              animationType="slide"
+              transparent={false}>
               <View style={styles.modalContainer}>
                 <Text style={styles.modalHeader}>Blocked Users</Text>
                 <FlatList
                   data={blockedUsers}
-                  keyExtractor={(item) => item.id.toString()}
-                  renderItem={({ item }) => (
+                  keyExtractor={item => item.id.toString()}
+                  renderItem={({item}) => (
                     <View style={styles.blockedUserContainer}>
                       <Image
                         source={
                           item.blockedUser.avatar_url
-                            ? { uri: item.blockedUser.avatar_url }
+                            ? {uri: item.blockedUser.avatar_url}
                             : require('../assets/images/defaultProfileImage.jpg') // Default image if no avatar
                         }
                         style={styles.blockedUserAvatar}
@@ -467,8 +519,7 @@ const ProfileScreen = () => {
                       </Text>
                       <TouchableOpacity
                         onPress={() => unblockUser(item.blockedUser.id)} // Use `blockedUser.id`
-                        style={styles.unblockButton}
-                      >
+                        style={styles.unblockButton}>
                         <Text style={styles.unblockButtonText}>Unblock</Text>
                       </TouchableOpacity>
                     </View>
@@ -477,14 +528,17 @@ const ProfileScreen = () => {
 
                 <TouchableOpacity
                   onPress={() => setMenuVisible(false)}
-                  style={styles.closeModalButton}
-                >
+                  style={styles.closeModalButton}>
                   <Text style={styles.closeModalText}>Close</Text>
                 </TouchableOpacity>
               </View>
             </Modal>
-            <Modal visible={optionsVisible} animationType="fade" transparent={true}>
-              <TouchableWithoutFeedback onPress={() => setOptionsVisible(false)}>
+            <Modal
+              visible={optionsVisible}
+              animationType="fade"
+              transparent={true}>
+              <TouchableWithoutFeedback
+                onPress={() => setOptionsVisible(false)}>
                 <View style={styles.optionsModalContainer}>
                   <View style={styles.optionsBox}>
                     <TouchableOpacity
@@ -493,8 +547,7 @@ const ProfileScreen = () => {
                         setOptionsVisible(false); // Close the options menu
                         setMenuVisible(true); // Open the Blocked Users modal
                         fetchBlockedUsers();
-                      }}
-                    >
+                      }}>
                       <Text style={styles.optionText}>View Blocked Users</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -507,9 +560,6 @@ const ProfileScreen = () => {
                 </View>
               </TouchableWithoutFeedback>
             </Modal>
-
-
-
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -558,7 +608,7 @@ const styles = StyleSheet.create({
     marginTop: 50, // Adjust this to match the position of the three dots
     marginRight: 20, // Adjust this to align with the three dots
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.5,
     shadowRadius: 4,
     elevation: 5,
@@ -608,7 +658,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     alignSelf: 'center',
   },
   sectionTitle: {
@@ -708,19 +758,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   deleteAccountButton: {
-    backgroundColor: "#FF3B30",
+    backgroundColor: '#FF3B30',
     paddingVertical: 12,
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
     marginVertical: 10,
-    width: "100%",
+    width: '100%',
   },
   deleteAccountButtonText: {
-    color: "#FFF",
-    fontWeight: "600",
+    color: '#FFF',
+    fontWeight: '600',
     fontSize: 16,
   },
-
 });
 
 export default ProfileScreen;
