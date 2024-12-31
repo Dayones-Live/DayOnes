@@ -86,7 +86,7 @@ const NotificationsScreen = () => {
     <SafeAreaView style={styles.container}>
       <Text style={styles.text}>Notifications</Text>
       <FlatList
-        data={data?.data?.data}
+        data={data?.data?.data?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderNotification}
         contentContainerStyle={styles.listContent}
