@@ -49,6 +49,9 @@ const PostDetailPage = () => {
   const [selectedCommentId, setSelectedCommentId] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false); // Modal visibility
   const [reportDescription, setReportDescription] = useState(""); // Input for report description
+  const [isSelectingMedia, setIsSelectingMedia] = useState(false);
+const [isSendingComment, setIsSendingComment] = useState(false);
+
 
 
   const route = useRoute();
@@ -198,28 +201,34 @@ const PostDetailPage = () => {
   };
 
   const handleSelectMedia = () => {
+    setIsSelectingMedia(true); // Start loading indicator
     launchImageLibrary({ mediaType: 'mixed' }, async (response) => {
       if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
         let mediaUri = asset.uri;
-
+  
         try {
-          // Use the helper function for scoped storage if needed
           if (Platform.OS === 'android' && mediaUri.startsWith('content://')) {
             mediaUri = await convertToTemporaryFile(
               mediaUri,
               asset.type.startsWith('image/') ? 'jpg' : 'mp4'
             );
           }
-
+  
           setSelectedImage(mediaUri);
           setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
         } catch (error) {
           console.error('Error handling selected media:', error);
+          Alert.alert('Error', 'Failed to process selected media.');
+        } finally {
+          setIsSelectingMedia(false); // Stop loading indicator
         }
+      } else {
+        setIsSelectingMedia(false); // Stop loading indicator even if no media is selected
       }
     });
   };
+  
 
 
   const handleTakeMedia = () => {
@@ -237,25 +246,30 @@ const PostDetailPage = () => {
       Alert.alert('Error', 'Comment or image is required.');
       return;
     }
-
+  
+    setIsSendingComment(true); // Start loading indicator
     let s3Url = selectedImage;
+  
     if (selectedImage && !selectedImage.startsWith('https://')) {
       s3Url = await handleMediaUpload(selectedImage);
-      if (!s3Url) return;
+      if (!s3Url) {
+        setIsSendingComment(false); // Stop loading indicator on failure
+        return;
+      }
     }
-
+  
     const commentData = {
       message: commentText.trim(),
       ...(s3Url && { url: s3Url, mediaType: mediaType }),
     };
-
+  
     try {
       const response = await axios.post(
         `${BASEURL}/api/v1/post/${postId}/comment`,
         commentData,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-
+  
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Success', 'Your comment has been posted.');
         setCommentText('');
@@ -265,8 +279,11 @@ const PostDetailPage = () => {
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to post the comment.');
+    } finally {
+      setIsSendingComment(false); // Stop loading indicator
     }
   };
+  
 
   const handleBlockUser = (commentId) => {
     let userToBlock = null;
@@ -864,16 +881,32 @@ const PostDetailPage = () => {
               </View>
             )}
             <View style={styles.iconRow}>
-              <TouchableOpacity onPress={handleSelectMedia}>
-                <Icon name="image" size={24} color="blue" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleTakeMedia}>
-                <Icon name="camera" size={24} color="blue" />
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.postButton} onPress={handleSendComment}>
-              <Text style={styles.postButtonText}>Send</Text>
-            </TouchableOpacity>
+  {isSelectingMedia ? (
+    <ActivityIndicator size="small" color="blue" />
+  ) : (
+    <>
+      <TouchableOpacity onPress={handleSelectMedia}>
+        <Icon name="image" size={24} color="blue" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={handleTakeMedia}>
+        <Icon name="camera" size={24} color="blue" />
+      </TouchableOpacity>
+    </>
+  )}
+</View>
+
+<TouchableOpacity
+  style={styles.postButton}
+  onPress={isSendingComment ? null : handleSendComment}
+  disabled={isSendingComment} // Disable button while loading
+>
+  {isSendingComment ? (
+    <ActivityIndicator size="small" color="white" />
+  ) : (
+    <Text style={styles.postButtonText}>Send</Text>
+  )}
+</TouchableOpacity>
+
             <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>

@@ -39,13 +39,13 @@ const NotificationsScreen = () => {
   }
 
   const renderNotification = ({ item }) => {
-    const senderName = item.sender_name || 'Unknown User';
+    const senderName = item.sender_name || 'A Fan from your event';
     const senderAvatar = item.sender_avatar;
     const notificationMessage =
       item.type === 'reaction'
         ? 'Liked your post'
         : item.type === 'comments'
-          ? `Commented: "${item.message}"`
+          ? `Commented: "${item.message}"!`
           : 'Sent you a DM';
 
     return (
