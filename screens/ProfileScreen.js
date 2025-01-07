@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,17 +17,17 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
-import {useSelector, useDispatch} from 'react-redux';
-import {useNavigation} from '@react-navigation/native';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import axios from 'axios';
-import {BASEURL} from '../assets/constants';
+import { BASEURL } from '../assets/constants';
 import LinearGradient from 'react-native-linear-gradient';
-import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
-import {uploadImageToBucket} from '../utils';
-import {setAccessToken, setUserProfile} from '../assets/redux/actions'; // Adjust the path as needed
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { uploadImageToBucket } from '../utils';
+import { setAccessToken, setUserProfile } from '../assets/redux/actions'; // Adjust the path as needed
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {convertToTemporaryFile} from '../assets/components/convertToTemporaryFileHelper';
+import { convertToTemporaryFile } from '../assets/components/convertToTemporaryFileHelper';
 
 const ProfileScreen = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -41,6 +41,8 @@ const ProfileScreen = () => {
   const profile = useSelector(state => state.userProfile || {});
   const navigation = useNavigation();
   const [optionsVisible, setOptionsVisible] = useState(false);
+  const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteInput, setDeleteInput] = useState('');
   const dispatch = useDispatch();
 
   const fetchBlockedUsers = async () => {
@@ -77,67 +79,53 @@ const ProfileScreen = () => {
   };
 
   const deleteUser = async () => {
+    if (deleteInput.trim().toLowerCase() !== 'delete') {
+      Alert.alert('Error', 'Please type "delete" to confirm.');
+      return;
+    }
+
     const url = `${BASEURL}/api/v1/user/delete-user`;
 
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone.',
-      [
-        {text: 'Cancel', style: 'cancel'},
+    try {
+      console.log('Deleting user with ID:', profile.id);
+
+      // Navigate to the login page first
+      navigation.navigate('LoginPage');
+
+      // Slight delay to ensure navigation occurs
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Make the API call to delete the user
+      const response = await axios.post(
+        url,
+        { id: profile.id }, // Profile ID from Redux state
         {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('Deleting user with ID:', profile.id);
-
-              // Navigate to the login page first
-              navigation.navigate('LoginPage');
-
-              // Give a slight delay to ensure navigation occurs before proceeding
-              await new Promise(resolve => setTimeout(resolve, 500));
-
-              // Make the API call to delete the user
-              const response = await axios.post(
-                url,
-                {id: profile.id}, // Profile ID from Redux state
-                {
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                  },
-                },
-              );
-
-              if (response.status === 200) {
-                Alert.alert(
-                  'Account Deleted',
-                  'Your account has been deleted successfully.',
-                );
-
-                // Clear Redux state
-                dispatch(setAccessToken(null));
-                dispatch(setUserProfile(null));
-              }
-            } catch (error) {
-              console.error(
-                'Error deleting user:',
-                error.response?.data || error.message,
-              );
-              Alert.alert(
-                'Error',
-                error.response?.data?.message ||
-                  'Failed to delete user. Please try again.',
-              );
-
-              // Optionally navigate back to the previous screen if deletion failed
-              navigation.navigate('ProfilePage'); // Replace with your profile or previous screen
-            }
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
           },
         },
-      ],
-    );
+      );
+
+      if (response.status === 200) {
+        // Success message
+        Alert.alert('Success', 'Account successfully deleted.');
+
+        // Clear Redux state
+        dispatch(setAccessToken(null));
+        dispatch(setUserProfile(null));
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error.response?.data || error.message);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to delete user. Please try again.');
+    } finally {
+      // Reset modal state and input field
+      setDeleteModalVisible(false);
+      setDeleteInput('');
+    }
   };
+
+
 
   const unblockUser = async userId => {
     try {
@@ -190,7 +178,7 @@ const ProfileScreen = () => {
 
   const handleUploadFile = () => {
     launchImageLibrary(
-      {mediaType: 'photo', includeBase64: false},
+      { mediaType: 'photo', includeBase64: false },
       async response => {
         if (response.didCancel) {
           console.log('User cancelled image picker');
@@ -221,7 +209,7 @@ const ProfileScreen = () => {
   };
 
   const handleTakePicture = () => {
-    launchCamera({mediaType: 'photo', includeBase64: false}, response => {
+    launchCamera({ mediaType: 'photo', includeBase64: false }, response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorMessage) {
@@ -247,7 +235,7 @@ const ProfileScreen = () => {
       'Content-Type': 'application/json',
     };
     try {
-      const response = await axios.post(url, payload, {headers});
+      const response = await axios.post(url, payload, { headers });
       if (response.status === 201) {
         Alert.alert(
           'Profile Updated',
@@ -351,7 +339,7 @@ const ProfileScreen = () => {
     <>
       <StatusBar backgroundColor="#000" barStyle="light-content" />
       <KeyboardAvoidingView
-        style={{flex: 1}}
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView style={styles.container}>
@@ -381,10 +369,10 @@ const ProfileScreen = () => {
               <Image
                 source={
                   selectedImage
-                    ? {uri: selectedImage}
+                    ? { uri: selectedImage }
                     : profile.data?.avatar_url
-                    ? {uri: profile.data.avatar_url}
-                    : require('../assets/images/defaultProfileImage.jpg')
+                      ? { uri: profile.data.avatar_url }
+                      : require('../assets/images/defaultProfileImage.jpg')
                 }
                 style={styles.profilePicture}
               />
@@ -392,9 +380,9 @@ const ProfileScreen = () => {
               <TouchableOpacity
                 onPress={() =>
                   Alert.alert('Change Profile Picture', 'Select an option', [
-                    {text: 'Take Picture', onPress: handleTakePicture},
-                    {text: 'Upload File', onPress: handleUploadFile},
-                    {text: 'Cancel', style: 'cancel'},
+                    { text: 'Take Picture', onPress: handleTakePicture },
+                    { text: 'Upload File', onPress: handleUploadFile },
+                    { text: 'Cancel', style: 'cancel' },
                   ])
                 }>
                 <LinearGradient
@@ -420,7 +408,7 @@ const ProfileScreen = () => {
                 editable={false}
               />
 
-              <View style={[styles.line, {marginBottom: 15}]} />
+              <View style={[styles.line, { marginBottom: 15 }]} />
 
               {profile.data?.role === 'ARTIST' && (
                 <TouchableOpacity
@@ -448,11 +436,11 @@ const ProfileScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteAccountButton}
-                onPress={deleteUser}>
-                <Text style={styles.deleteAccountButtonText}>
-                  Delete Account
-                </Text>
+                onPress={() => setDeleteModalVisible(true)} // Open the modal
+              >
+                <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
               </TouchableOpacity>
+
 
               {isPasswordUpdateVisible && (
                 <View style={styles.passwordForm}>
@@ -496,6 +484,53 @@ const ProfileScreen = () => {
             </View>
 
             <Modal
+              visible={isDeleteModalVisible}
+              transparent={true}
+              animationType="slide"
+              onRequestClose={() => setDeleteModalVisible(false)}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalHeader}>Delete Account</Text>
+                  <Text style={styles.modalMessage}>
+                    Type "delete" below to confirm you want to delete your account. This action cannot be undone.
+                  </Text>
+
+                  {/* Input Box */}
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Type 'delete' to confirm"
+                    placeholderTextColor="#AAA"
+                    value={deleteInput}
+                    onChangeText={setDeleteInput}
+                  />
+
+                  {/* Action Buttons */}
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setDeleteModalVisible(false);
+                        setDeleteInput('');
+                      }}
+                    >
+                      <Text style={styles.modalButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.deleteButton]}
+                      onPress={deleteUser} // Trigger the delete function
+                    >
+                      <Text style={styles.modalButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+
+
+
+            <Modal
               visible={menuVisible}
               animationType="slide"
               transparent={false}>
@@ -504,12 +539,12 @@ const ProfileScreen = () => {
                 <FlatList
                   data={blockedUsers}
                   keyExtractor={item => item.id.toString()}
-                  renderItem={({item}) => (
+                  renderItem={({ item }) => (
                     <View style={styles.blockedUserContainer}>
                       <Image
                         source={
                           item.blockedUser.avatar_url
-                            ? {uri: item.blockedUser.avatar_url}
+                            ? { uri: item.blockedUser.avatar_url }
                             : require('../assets/images/defaultProfileImage.jpg') // Default image if no avatar
                         }
                         style={styles.blockedUserAvatar}
@@ -573,6 +608,63 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     padding: 20,
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#1C1C1E',
+    padding: 20,
+    borderRadius: 8,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalHeader: {
+    fontSize: 20,
+    color: '#FFF',
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#FFF',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalInput: {
+    backgroundColor: '#2C2C2E',
+    color: '#FFF',
+    padding: 10,
+    borderRadius: 8,
+    width: '100%',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#444',
+  },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+  },
+  modalButtonText: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
+
   homeButton: {
     position: 'absolute',
     top: 40,
@@ -608,7 +700,7 @@ const styles = StyleSheet.create({
     marginTop: 50, // Adjust this to match the position of the three dots
     marginRight: 20, // Adjust this to align with the three dots
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 4,
     elevation: 5,
@@ -658,7 +750,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     alignSelf: 'center',
   },
   sectionTitle: {

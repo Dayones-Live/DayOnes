@@ -37,8 +37,16 @@ const RegFanPage = () => {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false); // For confirm password visibility
 
   const handleSignup = async () => {
+    // Regular expression to validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!email || !password || !confirmPassword || !name) {
       Alert.alert('Validation Error', 'All required fields must be filled.');
+      return;
+    }
+
+    if (!emailRegex.test(email)) {
+      Alert.alert('Validation Error', 'Please enter a valid email address.');
       return;
     }
 
@@ -88,6 +96,7 @@ const RegFanPage = () => {
       }
     }
   };
+
 
   return (
     <SafeAreaView style={styles.container}>
