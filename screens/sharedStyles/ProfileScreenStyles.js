@@ -4,6 +4,7 @@ import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 const styles = StyleSheet.create({
     container: {
+        paddingTop: scale(31),
         flex: 1,
         backgroundColor: '#000',
         padding: scale(15), // Compact padding for the overall layout

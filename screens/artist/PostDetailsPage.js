@@ -3,7 +3,6 @@ import {
   SafeAreaView,
   View,
   Text,
-  StyleSheet,
   Image,
   ActivityIndicator,
   Alert,
@@ -20,6 +19,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import Foundation from 'react-native-vector-icons/Foundation';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import styles from './artistStyles/PostDetailsPageStyles';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../../utils';
@@ -36,8 +36,6 @@ const PostDetailPage = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [commentsCollapsed, setCommentsCollapsed] = useState(true);
-  const [isReplyModalVisible, setReplyModalVisible] = useState(false);
-  const [replyText, setReplyText] = useState('');
   const [replyParentId, setReplyParentId] = useState(null);
   const [mediaType, setMediaType] = useState(null); // NEW: track whether it's a photo or video
   const [showReplies, setShowReplies] = useState({});
@@ -50,7 +48,7 @@ const PostDetailPage = () => {
   const [reportModalVisible, setReportModalVisible] = useState(false); // Modal visibility
   const [reportDescription, setReportDescription] = useState(""); // Input for report description
   const [isSelectingMedia, setIsSelectingMedia] = useState(false);
-const [isSendingComment, setIsSendingComment] = useState(false);
+  const [isSendingComment, setIsSendingComment] = useState(false);
 
 
 
@@ -206,7 +204,7 @@ const [isSendingComment, setIsSendingComment] = useState(false);
       if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
         let mediaUri = asset.uri;
-  
+
         try {
           if (Platform.OS === 'android' && mediaUri.startsWith('content://')) {
             mediaUri = await convertToTemporaryFile(
@@ -214,7 +212,7 @@ const [isSendingComment, setIsSendingComment] = useState(false);
               asset.type.startsWith('image/') ? 'jpg' : 'mp4'
             );
           }
-  
+
           setSelectedImage(mediaUri);
           setMediaType(asset.type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
         } catch (error) {
@@ -228,7 +226,7 @@ const [isSendingComment, setIsSendingComment] = useState(false);
       }
     });
   };
-  
+
 
 
   const handleTakeMedia = () => {
@@ -246,10 +244,10 @@ const [isSendingComment, setIsSendingComment] = useState(false);
       Alert.alert('Error', 'Comment or image is required.');
       return;
     }
-  
+
     setIsSendingComment(true); // Start loading indicator
     let s3Url = selectedImage;
-  
+
     if (selectedImage && !selectedImage.startsWith('https://')) {
       s3Url = await handleMediaUpload(selectedImage);
       if (!s3Url) {
@@ -257,19 +255,19 @@ const [isSendingComment, setIsSendingComment] = useState(false);
         return;
       }
     }
-  
+
     const commentData = {
       message: commentText.trim(),
       ...(s3Url && { url: s3Url, mediaType: mediaType }),
     };
-  
+
     try {
       const response = await axios.post(
         `${BASEURL}/api/v1/post/${postId}/comment`,
         commentData,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-  
+
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Success', 'Your comment has been posted.');
         setCommentText('');
@@ -283,7 +281,7 @@ const [isSendingComment, setIsSendingComment] = useState(false);
       setIsSendingComment(false); // Stop loading indicator
     }
   };
-  
+
 
   const handleBlockUser = (commentId) => {
     let userToBlock = null;
@@ -881,31 +879,31 @@ const [isSendingComment, setIsSendingComment] = useState(false);
               </View>
             )}
             <View style={styles.iconRow}>
-  {isSelectingMedia ? (
-    <ActivityIndicator size="small" color="blue" />
-  ) : (
-    <>
-      <TouchableOpacity onPress={handleSelectMedia}>
-        <Icon name="image" size={24} color="blue" />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={handleTakeMedia}>
-        <Icon name="camera" size={24} color="blue" />
-      </TouchableOpacity>
-    </>
-  )}
-</View>
+              {isSelectingMedia ? (
+                <ActivityIndicator size="small" color="blue" />
+              ) : (
+                <>
+                  <TouchableOpacity onPress={handleSelectMedia}>
+                    <Icon name="image" size={24} color="blue" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleTakeMedia}>
+                    <Icon name="camera" size={24} color="blue" />
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
 
-<TouchableOpacity
-  style={styles.postButton}
-  onPress={isSendingComment ? null : handleSendComment}
-  disabled={isSendingComment} // Disable button while loading
->
-  {isSendingComment ? (
-    <ActivityIndicator size="small" color="white" />
-  ) : (
-    <Text style={styles.postButtonText}>Send</Text>
-  )}
-</TouchableOpacity>
+            <TouchableOpacity
+              style={styles.postButton}
+              onPress={isSendingComment ? null : handleSendComment}
+              disabled={isSendingComment} // Disable button while loading
+            >
+              {isSendingComment ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.postButtonText}>Send</Text>
+              )}
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
               <Text style={styles.closeButtonText}>Close</Text>
@@ -991,254 +989,6 @@ const [isSendingComment, setIsSendingComment] = useState(false);
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000', padding: 16 },
-  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0c002b' },
-  errorText: { color: '#FFF', fontSize: 18 },
-  reportModalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.65)", // Dimmed background
-  },
-  reportModalContainer: {
-    backgroundColor: "#222", // Modal background
-    borderRadius: 12,
-    padding: 20,
-    width: "90%",
-    alignSelf: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 10,
-    bottom: "3.5%"
-  },
-  reportModalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#c0c0c0",
-    marginBottom: 10,
-  },
-  reportModalDescriptionInput: {
-    backgroundColor: "#333",
-    color: "#FFF",
-    padding: 15,
-    borderRadius: 10,
-    height: 120,
-    marginBottom: 20,
-    textAlignVertical: "top", // Ensures text starts at the top of the box
-    fontSize: 16,
-  },
-  reportModalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  reportModalCancelButton: {
-    backgroundColor: "#555",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    flex: 1,
-    marginRight: 10,
-  },
-  reportModalSubmitButton: {
-    backgroundColor: "#FF0080",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    flex: 1,
-    marginLeft: 10,
-  },
-  reportModalButtonText: {
-    color: "#FFF",
-    fontSize: 16,
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#000',
-  },
-  mediaContainer: {
-    position: 'relative',
-    width: 150,
-    height: 150,
-    marginBottom: 20,
-  },
-  mediaPreview: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-    backgroundColor: '#000',
-  },
-  commentAImage: {
-    width: "90%",
-    height: 200,
-    borderRadius: 10,
-    marginVertical: 10,
-    backgroundColor: "#000",
-    left: "9%",
-  },
-  commentVideo: {
-    width: "90%",
-    height: 200,
-    borderRadius: 10,
-    marginVertical: 10,
-    backgroundColor: "#000",
-    left: "9%",
-  },
-  dotsButton: {
-    marginHorizontal: 10,
-  },
-  reportMenuOverlay: {
-    flex: 1,
-    justifyContent: "flex-start",
-    alignItems: "flex-end",
-    backgroundColor: "rgba(0, 0, 0, 0.4)", // Semi-transparent background
-    paddingTop: 50, // Adjust to place below the status bar
-    paddingRight: 20, // Add spacing from the right edge
-  },
-  reportMenuContainer: {
-    backgroundColor: "#222",
-    marginTop: 20,
-    borderRadius: 10,
-    padding: 15,
-    width: 200,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  reportMenuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  reportMenuFlagIcon: {
-    marginRight: 10,
-  },
-  reportMenuText: {
-    fontSize: 16,
-    color: "#FFF",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  menuContainer: {
-    backgroundColor: "#333",
-    borderRadius: 10,
-    padding: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    width: 200,
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-  },
-  menuText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: "#FFF",
-  },
-  clearButton: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 12,
-    padding: 5,
-    zIndex: 1,
-  },
-  dropdownButton: { paddingVertical: 5, marginTop: 5 },
-  dropdownText: { color: '#FF0080', fontSize: 14 },
-  repliesContainer: { paddingLeft: 20, marginTop: 10 },
-  reply: { marginBottom: 5 },
-  replyText: { color: '#000', fontSize: 14 },
-  replyTimestamp: { color: '#000', fontSize: 8 },
-  artistCommentImage: { width: '100%', height: 350, borderRadius: 10, marginVertical: 10 },
-  postTitle: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
-  plusIcon: { padding: 8 },
-  postCard: {
-    backgroundColor: '#000',
-    borderRadius: 10,
-    padding: 15,
-    marginVertical: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  messageVideo: {
-    width: '100%',
-    height: 500,
-    borderRadius: 10,
-    marginBottom: 5,
-  },
-  commentImage: { width: '100%', height: 200, borderRadius: 10, marginVertical: 10 },
-  artistCommentContainer: { backgroundColor: '#000', padding: 10, borderRadius: 8, marginVertical: 5 },
-  userInfoContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 10 },
-  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
-  userName: { fontSize: 16, fontWeight: 'bold', color: '#000' },
-  userLocation: { fontSize: 13, color: '#666' },
-  postText: { fontSize: 14, color: '#FFF', marginVertical: 10 },
-  postImage: { width: '100%', height: 500, borderRadius: 10, marginVertical: 10, backgroundColor: '#000' },
-  interactionRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
-  iconText: { marginLeft: 5, fontSize: 14, color: '#FFF' },
-  commentContainer: {
-    marginTop: 10,
-    padding: 10, // Add padding to create internal spacing
-    backgroundColor: 'white',
-    borderRadius: 8,
-    paddingRight: 20,
-    paddingLeft: 1,
-  },
-  commentText: { color: 'black', marginTop: 5, paddingRight: 50, fontSize: 15 },
-  modalBackground: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
-  modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
-  textInput: {
-    width: '100%',
-    minHeight: 80,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 20,
-    fontSize: 16,
-    color: '#2c3e50',
-    backgroundColor: '#f4f4f9',
-  },
-  iconRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 20 },
-  postButton: {
-    backgroundColor: '#FF0080',
-    padding: 10,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  postButtonText: { color: 'white', fontWeight: 'bold' },
-  closeButton: { marginTop: 10 },
-  closeButtonText: { color: 'blue', fontWeight: 'bold' },
-  collapseText: { color: '#FFF', textAlign: 'center', marginVertical: 10, fontSize: 16, fontWeight: 'bold' },
-  artistCommentText: { color: '#FFF' }, // White for artist comments
-  fanCommentText: { color: '#000' }, // Black for fan comments
 
-});
 
 export default PostDetailPage;

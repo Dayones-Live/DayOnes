@@ -1,17 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
   Image,
   Text,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
+import styles from './fanStyles/MyCollectionsPageStyles';
 import ImageViewing from 'react-native-image-viewing'; // Import the image viewing library
 
 const MyCollectionsPage = ({ navigation }) => {
@@ -70,14 +70,5 @@ const MyCollectionsPage = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000', padding: 16 },
-  scrollView: { flex: 1 },
-  imageGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around' },
-  noPostsText: { fontSize: 18, color: '#ffffff', textAlign: 'center', marginVertical: 20 },
-  imageWrapper: { width: '48%', height: 200, marginVertical: 10 },
-  image: { width: '100%', height: '100%', borderRadius: 10 },
-});
 
 export default MyCollectionsPage;

@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   ActivityIndicator,
-  StyleSheet,
   SafeAreaView,
   Image,
   Button,
@@ -14,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import useNotifications from '../assets/hooks/useNotifications';
 import { formatDate } from '../utils/dateFormat';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import styles from './sharedStyles/NotificationsScreenStyles';
 
 const NotificationsScreen = () => {
   const { data, error, isLoading } = useNotifications();
@@ -45,8 +45,8 @@ const NotificationsScreen = () => {
       item.type === 'reaction'
         ? 'Liked your post'
         : item.type === 'comments'
-        ? `Commented: "${item.message}"!`
-        : 'Sent you a DM';
+          ? `Commented: "${item.message}"!`
+          : 'Sent you a DM';
 
     return (
       <View style={styles.notificationCard}>
@@ -106,77 +106,5 @@ const NotificationsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-    paddingHorizontal: 16,
-  },
-  text: {
-    fontSize: 24,
-    color: '#fff',
-    marginVertical: 16,
-    textAlign: 'center',
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
-  notificationCard: {
-    backgroundColor: '#1a1a1a',
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  defaultAvatar: {
-    marginRight: 12,
-  },
-  senderName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  date: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 2,
-  },
-  dmContent: {
-    fontSize: 14,
-    color: '#ccc',
-    marginTop: 8,
-  },
-  contentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  notificationMessage: {
-    fontSize: 14,
-    color: '#ccc',
-    flex: 1,
-  },
-  adminText: {
-    fontSize: 16,
-    color: '#00ff00',
-    marginTop: 20,
-    textAlign: 'center',
-  },
-});
 
 export default NotificationsScreen;
