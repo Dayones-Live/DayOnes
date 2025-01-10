@@ -39,25 +39,28 @@ const NotificationsScreen = () => {
   }
 
   const renderNotification = ({ item }) => {
-    const senderName = item.sender_name || 'A Fan from your event';
-    const senderAvatar = item.sender_avatar;
+    const fromUserProfile = item.from_user_profile;
+
     const notificationMessage =
       item.type === 'reaction'
         ? 'Liked your post'
         : item.type === 'comments'
-          ? `Commented: "${item.message}"!`
-          : 'Sent you a DM';
+        ? `Commented: "${item.message}"!`
+        : 'Sent you a DM';
 
     return (
       <View style={styles.notificationCard}>
         <View style={styles.header}>
-          {senderAvatar ? (
-            <Image source={{ uri: senderAvatar }} style={styles.avatar} />
+          {fromUserProfile?.img_profile ? (
+            <Image
+              source={{ uri: fromUserProfile.img_profile }}
+              style={styles.avatar}
+            />
           ) : (
             <FontAwesome name="user-circle" size={40} color="gray" style={styles.defaultAvatar} />
           )}
           <View>
-            <Text style={styles.senderName}>{senderName}</Text>
+            <Text style={styles.senderName}>{fromUserProfile?.username || 'Unknown User'}</Text>
             <Text style={styles.date}>{formatDate(item.created_at)}</Text>
           </View>
         </View>
@@ -79,8 +82,6 @@ const NotificationsScreen = () => {
       </View>
     );
   };
-
-
 
   return (
     <SafeAreaView style={styles.container}>
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
   dmContent: {
     fontSize: 14,
     color: '#ccc',
-    marginTop: 8, // Adds spacing between the main message and the DM content
+    marginTop: 8,
   },
   contentRow: {
     flexDirection: 'row',
