@@ -12,6 +12,8 @@ import { uploadVideoToBucket } from '../../utils/videoUploadService';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Video from 'react-native-video';
 import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // Import icon library
+
 
 
 const ArtistPostsPage = () => {
@@ -30,43 +32,97 @@ const ArtistPostsPage = () => {
   const [genericPostId, setGenericPostId] = useState(null);
 
 
+  
+
+  
+  
+
+  const formatCount = (count) => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}m`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
+    return count.toString();
+  };
+  
+
+
   const fetchArtistPosts = async (pageNum = 1) => {
     if (loading || !hasMore) return;
     setLoading(true);
-
+  
     try {
+      console.log(`Fetching posts for page number: ${pageNum}`);
+  
       const apiUrl = `${BASEURL}/api/v1/post?pageNo=${pageNum}&pageSize=25`;
       const response = await axios.get(apiUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-
+  
       const postsData = response.data?.data?.posts || [];
-      const genericPost = postsData.find(post => post.type === 'GENERIC');
-
-      if (genericPost) {
-        setPinnedPost(genericPost);
-        setGenericPostId(genericPost.id); // Store the ID of the generic post
+  
+      // Calculate the total fan count from all posts
+      const totalFanCount = postsData.reduce(
+        (total, post) => total + (post.associate_fan_count || 0),
+        0
+      );
+  
+      const enrichedPosts = await Promise.all(
+        postsData.map(async (post) => {
+          try {
+            const detailResponse = await axios.get(`${BASEURL}/api/v1/post/${post.id}`, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            const { comments = [], artistComments = [] } = detailResponse.data?.data || {};
+  
+            const totalComments = comments.reduce(
+              (acc, comment) => acc + 1 + (comment.replies?.length || 0),
+              0
+            ) +
+              artistComments.reduce(
+                (acc, artistComment) =>
+                  acc + 1 + (artistComment.replies?.length || 0),
+                0
+              );
+  
+            return { ...post, totalComments };
+          } catch (error) {
+            console.error(`Error fetching details for post ${post.id}:`, error.message);
+            return { ...post, totalComments: 0 };
+          }
+        })
+      );
+  
+      // Sort the posts by `created_at` in descending order
+      const sortedPosts = enrichedPosts.sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
+  
+      // Set the pinned post with total fan count
+      if (pageNum === 1) {
+        setPinnedPost({
+          id: 'pinned',
+          locale: 'All Locations',
+          associate_fan_count: totalFanCount,
+          created_at: new Date().toISOString(),
+        });
       }
-
-      const otherPosts = postsData
-        .filter(post => post.type !== 'GENERIC')
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Sort posts by created_at in descending order
-
-      setHasMore(otherPosts.length === 25);
-
-      setPosts(prevPosts => {
-        const newPosts = otherPosts.filter(post => !prevPosts.some(prevPost => prevPost.id === post.id));
-        return pageNum === 1 ? newPosts : [...prevPosts, ...newPosts];
-      });
-
-      setPage(pageNum + 1);
+  
+      setHasMore(postsData.length === 25); // Check if more posts are available
+      setPosts((prevPosts) => (pageNum === 1 ? sortedPosts : [...prevPosts, ...sortedPosts])); // Append or replace posts
+      setPage(pageNum + 1); // Increment the page number
     } catch (error) {
       console.error("Error fetching posts:", error.message || "Unknown error");
-      Alert.alert('Error', 'An error occurred while fetching posts.');
+      Alert.alert("Error", "An error occurred while fetching posts.");
     } finally {
       setLoading(false);
     }
   };
+  
+  
+  
+  
+  
+  
+  
 
 
   const handleDelete = async (postId) => {
@@ -110,12 +166,16 @@ const ArtistPostsPage = () => {
 
   useFocusEffect(
     useCallback(() => {
-      setPage(1);
-      setPosts([]);
-      setHasMore(true);
-      fetchArtistPosts(1);
+      const resetAndFetch = async () => {
+        setPage(1); // Reset pagination
+        setHasMore(true); // Reset the "has more" flag
+        await fetchArtistPosts(1); // Fetch the first page of posts
+      };
+  
+      resetAndFetch();
     }, [])
   );
+  
 
   const handleLoadMore = ({ nativeEvent }) => {
     const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
@@ -247,32 +307,54 @@ const ArtistPostsPage = () => {
   };
 
 
-  const renderPostItem = (post, index) => {
-    const postDate = new Date(post.created_at).toLocaleString();
+ 
 
+
+  
+  const renderPostItem = (post, index) => {
+    console.log(`Post ${index + 1} associate_fan_count:`, post.associate_fan_count);
+    const postDate = new Date(post.created_at).toLocaleString();
+    
     return (
       <TouchableOpacity
-        key={index}
-        style={styles.postContainer}
-        onPress={() => navigation.navigate('PostDetailPage', { postId: post.id })}
-        onLongPress={() => confirmDelete(post.id)}
-      >
-        <Text style={styles.postUser}>{post.locale || 'Unknown Location'}</Text>
-        {post.image_url ? (
-          <Image source={{ uri: post.image_url }} style={styles.postImage} />
-        ) : (
-          <View style={styles.inviteOnlyBox}>
-            <Text style={styles.inviteOnlyText}>Invite Only</Text>
-          </View>
-        )}
-        <View style={styles.interactionContainer}>
-          <Text style={styles.interactionText}>❤️ {post.reactionCount || 0}</Text>
-          <Text style={styles.interactionText}>💬 {post.commentsCount || 0}</Text>
-        </View>
-        <Text style={styles.postDate}>{postDate}</Text>
-      </TouchableOpacity>
+  key={index}
+  style={styles.postContainer}
+  onPress={() => navigation.navigate('PostDetailPage', { postId: post.id })}
+  onLongPress={() => confirmDelete(post.id)}
+>
+  {/* Location */}
+  <View style={styles.headerContainer}>
+    <Text style={styles.postUser}>{post.locale || 'Unknown Location'}</Text>
+    <View style={styles.fanCountContainer}>
+      <MaterialIcons name="person" size={18} color="#FFF" />
+      <Text style={styles.fanCountText}>{formatCount(post.associate_fan_count)}</Text>
+    </View>
+  </View>
+
+  {/* Post Image */}
+  {post.image_url ? (
+    <Image source={{ uri: post.image_url }} style={styles.postImage} />
+  ) : (
+    <View style={styles.inviteOnlyBox}>
+      <Text style={styles.inviteOnlyText}>Invite Only</Text>
+    </View>
+  )}
+
+  {/* Interaction Data */}
+  <View style={styles.interactionContainer}>
+    <Text style={styles.interactionText}>❤️ {post.totalLikes}</Text>
+    <Text style={styles.interactionText}>💬 {post.totalComments}</Text>
+  </View>
+
+  {/* Post Date */}
+  <Text style={styles.postDate}>{new Date(post.created_at).toLocaleString()}</Text>
+</TouchableOpacity>
+
+
     );
   };
+  
+  
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -289,25 +371,39 @@ const ArtistPostsPage = () => {
           onScroll={handleLoadMore}
           scrollEventThrottle={400}
         >
-          {pinnedPost && (
-            <TouchableOpacity
-              key={pinnedPost.id}
-              style={styles.postContainer}
-              onPress={() => navigation.navigate('PostDetailPage', { postId: pinnedPost.id })}
-              onLongPress={() => confirmDelete(pinnedPost.id)}
-            >
-              <Text style={styles.postUser}>My DayOnes</Text>
-              <Image
-                source={require('../../assets/images/Untitled_design-2.jpg')}
-                style={styles.postImage}
-              />
-              <View style={styles.interactionContainer}>
-                <Text style={styles.interactionText}>❤️ {pinnedPost.reactionCount || 0}</Text>
-                <Text style={styles.interactionText}>💬 {pinnedPost.commentsCount || 0}</Text>
-              </View>
-              <Text style={styles.postDate}>{new Date(pinnedPost.created_at).toLocaleString()}</Text>
-            </TouchableOpacity>
-          )}
+         {pinnedPost && (
+  <TouchableOpacity
+    key={pinnedPost.id}
+    style={styles.postContainer}
+    onPress={() => navigation.navigate('PostDetailPage', { postId: pinnedPost.id })}
+    onLongPress={() => confirmDelete(pinnedPost.id)}
+  >
+    {/* Location */}
+    <View style={styles.headerContainer}>
+      <Text style={styles.postUser}>{pinnedPost.locale || 'Unknown Location'}</Text>
+      <View style={styles.fanCountContainer}>
+        <MaterialIcons name="person" size={18} color="#FFF" />
+        <Text style={styles.fanCountText}>{formatCount(pinnedPost.associate_fan_count || 0)}</Text>
+      </View>
+    </View>
+
+    {/* Post Image */}
+    <Image
+      source={require('../../assets/images/Untitled_design-2.jpg')}
+      style={styles.postImage}
+    />
+
+    {/* Interaction Data */}
+    <View style={styles.interactionContainer}>
+      <Text style={styles.interactionText}>❤️ {pinnedPost.reactionCount || 0}</Text>
+      <Text style={styles.interactionText}>💬 {pinnedPost.commentsCount || 0}</Text>
+    </View>
+
+    {/* Post Date */}
+    <Text style={styles.postDate}>{new Date(pinnedPost.created_at).toLocaleString()}</Text>
+  </TouchableOpacity>
+)}
+
 
           {posts.map((post, index) => renderPostItem(post, index))}
         </ScrollView>
@@ -428,6 +524,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  headerContainer: {
+    position: 'relative', // Allows absolute positioning for children
+    marginBottom: 5,
+    justifyContent: 'center',
+    alignItems: 'center', // Centers the location text
+  },
+  postUser: {
+    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: 'bold',
+    textAlign: 'center', // Ensures location is centered
+  },
+  fanCountContainer: {
+    position: 'absolute', // Position the icon and count independently
+    right: '-25%', // Distance from the right edge
+    top: 0, // Align with the top of the header
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  fanCountText: {
+    marginLeft: 5, // Space between icon and text
+    fontSize: 16,
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  postContainer: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  postImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+  },
+  interactionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 10,
+  },
+  interactionText: {
+    fontSize: 16,
+    color: '#FF0080',
+  },
+  postDate: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 5,
+  },
 });
 
 export default ArtistPostsPage;
