@@ -1,42 +1,37 @@
 import { StyleSheet } from "react-native";
-import {
-    widthPercentageToDP as wp,
-    heightPercentageToDP as hp,
-} from 'react-native-responsive-screen';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
         backgroundColor: '#000',
-        padding: wp('1%'), // 5% of screen width for padding
+        padding: scale(10), // Adjusted padding for consistency
         alignItems: 'center',
-        paddingBottom: hp('10%'), // 10% of screen height for bottom padding
+        paddingBottom: verticalScale(40), // Scaled bottom padding
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: hp('1%'), // 2% of screen height
+        marginBottom: verticalScale(10), // Scaled margin
     },
     headerText: {
         color: '#C0C0C0',
-        fontSize: wp('4%'), // 4% of screen width
+        fontSize: moderateScale(18), // Adjusted font size for scaling
         fontWeight: 'bold',
-        marginHorizontal: wp('0.5%'), // 0.5% of screen width
-        marginVertical: hp('1%'), // 1% of screen height
+        marginHorizontal: scale(5), // Scaled margin
+        marginVertical: verticalScale(10), // Scaled margin
     },
     logo: {
-        width: wp('12%'), // 12% of screen width
-        height: hp('6%'), // 6% of screen height
+        width: scale(50), // Scaled width
+        height: verticalScale(50), // Scaled height
         resizeMode: 'contain',
-        left: wp('0%'),
     },
     imageContainer: {
         width: '100%',
-        height: hp('22%'), // 22% of screen height
-        borderRadius: 20,
+        height: verticalScale(150), // Adjusted height for scaling
+        borderRadius: scale(20), // Scaled border radius
         overflow: 'hidden',
-        marginBottom: hp('0%'), // 3% of screen height
+        marginBottom: verticalScale(10), // Scaled margin
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -57,98 +52,93 @@ const styles = StyleSheet.create({
     },
     clearButton: {
         position: 'absolute',
-        top: hp('1%'), // 1% of screen height
-        right: wp('2%'), // 2% of screen width
+        top: verticalScale(10), // Scaled top position
+        right: scale(10), // Scaled right position
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        padding: wp('1%'),
-        borderRadius: 5,
+        padding: scale(5), // Scaled padding
+        borderRadius: scale(5),
     },
     pictureContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         width: '100%',
-        marginBottom: hp('3%'), // 3% of screen height
+        marginBottom: verticalScale(20), // Scaled margin
     },
     pictureButton: {
         width: '45%',
-        height: hp('13%'), // 13% of screen height
+        height: verticalScale(100), // Adjusted height for scaling
         backgroundColor: '#000',
         borderColor: '#000',
         borderWidth: 1,
-        borderRadius: 20,
+        borderRadius: scale(10), // Scaled border radius
         alignItems: 'center',
         justifyContent: 'center',
     },
     cameraIcon: {
-        marginBottom: hp('1%'), // 1% of screen height
+        marginBottom: verticalScale(5), // Scaled margin
     },
     uploadIcon: {
-        marginBottom: hp('1%'), // 1% of screen height
+        marginBottom: verticalScale(5), // Scaled margin
     },
     buttonText: {
         color: '#C0C0C0',
-        fontSize: wp('4%'), // 4% of screen width
+        fontSize: moderateScale(14), // Scaled font size
         fontWeight: 'bold',
     },
     switchContainer: {
         width: '100%',
         alignItems: 'center',
-        marginBottom: hp('1%'), // 3% of screen height
+        marginBottom: verticalScale(10), // Scaled margin
     },
     sliderLabel: {
-        fontSize: wp('4%'), // 4% of screen width
+        fontSize: moderateScale(16), // Scaled font size
         color: '#C0C0C0',
-        marginBottom: hp('1%'), // 1% of screen height
+        marginBottom: verticalScale(5), // Scaled margin
     },
     sendButtonContainer: {
         width: '100%',
-        borderRadius: 10,
+        borderRadius: scale(10), // Scaled border radius
         overflow: 'hidden',
-        marginVertical: hp('3%'), // 3% of screen height
+        marginVertical: verticalScale(15), // Scaled margin
     },
     sendButtonGradient: {
-        paddingVertical: hp('2%'), // 2% of screen height
-        borderRadius: 10,
+        paddingVertical: verticalScale(10), // Scaled padding
+        borderRadius: scale(10),
         width: '100%',
         alignItems: 'center',
     },
-    sendButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     sendButtonText: {
         color: '#ffffff',
-        fontSize: wp('4.5%'), // 4.5% of screen width
+        fontSize: moderateScale(16), // Scaled font size
         fontWeight: 'bold',
     },
     radioGroup: {
-        marginBottom: hp('3%'), // 3% of screen height
+        marginBottom: verticalScale(15), // Scaled margin
         alignItems: 'center',
         color: '#C0C0C0',
     },
     radioGroupLabel: {
-        fontSize: wp('4%'), // 4% of screen width
+        fontSize: moderateScale(14), // Scaled font size
         color: '#C0C0C0',
-        marginBottom: hp('1%'), // 1% of screen height
+        marginBottom: verticalScale(5), // Scaled margin
     },
     radioButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: hp('1%'), // 1% of screen height
-        color: '#C0C0C0',
+        marginBottom: verticalScale(5), // Scaled margin
     },
     radioLabel: {
         color: '#C0C0C0',
-        marginLeft: wp('2%'), // 2% of screen width
-        fontSize: wp('4%'), // 4% of screen width
+        marginLeft: scale(10), // Scaled margin
+        fontSize: moderateScale(14), // Scaled font size
     },
     personalMediaText: {
         color: '#C0C0C0',
-        fontSize: wp('4.5%'), // 4.5% of screen width
+        fontSize: moderateScale(16), // Scaled font size
         fontWeight: 'bold',
         textAlign: 'center',
-        marginTop: hp('-1%'), // -1% of screen height
-        marginBottom: hp('4%'), // 4% of screen height
+        marginTop: verticalScale(-5), // Scaled margin
+        marginBottom: verticalScale(20), // Scaled margin
     },
     placeholderContainer: {
         width: '100%',
@@ -158,14 +148,14 @@ const styles = StyleSheet.create({
     overlayTextContainer: {
         position: 'absolute',
         top: '30%',
-        left: '38%',
-        transform: [{ translateX: -50 }, { translateY: -50 }],
+        width: '100%',
         justifyContent: 'center',
         alignItems: 'center',
     },
     overlayText: {
         color: '#C0C0C0',
-        fontSize: wp('5%'), // Adjust font size as needed
+        top: verticalScale(-37),
+        fontSize: moderateScale(18), // Adjusted font size for scaling
         fontWeight: 'bold',
         textAlign: 'center',
     },
