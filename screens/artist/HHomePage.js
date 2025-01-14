@@ -1,9 +1,8 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   Image,
   SafeAreaView,
@@ -17,24 +16,21 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
 import Geocoder from 'react-native-geocoder-reborn';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {useSelector} from 'react-redux';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSelector } from 'react-redux';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import NotificationsScreen from '../NotificationsScreen';
 import DMsScreen from '../DMsScreen';
 import ArtistPostsPage from './ArtistPostsPage';
-import {BASEURL} from '../../assets/constants';
-import {uploadImageToBucket} from '../../utils';
+import { BASEURL } from '../../assets/constants';
+import { uploadImageToBucket } from '../../utils';
+import styles from './artistStyles/HHomePageStyles';
 import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotificationsAndLocation';
-import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
-import {
-  widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from 'react-native-responsive-screen';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useFetchUser from '../../assets/hooks/useFetchUser';
-import {convertToTemporaryFile} from '../../assets/components/convertToTemporaryFileHelper';
+import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 
 const Tab = createBottomTabNavigator();
 
@@ -45,7 +41,7 @@ const HHomePage = () => {
   const [postType, setPostType] = useState('INVITE_PHOTO');
   const [scaleValue] = useState(new Animated.Value(1));
 
-  const {mutate: fetchUser} = useFetchUser();
+  const { mutate: fetchUser } = useFetchUser();
   const navigation = useNavigation();
   const route = useRoute();
   const [isLoading, setIsLoading] = useState(false);
@@ -120,7 +116,7 @@ const HHomePage = () => {
       } else if (response.assets && response.assets.length > 0) {
         const capturedImage = response.assets[0];
         setSelectedImage(capturedImage);
-        navigation.navigate('EditScreen', {selectedImage: capturedImage});
+        navigation.navigate('EditScreen', { selectedImage: capturedImage });
       }
     });
   };
@@ -172,7 +168,7 @@ const HHomePage = () => {
         }
 
         setSelectedImage(uploadedImage);
-        navigation.navigate('EditScreen', {selectedImage: uploadedImage});
+        navigation.navigate('EditScreen', { selectedImage: uploadedImage });
       }
     });
   };
@@ -220,8 +216,8 @@ const HHomePage = () => {
 
     Geolocation.getCurrentPosition(
       async position => {
-        const {latitude, longitude} = position.coords;
-        console.log("User's current position:", {latitude, longitude});
+        const { latitude, longitude } = position.coords;
+        console.log("User's current position:", { latitude, longitude });
 
         try {
           let postImageUrl = null;
@@ -281,7 +277,7 @@ const HHomePage = () => {
 
             // Navigate to PostDetailPage with the new post ID
             if (newPostId) {
-              navigation.navigate('PostDetailPage', {postId: newPostId});
+              navigation.navigate('PostDetailPage', { postId: newPostId });
             } else {
               console.error('Post ID not returned in response.');
             }
@@ -291,8 +287,7 @@ const HHomePage = () => {
             console.error('Failed to create post:', jsonResponse);
             Alert.alert(
               'Error',
-              `Failed to create post: ${
-                jsonResponse.message || 'Unknown error'
+              `Failed to create post: ${jsonResponse.message || 'Unknown error'
               }`,
             );
           }
@@ -310,15 +305,15 @@ const HHomePage = () => {
         );
         setIsLoading(false);
       },
-      {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
     );
   };
 
   return (
     <Tab.Navigator
       initialRouteName="Main"
-      screenOptions={({route}) => ({
-        tabBarIcon: ({color, size}) => {
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
           let iconName;
           switch (route.name) {
             case 'Posts':
@@ -344,9 +339,9 @@ const HHomePage = () => {
         },
         headerShown: false,
       })}>
-      <Tab.Screen name="Main" options={{tabBarLabel: 'Home'}}>
+      <Tab.Screen name="Main" options={{ tabBarLabel: 'Home' }}>
         {() => (
-          <SafeAreaView style={{flex: 1, backgroundColor: '#000'}}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
             <ScrollView contentContainerStyle={styles.container}>
               <ProfilePictureButton />
 
@@ -363,7 +358,7 @@ const HHomePage = () => {
                 {selectedImage ? (
                   <View style={styles.selectedImageContainer}>
                     <Image
-                      source={{uri: selectedImage.uri}}
+                      source={{ uri: selectedImage.uri }}
                       style={styles.selectedImage}
                     />
                     <TouchableOpacity
@@ -447,18 +442,18 @@ const HHomePage = () => {
                 <Switch
                   value={isMaxRange}
                   onValueChange={() => setIsMaxRange(!isMaxRange)}
-                  trackColor={{false: '#FFF', true: '#E03FD8'}}
+                  trackColor={{ false: '#FFF', true: '#E03FD8' }}
                   thumbColor={isMaxRange ? '#FFF' : '#FFF'}
                 />
               </View>
 
               <View style={styles.sendButtonContainer}>
-                <Animated.View style={{transform: [{scale: scaleValue}]}}>
+                <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
                   <LinearGradient
                     colors={['#00E5FF', '#D500F9']}
                     style={styles.sendButtonGradient}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 0}}>
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}>
                     {isLoading ? (
                       <ActivityIndicator size="large" color="#FFF" />
                     ) : (
@@ -482,170 +477,6 @@ const HHomePage = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    backgroundColor: '#000',
-    padding: wp('1%'), // 5% of screen width for padding
-    alignItems: 'center',
-    paddingBottom: hp('10%'), // 10% of screen height for bottom padding
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: hp('1%'), // 2% of screen height
-  },
-  headerText: {
-    color: '#C0C0C0',
-    fontSize: wp('4%'), // 4% of screen width
-    fontWeight: 'bold',
-    marginHorizontal: wp('0.5%'), // 0.5% of screen width
-    marginVertical: hp('1%'), // 1% of screen height
-  },
-  logo: {
-    width: wp('12%'), // 12% of screen width
-    height: hp('6%'), // 6% of screen height
-    resizeMode: 'contain',
-    left: wp('0%'),
-  },
-  imageContainer: {
-    width: '100%',
-    height: hp('22%'), // 22% of screen height
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: hp('0%'), // 3% of screen height
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedImageContainer: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
-  },
-  selectedImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  placeholderImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  clearButton: {
-    position: 'absolute',
-    top: hp('1%'), // 1% of screen height
-    right: wp('2%'), // 2% of screen width
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    padding: wp('1%'),
-    borderRadius: 5,
-  },
-  pictureContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: hp('3%'), // 3% of screen height
-  },
-  pictureButton: {
-    width: '45%',
-    height: hp('13%'), // 13% of screen height
-    backgroundColor: '#000',
-    borderColor: '#000',
-    borderWidth: 1,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cameraIcon: {
-    marginBottom: hp('1%'), // 1% of screen height
-  },
-  uploadIcon: {
-    marginBottom: hp('1%'), // 1% of screen height
-  },
-  buttonText: {
-    color: '#C0C0C0',
-    fontSize: wp('4%'), // 4% of screen width
-    fontWeight: 'bold',
-  },
-  switchContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: hp('1%'), // 3% of screen height
-  },
-  sliderLabel: {
-    fontSize: wp('4%'), // 4% of screen width
-    color: '#C0C0C0',
-    marginBottom: hp('1%'), // 1% of screen height
-  },
-  sendButtonContainer: {
-    width: '100%',
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginVertical: hp('3%'), // 3% of screen height
-  },
-  sendButtonGradient: {
-    paddingVertical: hp('2%'), // 2% of screen height
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-  sendButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonText: {
-    color: '#ffffff',
-    fontSize: wp('4.5%'), // 4.5% of screen width
-    fontWeight: 'bold',
-  },
-  radioGroup: {
-    marginBottom: hp('3%'), // 3% of screen height
-    alignItems: 'center',
-    color: '#C0C0C0',
-  },
-  radioGroupLabel: {
-    fontSize: wp('4%'), // 4% of screen width
-    color: '#C0C0C0',
-    marginBottom: hp('1%'), // 1% of screen height
-  },
-  radioButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: hp('1%'), // 1% of screen height
-    color: '#C0C0C0',
-  },
-  radioLabel: {
-    color: '#C0C0C0',
-    marginLeft: wp('2%'), // 2% of screen width
-    fontSize: wp('4%'), // 4% of screen width
-  },
-  personalMediaText: {
-    color: '#C0C0C0',
-    fontSize: wp('4.5%'), // 4.5% of screen width
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: hp('-1%'), // -1% of screen height
-    marginBottom: hp('4%'), // 4% of screen height
-  },
-  placeholderContainer: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
-  },
-  overlayTextContainer: {
-    position: 'absolute',
-    top: '30%',
-    left: '38%',
-    transform: [{translateX: -50}, {translateY: -50}],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  overlayText: {
-    color: '#C0C0C0',
-    fontSize: wp('5%'), // Adjust font size as needed
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-});
+
 
 export default HHomePage;
