@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.dayoneslive">  <!-- Ensure this matches your actual package name -->
+    package="com.dayoneslive1">  <!-- Ensure this matches your actual package name -->
 
     <!-- Permission for Internet access -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -9,7 +9,6 @@
     <!-- Permissions for accessing location -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />

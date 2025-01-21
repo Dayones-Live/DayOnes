@@ -8,9 +8,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.dayoneslive"
+    namespace "com.dayoneslive1"
     defaultConfig {
-        applicationId "com.dayoneslive"
+        applicationId "com.dayoneslive1"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 7
