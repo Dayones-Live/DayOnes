@@ -97,11 +97,10 @@ const styles = StyleSheet.create({
     },
     fanCountCorner: {
         position: 'absolute',
-        top: 10,
+        top: '-4%',
         right: 10,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Darker background for better contrast
         borderRadius: 15,
         paddingHorizontal: 10,
         paddingVertical: 8,
