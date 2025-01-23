@@ -95,6 +95,24 @@ const styles = StyleSheet.create({
         color: '#888',
         marginTop: 5,
     },
+    fanCountCorner: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Darker background for better contrast
+        borderRadius: 15,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        zIndex: 1, // Ensure it stays on top of the image
+    },
+    fanCountText: {
+        fontSize: 14,
+        color: '#FFF',
+        fontWeight: 'bold', // Make the text bolder for readability
+        marginLeft: 5,
+    },
 });
 
 export default styles;
