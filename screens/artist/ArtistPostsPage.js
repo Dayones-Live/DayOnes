@@ -14,7 +14,8 @@ import Video from 'react-native-video';
 import styles from './artistStyles/ArtistPostsPageStyles';
 import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // Import icon library
-
+import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import {  Linking } from 'react-native';
 
 
 const ArtistPostsPage = () => {
@@ -166,15 +167,73 @@ const ArtistPostsPage = () => {
 
 
 
-  const takePicture = () => {
-    launchCamera({ mediaType: 'mixed' }, (response) => {
-      if (!response.didCancel && !response.errorCode) {
-        const { uri, type } = response.assets[0];
-        setSelectedImage(uri.startsWith('file://') ? uri : `file://${uri}`);
-        setMediaType(type.startsWith('image/') ? 'PHOTO' : 'VIDEO');
-      }
-    });
-  };
+ const takePicture = async () => {
+   try {
+     const permission =
+       Platform.OS === 'android'
+         ? PERMISSIONS.ANDROID.CAMERA
+         : PERMISSIONS.IOS.CAMERA;
+ 
+     // Check if permission is granted
+     const result = await check(permission);
+ 
+     if (result === RESULTS.GRANTED) {
+       // Permission is already granted; launch the camera
+       launchCamera(options, response => {
+         if (response.didCancel) {
+           console.log('User cancelled image picker');
+         } else if (response.errorMessage) {
+           console.log('ImagePicker Error: ', response.errorMessage);
+         } else if (response.assets && response.assets.length > 0) {
+           const capturedImage = response.assets[0];
+           setSelectedImage(capturedImage);
+           navigation.navigate('EditScreen', { selectedImage: capturedImage });
+         }
+       });
+     } else if (result === RESULTS.DENIED) {
+       // Request permission
+       const requestResult = await request(permission);
+       if (requestResult === RESULTS.GRANTED) {
+         // Permission granted after request; launch the camera
+         launchCamera(options, response => {
+           if (response.didCancel) {
+             console.log('User cancelled image picker');
+           } else if (response.errorMessage) {
+             console.log('ImagePicker Error: ', response.errorMessage);
+           } else if (response.assets && response.assets.length > 0) {
+             const capturedImage = response.assets[0];
+             setSelectedImage(capturedImage);
+             navigation.navigate('EditScreen', { selectedImage: capturedImage });
+           }
+         });
+       } else {
+         // Permission denied
+         Alert.alert(
+           'Permission Required',
+           'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
+         );
+       }
+     } else if (result === RESULTS.BLOCKED) {
+       // Permission is blocked; show an alert to guide the user to settings
+       Alert.alert(
+         'Permission Required',
+         'Camera access has been blocked. Please enable it in your device settings.',
+         [
+           {
+             text: 'Cancel',
+             style: 'cancel',
+           },
+           {
+             text: 'Open Settings',
+             onPress: () => Linking.openSettings(),
+           },
+         ],
+       );
+     }
+   } catch (error) {
+     console.error('Error checking camera permission:', error);
+   }
+ };
 
 
   const uploadFile = () => {
