@@ -15,11 +15,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import useLogin from '../assets/hooks/useLogin';
-import {
-  check,
-  PERMISSIONS,
-  RESULTS,
-} from 'react-native-permissions';
+import { check, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { Platform } from 'react-native';
 import styles from './sharedStyles/LoginPageStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,7 +25,7 @@ const { width } = Dimensions.get('window');
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false); // State to toggle password visibility
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [role, setRole] = useState(null);
   const [permissionsGranted, setPermissionsGranted] = useState(false);
@@ -45,7 +41,6 @@ const LoginScreen = () => {
           ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
           : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION
       );
-
       return location === RESULTS.GRANTED;
     } catch (error) {
       console.log('Error checking permissions:', error);
@@ -71,9 +66,7 @@ const LoginScreen = () => {
   }, [role, isLoading]);
 
   const navigateToAppropriateStack = () => {
-    if (!role) {
-      return;
-    }
+    if (!role) return;
     if (role === 'ARTIST') {
       navigation.navigate('ArtistStack');
     } else if (role === 'USER') {
@@ -84,9 +77,6 @@ const LoginScreen = () => {
   useEffect(() => {
     if (userProfile?.data?.role) {
       setRole(userProfile.data.role);
-      console.log('useEffect triggered: userProfile role is:', userProfile.data.role);
-    } else {
-      console.log('useEffect triggered: No role found in userProfile.');
     }
     setIsLoading(false);
   }, [userProfile]);
@@ -98,38 +88,20 @@ const LoginScreen = () => {
     return unsubscribe;
   }, [navigation]);
 
-
-
-  useEffect(() => {
-    if (role && !isLoading) {
-      checkAllPermissions().then((permissions) => {
-        setPermissionsGranted(permissions);
-        if (permissions) {
-          navigateToAppropriateStack();
-        } else {
-          navigation.navigate('PermissionsScreen');
-        }
-      });
-    }
-  }, [role, isLoading]);
-
   useEffect(() => {
     const saveRoleToAsyncStorage = async () => {
       if (userProfile?.data?.role) {
         try {
           await AsyncStorage.setItem('userRole', userProfile.data.role);
-          console.log('Role updated and saved to AsyncStorage:', userProfile.data.role);
         } catch (error) {
           console.error('Error saving role to AsyncStorage:', error);
         }
       }
     };
-
     saveRoleToAsyncStorage();
   }, [userProfile]);
 
-
-  const handleLogin = (retry = false) => {
+  const handleLogin = () => {
     if (!username || !password) {
       Alert.alert('Validation Error', 'Please enter both username and password.');
       return;
@@ -141,55 +113,31 @@ const LoginScreen = () => {
       {
         onSuccess: async (data) => {
           setIsLoading(false);
-
-          // Extract role and token
           const userRole = data?.role || userProfile?.data?.role;
           const token = data?.token;
 
-          if (!token) {
-            Alert.alert('Error', 'Token missing in response.');
-            return;
-          }
-
-          try {
-            // Save token immediately
+          if (token) {
             await AsyncStorage.setItem('authToken', token);
-
-            // Save role if available, or wait for it in the effect
             if (userRole) {
               await AsyncStorage.setItem('userRole', userRole);
-              console.log('Role saved to AsyncStorage:', userRole);
-            } else {
-              console.log('Role not available immediately. Waiting for it...');
             }
-
-            // Navigate based on role
-            if (userRole === 'ARTIST') {
-              navigation.navigate('ArtistStack');
-            } else if (userRole === 'USER') {
-              navigation.navigate('FanStack');
-            } else {
-              console.log('Unexpected userRole:', userRole);
-            }
-          } catch (error) {
-            console.error('Error saving login state to AsyncStorage:', error);
+            if (userRole === 'ARTIST') navigation.navigate('ArtistStack');
+            else if (userRole === 'USER') navigation.navigate('FanStack');
+          } else {
+            Alert.alert('Error', 'Token missing in response.');
           }
         },
         onError: (error) => {
           setIsLoading(false);
-          console.error('Login failed:', error);
           Alert.alert('Error', 'Login failed. Please try again.');
         },
       }
     );
   };
 
-
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-
       <View style={styles.contentContainer}>
         <View style={styles.topSection}>
           <Image
@@ -202,7 +150,6 @@ const LoginScreen = () => {
         <View style={styles.middleSection}>
           <View style={styles.inputContainer}>
             <TextInput
-              key="Email"
               style={styles.input}
               placeholder="Email"
               placeholderTextColor="#888"
@@ -215,17 +162,14 @@ const LoginScreen = () => {
 
           <View style={styles.passwordContainer}>
             <TextInput
-              key="Password"
               style={styles.passwordInput}
               placeholder="Password"
               placeholderTextColor="#888"
               value={password}
               onChangeText={setPassword}
               editable={!isLoading}
-              textContentType="oneTimeCode"
-              secureTextEntry={!isPasswordVisible} // Toggles visibility
+              secureTextEntry={!isPasswordVisible}
               autoCapitalize="none"
-              returnKeyType="done"
             />
             <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIcon}>
               <Feather
@@ -236,22 +180,25 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.loginButton}>
-            <TouchableOpacity
-              onPress={handleLogin}
-              style={styles.fullWidth}
-              disabled={isLoading}
-            >
+          <TouchableOpacity
+            onPress={handleLogin}
+            style={styles.fullButtonContainer}
+            disabled={isLoading}
+          >
+            <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.loginButton}>
               <Text style={styles.buttonText}>{isLoading ? 'Logging in...' : 'Login'}</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.signupText}>
           Are you an Artist?{' '}
           <Text
             onPress={() =>
-              Alert.alert('Artists!', 'Email DayOnesMedia@gmail.com for more infomation on how to partner with DayOnes.')
+              Alert.alert(
+                'Artists!',
+                'Email DayOnesMedia@gmail.com for more information on how to partner with DayOnes.'
+              )
             }
             style={styles.signupLink}
           >
@@ -261,19 +208,18 @@ const LoginScreen = () => {
 
         <View style={styles.bottomSection}>
           <Text style={styles.artistQuestionText}>Don't have an account?</Text>
-          <LinearGradient colors={['#ffcc00', '#ff8800']} style={styles.signupArtistButton}>
-            <TouchableOpacity
-              style={styles.fullWidth}
-              onPress={() => navigation.navigate('RegFanPage')}
-            >
-              <Text style={[styles.signupArtistText, { color: '#fff' }]}>Signup</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('RegFanPage')}
+            style={styles.fullButtonContainer}
+          >
+            <LinearGradient colors={['#ffcc00', '#ff8800']} style={styles.signupArtistButton}>
+              <Text style={styles.signupArtistText}>Signup</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
   );
 };
-
 
 export default LoginScreen;

@@ -410,14 +410,6 @@ const PostDetailPage = () => {
   };
 
 
-
-
-
-
-
-
-
-
   const likeComment = async (commentId) => {
     try {
       if (likedComments.includes(commentId)) {
@@ -564,37 +556,25 @@ const PostDetailPage = () => {
     }
   };
 
-  const createOrNavigateConversation = async (userId) => {
+  const createOrNavigateConversation = async (userId, profilePicture, username) => {
+    console.log('createOrNavigateConversation: Starting process for userId:', userId);
+
     try {
-      console.log('createOrNavigateConversation: Starting process for userId:', userId);
-
-      // Step 1: Attempt to block the user
-      console.log('Attempting to block the user...');
-      const blockResponse = await axios.post(
-        `${BASEURL}/api/v1/blocks`,
-        { blockedUser: userId },
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      console.log('Block response:', blockResponse.data);
-
-      console.log('Block succeeded, now attempting to unblock...');
-      // Step 2: Immediately unblock the user
-      const unblockResponse = await axios.delete(`${BASEURL}/api/v1/blocks/${userId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      console.log('Unblock response:', unblockResponse.data);
-
-      console.log('Proceeding to check for existing conversations...');
-      // Step 3: Check if a conversation already exists
+      // Step 1: Check if a conversation already exists
+      console.log('Checking for existing conversation for userId:', userId);
       const existingConversation = await checkForExistingConversation(userId);
-      console.log('Existing conversation check:', existingConversation);
+      console.log('Existing conversation:', existingConversation);
 
       if (existingConversation) {
         console.log('Existing conversation found. Navigating to ConversationThread...');
-        navigation.navigate('ConversationThread', { conversationId: existingConversation.id });
+        navigation.navigate('ConversationThread', {
+          conversationId: existingConversation.id,
+          profilePicture: existingConversation.reciever.avatar_url, // Fan's profile picture
+          username: existingConversation.reciever.full_name, // Fan's username
+        });
       } else {
         console.log('No existing conversation found. Creating a new conversation...');
-        // Step 4: Create a new conversation
+        // Step 2: Create a new conversation
         const response = await axios.post(
           `${BASEURL}/api/v1/conversation`,
           { recieverId: userId, lastMessage: 'Hello!' },
@@ -606,7 +586,11 @@ const PostDetailPage = () => {
         const newConversationId = response.data?.data?.id;
         if (newConversationId) {
           console.log('New conversation created. Navigating to ConversationThread...');
-          navigation.navigate('ConversationThread', { conversationId: newConversationId });
+          navigation.navigate('ConversationThread', {
+            conversationId: newConversationId,
+            profilePicture, // Pass fan's profile picture
+            username, // Pass fan's username
+          });
         } else {
           console.error('Failed to retrieve conversation ID. Response:', response.data);
           Alert.alert('Error', 'Failed to create a conversation. Please try again.');
@@ -614,18 +598,7 @@ const PostDetailPage = () => {
       }
     } catch (error) {
       console.error('Error in createOrNavigateConversation:', error.response?.data || error.message);
-
-      // Step 5: Handle block failure due to being blocked by the recipient
-      if (
-        error.response?.status === 400 &&
-        error.response?.data?.message?.includes('already blocked by')
-      ) {
-        console.error('The user has already blocked you. Cannot proceed.');
-        Alert.alert('Error', 'You cannot message this user as they have blocked you.');
-      } else {
-        console.error('An unexpected error occurred:', error.response?.data || error.message);
-        Alert.alert('Error', 'An error occurred while handling the conversation request.');
-      }
+      Alert.alert('Error', 'An error occurred while handling the conversation request.');
     }
   };
 
