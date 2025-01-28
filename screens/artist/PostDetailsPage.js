@@ -239,16 +239,24 @@ const PostDetailPage = () => {
       // Check if permission is granted
       const result = await check(permission);
   
+      // Define the options for the camera
+      const options = {
+        mediaType: 'photo', // or 'mixed' if you want both photo and video options
+        includeBase64: false, // Add this if you don't want the base64 string
+        saveToPhotos: true, // Save the photo to the user's gallery
+      };
+  
       if (result === RESULTS.GRANTED) {
         // Permission is already granted; launch the camera
-        launchCamera(options, response => {
+        launchCamera(options, (response) => {
           if (response.didCancel) {
             console.log('User cancelled image picker');
           } else if (response.errorMessage) {
             console.log('ImagePicker Error: ', response.errorMessage);
           } else if (response.assets && response.assets.length > 0) {
             const capturedImage = response.assets[0];
-            setSelectedImage(capturedImage);
+            setSelectedImage(capturedImage.uri);
+            setMediaType('PHOTO');
             navigation.navigate('EditScreen', { selectedImage: capturedImage });
           }
         });
@@ -257,14 +265,15 @@ const PostDetailPage = () => {
         const requestResult = await request(permission);
         if (requestResult === RESULTS.GRANTED) {
           // Permission granted after request; launch the camera
-          launchCamera(options, response => {
+          launchCamera(options, (response) => {
             if (response.didCancel) {
               console.log('User cancelled image picker');
             } else if (response.errorMessage) {
               console.log('ImagePicker Error: ', response.errorMessage);
             } else if (response.assets && response.assets.length > 0) {
               const capturedImage = response.assets[0];
-              setSelectedImage(capturedImage);
+              setSelectedImage(capturedImage.uri);
+              setMediaType('PHOTO');
               navigation.navigate('EditScreen', { selectedImage: capturedImage });
             }
           });
@@ -272,7 +281,7 @@ const PostDetailPage = () => {
           // Permission denied
           Alert.alert(
             'Permission Required',
-            'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
+            'Camera access is required to take a picture. Please enable camera permissions in your device settings.'
           );
         }
       } else if (result === RESULTS.BLOCKED) {
@@ -289,23 +298,33 @@ const PostDetailPage = () => {
               text: 'Open Settings',
               onPress: () => Linking.openSettings(),
             },
-          ],
+          ]
         );
       }
     } catch (error) {
       console.error('Error checking camera permission:', error);
     }
   };
+  
 
   const handleSendComment = async () => {
+    if (selectedImage && !commentText.trim()) {
+      Alert.alert(
+        'Message Required',
+        'Please include a message when sending a photo.',
+        [{ text: 'OK', onPress: () => {} }]
+      );
+      return;
+    }
+  
     if (!commentText.trim() && !selectedImage) {
       Alert.alert('Error', 'Comment or image is required.');
       return;
     }
-
+  
     setIsSendingComment(true); // Start loading indicator
     let s3Url = selectedImage;
-
+  
     if (selectedImage && !selectedImage.startsWith('https://')) {
       s3Url = await handleMediaUpload(selectedImage);
       if (!s3Url) {
@@ -313,19 +332,19 @@ const PostDetailPage = () => {
         return;
       }
     }
-
+  
     const commentData = {
       message: commentText.trim(),
       ...(s3Url && { url: s3Url, mediaType: mediaType }),
     };
-
+  
     try {
       const response = await axios.post(
         `${BASEURL}/api/v1/post/${postId}/comment`,
         commentData,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-
+  
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Success', 'Your comment has been posted.');
         setCommentText('');
@@ -339,6 +358,7 @@ const PostDetailPage = () => {
       setIsSendingComment(false); // Stop loading indicator
     }
   };
+  
 
 
   const handleBlockUser = (commentId) => {

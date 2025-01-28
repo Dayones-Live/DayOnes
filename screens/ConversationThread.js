@@ -149,77 +149,87 @@ const ConversationThread = () => {
   };
 
 
- const handleTakeMedia = async () => {
-     try {
-       const permission =
-         Platform.OS === 'android'
-           ? PERMISSIONS.ANDROID.CAMERA
-           : PERMISSIONS.IOS.CAMERA;
-   
-       // Check if permission is granted
-       const result = await check(permission);
-   
-       if (result === RESULTS.GRANTED) {
-         // Permission is already granted; launch the camera
-         launchCamera(options, response => {
-           if (response.didCancel) {
-             console.log('User cancelled image picker');
-           } else if (response.errorMessage) {
-             console.log('ImagePicker Error: ', response.errorMessage);
-           } else if (response.assets && response.assets.length > 0) {
-             const capturedImage = response.assets[0];
-             setSelectedImage(capturedImage);
-             navigation.navigate('EditScreen', { selectedImage: capturedImage });
-           }
-         });
-       } else if (result === RESULTS.DENIED) {
-         // Request permission
-         const requestResult = await request(permission);
-         if (requestResult === RESULTS.GRANTED) {
-           // Permission granted after request; launch the camera
-           launchCamera(options, response => {
-             if (response.didCancel) {
-               console.log('User cancelled image picker');
-             } else if (response.errorMessage) {
-               console.log('ImagePicker Error: ', response.errorMessage);
-             } else if (response.assets && response.assets.length > 0) {
-               const capturedImage = response.assets[0];
-               setSelectedImage(capturedImage);
-               navigation.navigate('EditScreen', { selectedImage: capturedImage });
-             }
-           });
-         } else {
-           // Permission denied
-           Alert.alert(
-             'Permission Required',
-             'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
-           );
-         }
-       } else if (result === RESULTS.BLOCKED) {
-         // Permission is blocked; show an alert to guide the user to settings
-         Alert.alert(
-           'Permission Required',
-           'Camera access has been blocked. Please enable it in your device settings.',
-           [
-             {
-               text: 'Cancel',
-               style: 'cancel',
-             },
-             {
-               text: 'Open Settings',
-               onPress: () => Linking.openSettings(),
-             },
-           ],
-         );
-       }
-     } catch (error) {
-       console.error('Error checking camera permission:', error);
-     }
-   };
+  const handleTakeMedia = async () => {
+    try {
+      const permission =
+        Platform.OS === 'android'
+          ? PERMISSIONS.ANDROID.CAMERA
+          : PERMISSIONS.IOS.CAMERA;
+  
+      // Check if permission is granted
+      const result = await check(permission);
+  
+      if (result === RESULTS.GRANTED) {
+        // Permission is already granted; define camera options
+        const options = {
+          mediaType: 'photo', // You can set 'photo', 'video', or 'mixed'
+          saveToPhotos: true, // Save the photo to the user's gallery
+          includeBase64: false, // Exclude base64 string for the file
+        };
+  
+        // Launch the camera
+        launchCamera(options, (response) => {
+          if (response.didCancel) {
+            console.log('User cancelled image picker');
+          } else if (response.errorMessage) {
+            console.log('ImagePicker Error: ', response.errorMessage);
+          } else if (response.assets && response.assets.length > 0) {
+            const capturedImage = response.assets[0];
+            setSelectedMedia(capturedImage.uri);
+            setMediaType('PHOTO');
+          }
+        });
+      } else if (result === RESULTS.DENIED) {
+        // Request permission
+        const requestResult = await request(permission);
+        if (requestResult === RESULTS.GRANTED) {
+          handleTakeMedia(); // Retry camera after permission is granted
+        } else {
+          Alert.alert(
+            'Permission Required',
+            'Camera access is required to take a picture. Please enable camera permissions in your device settings.'
+          );
+        }
+      } else if (result === RESULTS.BLOCKED) {
+        // Permission is blocked; show an alert to guide the user to settings
+        Alert.alert(
+          'Permission Required',
+          'Camera access has been blocked. Please enable it in your device settings.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings(),
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error checking camera permission:', error);
+    }
+  };
+  
 
-  const handleSendMessage = async () => {
-    if (isSending || (newMessage.trim() === '' && !selectedMedia)) return;
-
+   const handleSendMessage = async () => {
+    // Check if both the message and media are empty
+    if (isSending) return;
+  
+    if (!newMessage.trim() && selectedMedia) {
+      Alert.alert(
+        'Message Required',
+        'A message is required when sending an image or video. Please include a message.'
+      );
+      return;
+    }
+  
+    if (newMessage.trim() === '' && !selectedMedia) {
+      Alert.alert('Error', 'Please enter a message or attach media.');
+      return;
+    }
+  
     setIsSending(true); // Disable the button
     try {
       let mediaUrl = null;
@@ -230,9 +240,9 @@ const ConversationThread = () => {
           return;
         }
       }
-
+  
       await sendMessage(conversationId, newMessage, mediaUrl, mediaType);
-
+  
       setMessages((prevMessages) => [
         ...prevMessages,
         {
@@ -245,7 +255,7 @@ const ConversationThread = () => {
           messageSender: { email: loggedInUserEmail },
         },
       ]);
-
+  
       setNewMessage('');
       setSelectedMedia(null);
       setMediaType(null);
@@ -255,6 +265,7 @@ const ConversationThread = () => {
       setIsSending(false); // Re-enable the button
     }
   };
+  
 
 
 

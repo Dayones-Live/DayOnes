@@ -31,6 +31,7 @@ const ArtistPostsPage = () => {
   const navigation = useNavigation();
   const [mediaType, setMediaType] = useState(null);
   const [genericPostId, setGenericPostId] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
 
 
@@ -167,73 +168,81 @@ const ArtistPostsPage = () => {
 
 
 
- const takePicture = async () => {
-   try {
-     const permission =
-       Platform.OS === 'android'
-         ? PERMISSIONS.ANDROID.CAMERA
-         : PERMISSIONS.IOS.CAMERA;
- 
-     // Check if permission is granted
-     const result = await check(permission);
- 
-     if (result === RESULTS.GRANTED) {
-       // Permission is already granted; launch the camera
-       launchCamera(options, response => {
-         if (response.didCancel) {
-           console.log('User cancelled image picker');
-         } else if (response.errorMessage) {
-           console.log('ImagePicker Error: ', response.errorMessage);
-         } else if (response.assets && response.assets.length > 0) {
-           const capturedImage = response.assets[0];
-           setSelectedImage(capturedImage);
-           navigation.navigate('EditScreen', { selectedImage: capturedImage });
-         }
-       });
-     } else if (result === RESULTS.DENIED) {
-       // Request permission
-       const requestResult = await request(permission);
-       if (requestResult === RESULTS.GRANTED) {
-         // Permission granted after request; launch the camera
-         launchCamera(options, response => {
-           if (response.didCancel) {
-             console.log('User cancelled image picker');
-           } else if (response.errorMessage) {
-             console.log('ImagePicker Error: ', response.errorMessage);
-           } else if (response.assets && response.assets.length > 0) {
-             const capturedImage = response.assets[0];
-             setSelectedImage(capturedImage);
-             navigation.navigate('EditScreen', { selectedImage: capturedImage });
-           }
-         });
-       } else {
-         // Permission denied
-         Alert.alert(
-           'Permission Required',
-           'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
-         );
-       }
-     } else if (result === RESULTS.BLOCKED) {
-       // Permission is blocked; show an alert to guide the user to settings
-       Alert.alert(
-         'Permission Required',
-         'Camera access has been blocked. Please enable it in your device settings.',
-         [
-           {
-             text: 'Cancel',
-             style: 'cancel',
-           },
-           {
-             text: 'Open Settings',
-             onPress: () => Linking.openSettings(),
-           },
-         ],
-       );
-     }
-   } catch (error) {
-     console.error('Error checking camera permission:', error);
-   }
- };
+  const takePicture = async () => {
+    try {
+      const permission =
+        Platform.OS === 'android'
+          ? PERMISSIONS.ANDROID.CAMERA
+          : PERMISSIONS.IOS.CAMERA;
+  
+      // Check if permission is granted
+      const result = await check(permission);
+  
+      // Define options for launchCamera
+      const options = {
+        mediaType: 'photo', // Capture photos only
+        includeBase64: false, // Don't include base64 string
+        saveToPhotos: true, // Save the photo to the user's gallery
+      };
+  
+      if (result === RESULTS.GRANTED) {
+        // Permission is already granted; launch the camera
+        launchCamera(options, (response) => {
+          if (response.didCancel) {
+            console.log('User cancelled image picker');
+          } else if (response.errorMessage) {
+            console.log('ImagePicker Error: ', response.errorMessage);
+          } else if (response.assets && response.assets.length > 0) {
+            const capturedImage = response.assets[0];
+            setSelectedImage(capturedImage.uri);
+            setMediaType('PHOTO');
+          }
+        });
+      } else if (result === RESULTS.DENIED) {
+        // Request permission
+        const requestResult = await request(permission);
+        if (requestResult === RESULTS.GRANTED) {
+          // Permission granted after request; launch the camera
+          launchCamera(options, (response) => {
+            if (response.didCancel) {
+              console.log('User cancelled image picker');
+            } else if (response.errorMessage) {
+              console.log('ImagePicker Error: ', response.errorMessage);
+            } else if (response.assets && response.assets.length > 0) {
+              const capturedImage = response.assets[0];
+              setSelectedImage(capturedImage.uri);
+              setMediaType('PHOTO');
+            }
+          });
+        } else {
+          // Permission denied
+          Alert.alert(
+            'Permission Required',
+            'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
+          );
+        }
+      } else if (result === RESULTS.BLOCKED) {
+        // Permission is blocked; show an alert to guide the user to settings
+        Alert.alert(
+          'Permission Required',
+          'Camera access has been blocked. Please enable it in your device settings.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings(),
+            },
+          ],
+        );
+      }
+    } catch (error) {
+      console.error('Error checking camera permission:', error);
+    }
+  };
+  
 
 
   const uploadFile = () => {
@@ -254,6 +263,7 @@ const ArtistPostsPage = () => {
   };
 
   const handleMediaUpload = async (uri) => {
+    setIsUploading(true); // Start the loading indicator
     try {
       let s3Url;
       if (mediaType === 'PHOTO') {
@@ -261,24 +271,36 @@ const ArtistPostsPage = () => {
       } else if (mediaType === 'VIDEO') {
         s3Url = await uploadVideoToBucket(uri, 'message-media', accessToken);
       }
-
-      console.log('Full response from media upload:', { s3Url, mediaType }); // Log full response details here
+      console.log('Media uploaded to:', s3Url); // Debugging
       return s3Url;
     } catch (error) {
       console.error('Failed to upload media:', error);
       Alert.alert('Error', 'Media upload failed. Please try again.');
       return null;
+    } finally {
+      setIsUploading(false); // Stop the loading indicator
     }
   };
+  
 
   const handleSendPost = async () => {
+    // Check if only a photo is selected but no message is provided
+    if (selectedImage && !postText.trim()) {
+      Alert.alert(
+        'Message Required',
+        'A message is required when sending an image. Please include a message.'
+      );
+      return;
+    }
+  
+    // Check if both photo and message are missing
     if (!postText.trim() && !selectedImage) {
       Alert.alert('Error', 'Post content or image is required.');
       return;
     }
-
+  
     let s3Url = selectedImage;
-
+  
     if (selectedImage && !selectedImage.startsWith('https://')) {
       s3Url = await handleMediaUpload(selectedImage);
       if (!s3Url) {
@@ -286,7 +308,7 @@ const ArtistPostsPage = () => {
         return;
       }
     }
-
+  
     try {
       if (genericPostId) {
         // If a generic post exists, use the comment endpoint to add media as a comment
@@ -299,7 +321,7 @@ const ArtistPostsPage = () => {
           commentData,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
-
+  
         if (response.status === 200 || response.status === 201) {
           Alert.alert('Success', 'Your comment has been posted.');
         } else {
@@ -316,7 +338,7 @@ const ArtistPostsPage = () => {
         const response = await axios.post(`${BASEURL}/api/v1/post/generic`, postData, {
           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         });
-
+  
         if (response.status === 200 || response.status === 201) {
           Alert.alert('Success', 'Your message has been sent to all fans.');
           setGenericPostId(response.data?.data?.post?.id); // Store the new generic post ID
@@ -324,18 +346,18 @@ const ArtistPostsPage = () => {
           Alert.alert('Error', 'Failed to send the message. Please try again.');
         }
       }
-
+  
       setPostText('');
       setSelectedImage(null);
       setMediaType(null);
       setModalVisible(false);
       fetchArtistPosts(1); // Refresh posts after sending
-
     } catch (error) {
       console.error("Failed to send post or comment:", error.message || error);
       Alert.alert('Error', `An error occurred: ${error.response?.data?.message || 'An error occurred'}`);
     }
   };
+  
 
 
 
