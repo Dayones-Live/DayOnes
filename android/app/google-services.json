@@ -64,6 +64,25 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:308003099454:android:a276d468b10a79b26f926f",
+        "android_client_info": {
+          "package_name": "com.dayoneslive2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLmLhlQLIJHVlfHCGBwHfZoykk1-cLfYM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:308003099454:android:68204f85fb34c9a26f926f",
         "android_client_info": {
           "package_name": "com.ericdayones.Dayones"
