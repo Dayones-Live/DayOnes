@@ -508,9 +508,9 @@ const ProfileScreen = () => {
                   />
 
                   {/* Action Buttons */}
-                  <View style={styles.modalButtons}>
+                  <View style={[styles.modalButtons, { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }]}>
                     <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton]}
+                      style={[styles.modalButton, styles.cancelButton, { flex: 1, marginRight: 10 }]}
                       onPress={() => {
                         setDeleteModalVisible(false);
                         setDeleteInput('');
@@ -520,12 +520,13 @@ const ProfileScreen = () => {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[styles.modalButton, styles.deleteButton]}
+                      style={[styles.modalButton, styles.deleteButton, { flex: 1, marginLeft: 10 }]}
                       onPress={deleteUser} // Trigger the delete function
                     >
-                      <Text style={styles.modalButtonText}>Delete</Text>
+                      <Text style={styles.modalButtonText}>Confirm</Text>
                     </TouchableOpacity>
                   </View>
+
                 </View>
               </View>
             </Modal>

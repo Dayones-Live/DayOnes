@@ -311,16 +311,20 @@ const FHomePage = ({ navigation }) => {
       {/* Fixed "Get Invites" Button */}
       {invites.length === 0 && (
         <View style={styles.fixedButtonContainer}>
-          <LinearGradient
-            colors={['#00E5FF', '#D500F9']}
+          <TouchableOpacity
             style={styles.sendButtonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+            onPress={toggleInviteAndFetch}
           >
-            <TouchableOpacity style={styles.sendButton} onPress={toggleInviteAndFetch}>
+            <LinearGradient
+              colors={['#00E5FF', '#D500F9']}
+              style={styles.sendButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
               <Text style={styles.sendButtonText}>Get Invites</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+            </LinearGradient>
+          </TouchableOpacity>
+
         </View>
       )}
 

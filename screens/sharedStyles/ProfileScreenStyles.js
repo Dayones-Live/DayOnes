@@ -217,6 +217,12 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: moderateScale(14),
     },
+    modalButtonText: {
+        color: '#FFF',
+        fontWeight: '400',
+        fontSize: moderateScale(16),
+        paddingLeft: 60,
+    },
 });
 
 export default styles

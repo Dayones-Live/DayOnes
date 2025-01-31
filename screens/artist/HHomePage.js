@@ -107,36 +107,20 @@ const HHomePage = () => {
     ]).start();
   };
 
- 
 
-const takePicture = async () => {
-  try {
-    const permission =
-      Platform.OS === 'android'
-        ? PERMISSIONS.ANDROID.CAMERA
-        : PERMISSIONS.IOS.CAMERA;
 
-    // Check if permission is granted
-    const result = await check(permission);
+  const takePicture = async () => {
+    try {
+      const permission =
+        Platform.OS === 'android'
+          ? PERMISSIONS.ANDROID.CAMERA
+          : PERMISSIONS.IOS.CAMERA;
 
-    if (result === RESULTS.GRANTED) {
-      // Permission is already granted; launch the camera
-      launchCamera(options, response => {
-        if (response.didCancel) {
-          console.log('User cancelled image picker');
-        } else if (response.errorMessage) {
-          console.log('ImagePicker Error: ', response.errorMessage);
-        } else if (response.assets && response.assets.length > 0) {
-          const capturedImage = response.assets[0];
-          setSelectedImage(capturedImage);
-          navigation.navigate('EditScreen', { selectedImage: capturedImage });
-        }
-      });
-    } else if (result === RESULTS.DENIED) {
-      // Request permission
-      const requestResult = await request(permission);
-      if (requestResult === RESULTS.GRANTED) {
-        // Permission granted after request; launch the camera
+      // Check if permission is granted
+      const result = await check(permission);
+
+      if (result === RESULTS.GRANTED) {
+        // Permission is already granted; launch the camera
         launchCamera(options, response => {
           if (response.didCancel) {
             console.log('User cancelled image picker');
@@ -148,34 +132,50 @@ const takePicture = async () => {
             navigation.navigate('EditScreen', { selectedImage: capturedImage });
           }
         });
-      } else {
-        // Permission denied
+      } else if (result === RESULTS.DENIED) {
+        // Request permission
+        const requestResult = await request(permission);
+        if (requestResult === RESULTS.GRANTED) {
+          // Permission granted after request; launch the camera
+          launchCamera(options, response => {
+            if (response.didCancel) {
+              console.log('User cancelled image picker');
+            } else if (response.errorMessage) {
+              console.log('ImagePicker Error: ', response.errorMessage);
+            } else if (response.assets && response.assets.length > 0) {
+              const capturedImage = response.assets[0];
+              setSelectedImage(capturedImage);
+              navigation.navigate('EditScreen', { selectedImage: capturedImage });
+            }
+          });
+        } else {
+          // Permission denied
+          Alert.alert(
+            'Permission Required',
+            'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
+          );
+        }
+      } else if (result === RESULTS.BLOCKED) {
+        // Permission is blocked; show an alert to guide the user to settings
         Alert.alert(
           'Permission Required',
-          'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
+          'Camera access has been blocked. Please enable it in your device settings.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings(),
+            },
+          ],
         );
       }
-    } else if (result === RESULTS.BLOCKED) {
-      // Permission is blocked; show an alert to guide the user to settings
-      Alert.alert(
-        'Permission Required',
-        'Camera access has been blocked. Please enable it in your device settings.',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Open Settings',
-            onPress: () => Linking.openSettings(),
-          },
-        ],
-      );
+    } catch (error) {
+      console.error('Error checking camera permission:', error);
     }
-  } catch (error) {
-    console.error('Error checking camera permission:', error);
-  }
-};
+  };
 
 
   const uploadImageToS3 = async imageUri => {
@@ -506,21 +506,23 @@ const takePicture = async () => {
 
               <View style={styles.sendButtonContainer}>
                 <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
-                  <LinearGradient
-                    colors={['#00E5FF', '#D500F9']}
+                  <TouchableOpacity
                     style={styles.sendButtonGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}>
-                    {isLoading ? (
-                      <ActivityIndicator size="large" color="#FFF" />
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.sendButton}
-                        onPress={createPost}>
+                    onPress={createPost}
+                    disabled={isLoading}>
+                    <LinearGradient
+                      colors={['#00E5FF', '#D500F9']}
+                      style={styles.sendButtonGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}>
+                      {isLoading ? (
+                        <ActivityIndicator size="large" color="#FFF" />
+                      ) : (
                         <Text style={styles.sendButtonText}>Send Invite</Text>
-                      </TouchableOpacity>
-                    )}
-                  </LinearGradient>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+
                 </Animated.View>
               </View>
             </ScrollView>
