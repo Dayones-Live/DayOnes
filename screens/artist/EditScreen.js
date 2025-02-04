@@ -141,41 +141,66 @@ const EditScreen = ({ route, navigation }) => {
           />
         </View>
         <View style={[styles.tabContent, { display: activeTab === 1 ? 'flex' : 'none' }]}>
-          <View style={styles.colorOptions}>
-            {/* Gradient Colors */}
-            <TouchableOpacity onPress={() => applyColorToSignature('gradient1')}>
-              <LinearGradient
-                colors={['#00FFFF', '#FFA5FF']}
-                style={styles.colorButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => applyColorToSignature('gradient2')}>
-              <LinearGradient
-                colors={['#FFDFA5', '#FF00EE']}
-                style={styles.colorButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => applyColorToSignature('gradient3')}>
-              <LinearGradient
-                colors={['#01882D', '#FCDE03', '#D5002C']}
-                style={styles.colorButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-            </TouchableOpacity>
-            {/* Solid Colors */}
-            {['#FFFFFF', '#FF00FF', '#00FF00', '#00FFFF', '#FFFF00', '#FF0000'].map((color) => (
-              <TouchableOpacity
-                key={color}
-                style={[styles.colorButton, { backgroundColor: color }]}
-                onPress={() => applyColorToSignature(color)}
-              />
-            ))}
-          </View>
+        <View style={styles.colorOptions}>
+  {/* Jamaican Flag Gradient */}
+  <TouchableOpacity onPress={() => applyColorToSignature('jamaicanGradient')}>
+    <LinearGradient
+      colors={['#000000', '#008000', '#FFD700']} // Black, Green, Yellow
+      style={styles.colorButton}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+    />
+  </TouchableOpacity>
+
+  {/* American Flag Gradient */}
+  <TouchableOpacity onPress={() => applyColorToSignature('americanGradient')}>
+    <LinearGradient
+      colors={['#FF0000', '#FFFFFF', '#0000FF']} // Red, White, Blue
+      style={styles.colorButton}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+    />
+  </TouchableOpacity>
+
+  {/* Rasta Flag Gradient */}
+<TouchableOpacity onPress={() => applyColorToSignature('rastaGradient')}>
+  <LinearGradient
+    colors={['#FF0000', '#FFD700', '#008000']} // Red, Yellow (Gold), Green
+    style={styles.colorButton}
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 0 }}
+  />
+</TouchableOpacity>
+
+
+  {/* Existing Gradient Colors */}
+  <TouchableOpacity onPress={() => applyColorToSignature('gradient1')}>
+    <LinearGradient
+      colors={['#00FFFF', '#FFA5FF']}
+      style={styles.colorButton}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+    />
+  </TouchableOpacity>
+  <TouchableOpacity onPress={() => applyColorToSignature('gradient2')}>
+    <LinearGradient
+      colors={['#FFDFA5', '#FF00EE']}
+      style={styles.colorButton}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+    />
+  </TouchableOpacity>
+
+  {/* Solid Colors */}
+  {['#FFFFFF', '#FF00FF', '#00FF00', '#00FFFF', '#FFFF00', '#FF0000'].map((color) => (
+    <TouchableOpacity
+      key={color}
+      style={[styles.colorButton, { backgroundColor: color }]}
+      onPress={() => applyColorToSignature(color)}
+    />
+  ))}
+</View>
+
         </View>
         <View style={[styles.tabContent, { display: activeTab === 2 ? 'flex' : 'none' }]}>
           <View style={styles.saveContainer}>
@@ -221,22 +246,32 @@ const EditScreen = ({ route, navigation }) => {
                     />
                   }
                 >
-                  {signatureColor.startsWith('gradient') ? (
-                    <LinearGradient
-                      colors={
-                        signatureColor === 'gradient1'
-                          ? ['#00FFFF', '#FFA5FF']
-                          : signatureColor === 'gradient2'
-                          ? ['#FFDFA5', '#FF00EE']
-                          : ['#01882D', '#FCDE03', '#D5002C']
-                      }
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={signatureSize}
-                    />
-                  ) : (
-                    <View style={[signatureSize, { backgroundColor: signatureColor }]} />
-                  )}
+                {signatureColor.startsWith('gradient') || 
+ signatureColor === 'jamaicanGradient' || 
+ signatureColor === 'americanGradient' || 
+ signatureColor === 'rastaGradient' ? (
+  <LinearGradient
+    colors={
+      signatureColor === 'gradient1'
+        ? ['#00FFFF', '#FFA5FF']
+        : signatureColor === 'gradient2'
+        ? ['#FFDFA5', '#FF00EE']
+        : signatureColor === 'jamaicanGradient'
+        ? ['#000000', '#008000', '#FFD700']  // Jamaican Flag
+        : signatureColor === 'americanGradient'
+        ? ['#FF0000', '#FFFFFF', '#0000FF']  // American Flag
+        : ['#FF0000', '#FFD700', '#008000']  // 🌿 Rasta Gradient 🌿 (Red, Gold, Green)
+    }
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 0 }}
+    style={signatureSize}
+  />
+) : (
+  <View style={[signatureSize, { backgroundColor: signatureColor }]} />
+)}
+
+
+
                 </MaskedView>
               ))}
             </TouchableOpacity>
@@ -326,14 +361,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexWrap: 'wrap', // This allows the items to wrap into multiple rows
     width: '80%', // Adjust the width to fit the buttons nicely
-    marginTop: 10, // Optional: add margin at the top
+    marginTop: 14, // Optional: add margin at the top
   },
   colorButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     marginHorizontal: 10,
-    marginVertical: 10, // Added marginVertical to create space between rows
+    marginVertical: 9, // Added marginVertical to create space between rows
   },
   saveContainer: {
     marginTop: 20,
