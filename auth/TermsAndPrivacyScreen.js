@@ -23,8 +23,6 @@ const TermsAndPrivacyScreen = () => {
       try {
         await AsyncStorage.setItem('termsAccepted', 'true');
         console.log('Terms accepted and stored successfully');
-
-        // Since it's the first time, navigate directly to PermissionsScreen
         navigation.navigate('PermissionsScreen');
       } catch (error) {
         console.error('Error saving acceptance status:', error.message);
@@ -76,7 +74,7 @@ const TermsAndPrivacyScreen = () => {
             Privacy Policy and any additional terms, conditions, and guidelines
             provided within our Platform. 2. Eligibility You must be at least 17
             years old to use Dayones. If you are under the age of 18, you must
-            have your parent or legal guardian’s permission to use the Platform.
+            have your parent or legal guardian's permission to use the Platform.
             3. User Accounts To access certain features, you must create an
             account. You agree to: Provide accurate and complete information
             when registering. Keep your account information up to date. Keep
@@ -188,7 +186,7 @@ const TermsAndPrivacyScreen = () => {
             secure. 5. Your Rights Access and Correction: You can request access
             to and correction of your personal information. Deletion: You may
             request to delete your account and data, subject to our retention
-            policies or legal obligations. 6. Children’s Privacy DayOnes does
+            policies or legal obligations. 6. Children's Privacy DayOnes does
             not knowingly collect personal information from children under the
             age of 13. If we discover we have collected such information, we
             will delete it promptly. 7. Changes to This Policy We may update

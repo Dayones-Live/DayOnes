@@ -1,71 +1,108 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import FHomePage from '../screens/fan/FHomePage'; // Fan's Home Page
 import MyCollectionsPage from '../screens/fan/MyCollectionsPage'; // "My Collections" page
 import DayOnesScreen from '../screens/fan/DayOnesScreen'; // DayOnes screen
 import DMsScreen from '../screens/DMsScreen'; // Direct Messages screen
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import FanOnboardingTutorial from '../screens/fan/FanOnboardingTutorial';
 
 const Tab = createBottomTabNavigator();
 
-const FanStack = () => {
+const FanStack = ({ navigation }) => {
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    checkTutorialStatus();
+  }, []);
+
+  const checkTutorialStatus = async () => {
+    try {
+      const tutorialComplete = await AsyncStorage.getItem('fanTutorialComplete');
+      const userLoggedIn = await AsyncStorage.getItem('loggedInUser');
+      
+      // Only show tutorial if it hasn't been completed AND user is logged in
+      if (tutorialComplete !== 'true' && userLoggedIn) {
+        setShowTutorial(true);
+      }
+    } catch (error) {
+      console.error('Error checking tutorial status:', error);
+    }
+  };
+
+  const handleTutorialComplete = async () => {
+    try {
+      await AsyncStorage.setItem('fanTutorialComplete', 'true');
+      setShowTutorial(false);
+    } catch (error) {
+      console.error('Error saving tutorial completion:', error);
+    }
+  };
+
   return (
-    <Tab.Navigator
-      initialRouteName="FHomePage"
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          let iconName;
+    <>
+      <Tab.Navigator
+        initialRouteName="Home"
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ color, size }) => {
+            let iconName;
+            switch (route.name) {
+              case 'Home':
+                iconName = 'home';
+                break;
+              case 'My Collections':
+                iconName = 'star';
+                break;
+              case 'DayOnes':
+                iconName = 'comment';
+                break;
+              case "DM's":
+                iconName = 'envelope-o';
+                break;
+              default:
+                iconName = 'circle';
+                break;
+            }
+            return <Icon name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: '#FF0080',
+          tabBarInactiveTintColor: 'gray',
+          tabBarStyle: {
+            backgroundColor: '#000',
+            borderTopWidth: 0,
+          },
+          headerShown: false,
+        })}
+      >
+        <Tab.Screen
+          name="Home"
+          component={FHomePage}
+          options={{ tabBarLabel: 'Home', tabBarTestID: 'homeButton' }}
+        />
+        <Tab.Screen
+          name="My Collections"
+          component={MyCollectionsPage}
+          options={{ tabBarLabel: 'My Collections', tabBarTestID: 'collectionsButton' }}
+        />
+        <Tab.Screen
+          name="DayOnes" // Add DayOnes to the tab bar
+          component={DayOnesScreen}
+          options={{ tabBarLabel: 'DayOnes', tabBarTestID: 'messagesButton' }}
+        />
+        <Tab.Screen
+          name="DM's"
+          component={DMsScreen}
+          options={{ tabBarLabel: "DM's", tabBarTestID: 'dmsButton' }}
+        />
+      </Tab.Navigator>
 
-          switch (route.name) {
-            case 'Home':
-              iconName = 'home';
-              break;
-            case 'My Collections':
-              iconName = 'star';
-              break;
-            case 'DayOnes': // DayOnes icon
-              iconName = 'comment'; // Different messaging icon for DayOnes
-              break;
-            case "DM's":
-              iconName = 'envelope-o'; // Regular DMs icon
-              break;
-            default:
-              iconName = 'circle';
-              break;
-          }
-
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#FF0080',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: {
-          backgroundColor: '#000',
-          borderTopWidth: 0,
-        },
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen
-        name="Home"
-        component={FHomePage}
-        options={{ tabBarLabel: 'Home' }}
+      <FanOnboardingTutorial
+        isVisible={showTutorial}
+        onComplete={handleTutorialComplete}
+        navigation={navigation}
       />
-      <Tab.Screen
-        name="My Collections"
-        component={MyCollectionsPage}
-        options={{ tabBarLabel: 'My Collections' }}
-      />
-      <Tab.Screen
-        name="DayOnes" // Add DayOnes to the tab bar
-        component={DayOnesScreen}
-        options={{ tabBarLabel: 'DayOnes' }}
-      />
-      <Tab.Screen
-        name="DM's"
-        component={DMsScreen}
-        options={{ tabBarLabel: "DM's" }}
-      />
-    </Tab.Navigator>
+    </>
   );
 };
 

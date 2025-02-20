@@ -374,19 +374,21 @@ const ArtistPostsPage = () => {
         onPress={() => navigation.navigate('PostDetailPage', { postId: post.id })}
         onLongPress={() => confirmDelete(post.id)}
       >
-        {/* Location */}
-        <Text style={styles.postUser}>{post.locale || 'My DayOnes'}</Text>
-
-        {/* Fan Count (Top-Right Corner) */}
-        <View style={styles.fanCountCorner}>
-          <MaterialIcons name="person" size={18} color="#FFF" />
-          <Text style={styles.fanCountText}>{post.associate_fan_count || 0}</Text>
+        {/* Post Header */}
+        <View style={styles.headerContainer}>
+          <View style={styles.locationContainer}>
+            <Text style={styles.postUser}>{post.locale || 'My DayOnes'}</Text>
+          </View>
+          <View style={styles.fanCountContainer}>
+            <MaterialIcons name="person" size={14} color="#FFF" />
+            <Text style={styles.fanCountText}>{post.associate_fan_count || 0}</Text>
+          </View>
         </View>
 
         {/* Post Image */}
         {post.type === 'GENERIC' ? (
           <Image
-            source={require('../../assets/images/Untitled_design-2.jpg')} // Always use the placeholder image for generic posts
+            source={require('../../assets/images/Untitled_design-2.jpg')}
             style={styles.postImage}
           />
         ) : post.image_url ? (
@@ -397,17 +399,15 @@ const ArtistPostsPage = () => {
           </View>
         )}
 
-        {/* Interaction Data */}
+        {/* Interaction Bar */}
         <View style={styles.interactionContainer}>
           <Text style={styles.interactionText}>
-            ❤️ {post.reactionCount || 0} {/* Reaction Count */}
+            ❤️ {post.reactionCount || 0}
           </Text>
           <Text style={styles.interactionText}>
-            💬 {post.commentsCount || 0} {/* Comment Count */}
+            💬 {post.commentsCount || 0}
           </Text>
         </View>
-
-        {/* Post Date */}
         <Text style={styles.postDate}>{postDate}</Text>
       </TouchableOpacity>
     );
@@ -421,23 +421,22 @@ const ArtistPostsPage = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <ProfilePictureButton />
-        <TouchableOpacity style={styles.plusButton} onPress={handleOpenModal}>
-          <AntDesign name="pluscircleo" size={35} color="#FFFFFF" />
-        </TouchableOpacity>
-
-
-        <Text style={styles.pageTitle}>Posts</Text>
-        <ScrollView
+        
+        <ScrollView 
           style={styles.scrollView}
           onScroll={handleLoadMore}
           scrollEventThrottle={400}
         >
-
-
-          {posts.map((post, index) => renderPostItem(post, index))}
+          <View style={styles.gridContainer}>
+            {posts.map((post, index) => renderPostItem(post, index))}
+          </View>
         </ScrollView>
 
         {loading && <Text style={styles.loadingText}>Loading more posts...</Text>}
+
+        <TouchableOpacity style={styles.plusButton} onPress={handleOpenModal}>
+          <AntDesign name="pluscircleo" size={35} color="#FFFFFF" />
+        </TouchableOpacity>
 
         <Modal
           animationType="slide"

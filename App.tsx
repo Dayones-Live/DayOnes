@@ -59,19 +59,15 @@ const App = () => {
       const authToken = await AsyncStorage.getItem('authToken');
       const userRole = await AsyncStorage.getItem('userRole');
 
-      console.log('termsAccepted:', termsAccepted);
-      console.log('permissionsGranted:', permissionsGranted);
-      console.log('authToken:', authToken);
-      console.log('userRole:', userRole);
+      // Add debugging logs
+      console.log('App Setup Status:', {
+        termsAccepted,
+        permissionsGranted,
+        hasAuthToken: !!authToken,
+        userRole
+      });
 
       if (authToken && userRole) {
-        const tokenPayload = JSON.parse(atob(authToken.split('.')[1]));
-        const isTokenExpired = tokenPayload.exp * 1000 < Date.now();
-        if (isTokenExpired) {
-          console.warn('Auth token is expired.');
-          setInitialRoute('LoginPage');
-          return;
-        }
         setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
       } else if (termsAccepted === 'true') {
         if (permissionsGranted === 'true') {
@@ -85,6 +81,32 @@ const App = () => {
     } catch (error) {
       console.error('Error checking app setup status:', error);
       setInitialRoute('TermsAndPrivacyScreen');
+    }
+  };
+
+  // Add this function to handle logout
+  const handleLogout = async () => {
+    try {
+      // Save terms and permissions status
+      const termsAccepted = await AsyncStorage.getItem('termsAccepted');
+      const permissionsGranted = await AsyncStorage.getItem('permissionsGranted');
+      
+      // Clear all AsyncStorage
+      await AsyncStorage.clear();
+      
+      // Restore only terms and permissions
+      await AsyncStorage.setItem('termsAccepted', termsAccepted || 'false');
+      await AsyncStorage.setItem('permissionsGranted', permissionsGranted || 'false');
+      
+      // Clear any stored user data
+      await AsyncStorage.removeItem('loggedInUser');
+      await AsyncStorage.removeItem('authToken');
+      await AsyncStorage.removeItem('userRole');
+      
+      // Navigate to login
+      setInitialRoute('LoginPage');
+    } catch (error) {
+      console.error('Error during logout:', error);
     }
   };
 

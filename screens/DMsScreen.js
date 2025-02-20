@@ -5,39 +5,77 @@ import { useNavigation } from '@react-navigation/native';
 import { getConversations } from '../assets/services/apiService';
 import { BASEURL } from '../assets/constants';
 import styles from './sharedStyles/DMScreenStyles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoadingSpinner from '../components/LoadingSpinner';
 
-const DMsScreen = () => {
+const DMsScreen = ({ navigation }) => {
   const [conversations, setConversations] = useState([]);
   const [pageNo, setPageNo] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const accessToken = useSelector((state) => state.accessToken);
-  const navigation = useNavigation();
   const loggedInUser = useSelector((state) => state.userProfile);
-  const loggedInUserEmail = loggedInUser?.data.email || null;
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchConversations();
-  }, [pageNo]);
+    const checkUserData = async () => {
+      try {
+        // First check Redux state
+        if (loggedInUser?.data?.email) {
+          setLoading(false);
+          return;
+        }
+
+        // If not in Redux, check AsyncStorage
+        const userData = await AsyncStorage.getItem('loggedInUser');
+        const storedToken = await AsyncStorage.getItem('authToken');
+        
+        if (!userData || !storedToken) {
+          console.log('No user data or token found, redirecting to login');
+          navigation.replace('LoginPage');
+          return;
+        }
+
+        // If we have data, parse it and continue
+        const parsedUserData = JSON.parse(userData);
+        if (!parsedUserData?.data?.email) {
+          console.log('Invalid user data format, redirecting to login');
+          navigation.replace('LoginPage');
+          return;
+        }
+
+      } catch (error) {
+        console.error('Error in checkUserData:', error);
+        navigation.replace('LoginPage');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserData();
+  }, [loggedInUser, navigation]);
+
+  useEffect(() => {
+    if (!loading && accessToken) {
+      fetchConversations();
+    }
+  }, [loading, accessToken, pageNo]);
 
   const fetchConversations = async () => {
     if (!accessToken) {
-      Alert.alert('Error', 'User is not authenticated');
       console.error('Error: Missing access token.');
       return;
     }
 
     try {
       const response = await getConversations(accessToken, pageNo, pageSize);
-      let { conversations } = response.data;
-
-      // Sort conversations by `updated_at` timestamp in descending order
-      conversations = conversations.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-
-      console.log('Fetched and sorted conversations:', conversations);
-      setConversations(conversations || []);
+      if (response?.data?.conversations) {
+        const sortedConversations = response.data.conversations.sort(
+          (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
+        );
+        setConversations(sortedConversations);
+      }
     } catch (err) {
-      console.error('Error fetching conversations:', err.message);
-      Alert.alert('Error', 'Failed to fetch conversations.');
+      console.error('Error fetching conversations:', err);
       setConversations([]);
     }
   };
@@ -67,8 +105,6 @@ const DMsScreen = () => {
     }
   };
 
-
-
   const formatTimeAgo = (dateString) => {
     const now = new Date();
     const date = new Date(dateString);
@@ -90,10 +126,9 @@ const DMsScreen = () => {
 
   const handleConversationPress = (conversationId, sender, receiver) => {
     // Determine the other user (not the logged-in user)
-    const otherUser = sender.email === loggedInUserEmail ? receiver : sender;
+    const otherUser = sender.email === loggedInUser?.data?.email ? receiver : sender;
 
     // Pass only the relevant information
-
     navigation.navigate('ConversationThread', {
       conversationId,
       profilePicture: otherUser.avatar_url || 'https://example.com/default-avatar.png',
@@ -102,15 +137,13 @@ const DMsScreen = () => {
     });
   };
 
-
   const getOtherUser = (sender, receiver, loggedInUserEmail) => {
     return sender.email === loggedInUserEmail ? receiver : sender;
   };
 
-
   const renderItem = ({ item }) => {
     // Determine who is not the logged-in user
-    const otherUser = getOtherUser(item.sender, item.reciever, loggedInUserEmail);
+    const otherUser = getOtherUser(item.sender, item.reciever, loggedInUser?.data?.email);
 
     const lastMessageTime = formatTimeAgo(item.updated_at);
     const avatarUrl = otherUser.avatar_url || 'https://example.com/default-avatar.png';
@@ -140,6 +173,15 @@ const DMsScreen = () => {
     );
   };
 
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  // Check for valid user data before rendering
+  const userEmail = loggedInUser?.data?.email;
+  if (!userEmail) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -153,7 +195,5 @@ const DMsScreen = () => {
     </SafeAreaView>
   );
 };
-
-
 
 export default DMsScreen;
