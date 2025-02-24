@@ -32,6 +32,7 @@ const ArtistPostsPage = () => {
   const [mediaType, setMediaType] = useState(null);
   const [genericPostId, setGenericPostId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSendingPost, setIsSendingPost] = useState(false);
 
 
 
@@ -40,6 +41,12 @@ const ArtistPostsPage = () => {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}m`;
     if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
     return count.toString();
+  };
+
+
+
+  const findGenericPost = (posts) => {
+    return posts.find(post => post.type === 'GENERIC')?.id;
   };
 
 
@@ -57,32 +64,45 @@ const ArtistPostsPage = () => {
       });
 
       const postsData = response.data?.data?.posts || [];
-
-      // Log all the data for debugging
       console.log("Fetched Posts Data:", postsData);
 
-      // Separate the 'GENERIC' post from others
-      const genericPost = postsData.find((post) => post.type === 'GENERIC');
-      const otherPosts = postsData.filter((post) => post.type !== 'GENERIC');
+      // Separate generic post from other posts
+      const genericPost = postsData.find(post => post.type === 'GENERIC');
+      const otherPosts = postsData.filter(post => post.type !== 'GENERIC');
 
-      // Sort the non-generic posts by date in descending order
-      const sortedOtherPosts = otherPosts.sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      // Sort other posts by date (newest first)
+      const sortedOtherPosts = otherPosts.sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
       );
 
-      // Combine the generic post with sorted other posts
-      const finalPosts = genericPost
+      // Combine with generic post always at the top
+      const finalPosts = genericPost 
         ? [genericPost, ...sortedOtherPosts]
         : sortedOtherPosts;
 
-      setHasMore(postsData.length === 25); // Check if more posts are available
-      setPosts((prevPosts) =>
-        pageNum === 1 ? finalPosts : [...prevPosts, ...finalPosts]
-      ); // Append or replace posts
-      setPage(pageNum + 1); // Increment the page number
+      if (pageNum === 1) {
+        setPosts(finalPosts);
+      } else {
+        setPosts(prev => {
+          // Keep generic post at top, append new posts after
+          const prevGenericPost = prev.find(p => p.type === 'GENERIC');
+          const prevOtherPosts = prev.filter(p => p.type !== 'GENERIC');
+          return prevGenericPost 
+            ? [prevGenericPost, ...prevOtherPosts, ...sortedOtherPosts]
+            : [...prev, ...sortedOtherPosts];
+        });
+      }
+
+      // Find and set the generic post ID
+      if (genericPost) {
+        console.log('Found generic post ID:', genericPost.id);
+        setGenericPostId(genericPost.id);
+      }
+
+      setHasMore(postsData.length > 0);
+      setPage(pageNum);
     } catch (error) {
-      console.error("Error fetching posts:", error.message || "Unknown error");
-      Alert.alert("Error", "An error occurred while fetching posts.");
+      console.error("Error fetching posts:", error);
     } finally {
       setLoading(false);
     }
@@ -284,7 +304,8 @@ const ArtistPostsPage = () => {
   
 
   const handleSendPost = async () => {
-    // Check if only a photo is selected but no message is provided
+    console.log('Starting handleSendPost with genericPostId:', genericPostId);
+
     if (selectedImage && !postText.trim()) {
       Alert.alert(
         'Message Required',
@@ -292,43 +313,28 @@ const ArtistPostsPage = () => {
       );
       return;
     }
-  
-    // Check if both photo and message are missing
+
     if (!postText.trim() && !selectedImage) {
       Alert.alert('Error', 'Post content or image is required.');
       return;
     }
-  
+
+    setIsSendingPost(true);
     let s3Url = selectedImage;
-  
-    if (selectedImage && !selectedImage.startsWith('https://')) {
-      s3Url = await handleMediaUpload(selectedImage);
-      if (!s3Url) {
-        Alert.alert('Error', 'Media upload failed. Please try again.');
-        return;
-      }
-    }
-  
+
     try {
-      if (genericPostId) {
-        // If a generic post exists, use the comment endpoint to add media as a comment
-        const commentData = {
-          message: postText.trim(),
-          ...(s3Url && { url: s3Url, mediaType: mediaType }),
-        };
-        const response = await axios.post(
-          `${BASEURL}/api/v1/post/${genericPostId}/comment`,
-          commentData,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-  
-        if (response.status === 200 || response.status === 201) {
-          Alert.alert('Success', 'Your comment has been posted.');
-        } else {
-          Alert.alert('Error', 'Failed to send the comment. Please try again.');
+      if (selectedImage && !selectedImage.startsWith('https://')) {
+        s3Url = await handleMediaUpload(selectedImage);
+        if (!s3Url) {
+          throw new Error('Media upload failed');
         }
-      } else {
-        // If no generic post exists, create a new generic post
+      }
+
+      // Check if we need to create a new generic post
+      const shouldCreateGenericPost = !genericPostId || !(await checkPostExists(genericPostId));
+
+      if (shouldCreateGenericPost) {
+        console.log('Creating new generic post');
         const postData = {
           message: postText.trim(),
           type: 'GENERIC',
@@ -336,33 +342,60 @@ const ArtistPostsPage = () => {
           mediaType: mediaType,
         };
         const response = await axios.post(`${BASEURL}/api/v1/post/generic`, postData, {
-          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
-  
+
         if (response.status === 200 || response.status === 201) {
           Alert.alert('Success', 'Your message has been sent to all fans.');
-          setGenericPostId(response.data?.data?.post?.id); // Store the new generic post ID
-        } else {
-          Alert.alert('Error', 'Failed to send the message. Please try again.');
+          setGenericPostId(response.data?.data?.post?.id);
+        }
+      } else {
+        // Add comment to existing generic post
+        console.log('Adding comment to existing generic post');
+        const commentData = {
+          message: postText.trim(),
+          ...(s3Url && { url: s3Url, mediaType: mediaType })
+        };
+
+        const response = await axios.post(
+          `${BASEURL}/api/v1/post/${genericPostId}/comment`,
+          commentData,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+
+        console.log('Comment response:', response.data);
+
+        if (response.status === 200 || response.status === 201) {
+          Alert.alert('Success', 'Your comment has been posted.');
         }
       }
-  
+
       setPostText('');
       setSelectedImage(null);
       setMediaType(null);
       setModalVisible(false);
-      fetchArtistPosts(1); // Refresh posts after sending
+      fetchArtistPosts(1);
     } catch (error) {
-      console.error("Failed to send post or comment:", error.message || error);
-      Alert.alert('Error', `An error occurred: ${error.response?.data?.message || 'An error occurred'}`);
+      console.error("Failed to send post or comment:", error);
+      Alert.alert('Error', 'Failed to send. Please try again.');
+    } finally {
+      setIsSendingPost(false);
     }
   };
   
 
-
-
-
-
+  // Add this helper function to check if a post exists
+  const checkPostExists = async (postId) => {
+    try {
+      const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      return response.status === 200;
+    } catch (error) {
+      console.log('Post does not exist:', error.response?.status);
+      return false;
+    }
+  };
 
   const renderPostItem = (post, index) => {
     const postDate = new Date(post.created_at).toLocaleString();
@@ -413,9 +446,14 @@ const ArtistPostsPage = () => {
     );
   };
 
-
-
-
+  // Add useEffect to set genericPostId when component mounts
+  useEffect(() => {
+    const genericId = findGenericPost(posts);
+    if (genericId) {
+      console.log('Setting generic post ID on mount:', genericId);
+      setGenericPostId(genericId);
+    }
+  }, [posts]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -491,8 +529,16 @@ const ArtistPostsPage = () => {
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={styles.postButton} onPress={handleSendPost}>
-                <Text style={styles.postButtonText}>Post</Text>
+              <TouchableOpacity 
+                style={styles.postButton} 
+                onPress={isSendingPost ? null : handleSendPost}
+                disabled={isSendingPost}
+              >
+                {isSendingPost ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={styles.postButtonText}>Post</Text>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
