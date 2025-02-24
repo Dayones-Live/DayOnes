@@ -26,7 +26,7 @@ import DayOnesScreen from './screens/fan/DayOnesScreen';
 import DMDetailPage from './screens/fan/DMDetailPage';
 import SuperAdminDashboard from './screens/superadmin/SuperAdminDashboard';
 import messaging from '@react-native-firebase/messaging';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 const Stack = createStackNavigator();
 const queryClient = new QueryClient();
@@ -53,9 +53,13 @@ const App = () => {
   // Function to get FCM token
   const getFCMToken = async () => {
     try {
+      // Only register for remote messages on Android
+      if (Platform.OS === 'android') {
+        await messaging().registerDeviceForRemoteMessages();
+      }
+      
       const fcmToken = await messaging().getToken();
       console.log('FCM Token:', fcmToken);
-      // Optionally store the token in AsyncStorage or send it to your backend
       await AsyncStorage.setItem('fcmToken', fcmToken);
     } catch (error) {
       console.error('Error fetching FCM token:', error);
