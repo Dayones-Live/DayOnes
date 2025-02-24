@@ -1,40 +1,37 @@
-import axios from 'axios';
+import axiosInstance from '../../utils/axiosConfig';
 import { BASEURL } from '../constants';
 
 
 // Fetch all conversations with pagination
-export const getConversations = async (pageNo, pageSize) => {
+export const getConversations = async (accessToken, pageNo = 1, pageSize = 10) => {
   try {
-    const response = await axiosInstance.get(`/api/v1/conversation?pageNo=${pageNo}&pageSize=${pageSize}`);
-    return response.data || { conversations: [] };
+    const response = await axiosInstance.get('/api/v1/conversation', {
+      params: { pageNo, pageSize }
+    });
+    return response.data;
   } catch (error) {
-    // If the interceptor handled the 401, we'll get null data
-    if (!error) return { conversations: [] };
+    console.error('Error fetching conversations:', error);
     throw error;
   }
 };
 
 // Fetch all messages for a given conversation
-export const getMessages = async (conversationId, accessToken, pageNo = 1, pageSize = 50) => {
+export const getMessages = async (conversationId, pageNo = 1, pageSize = 50) => {
   try {
-    const response = await axios.get(`${BASEURL}/api/v1/message`, {
-      params: { conversationId, pageNo, pageSize },
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+    const response = await axiosInstance.get('/api/v1/message', {
+      params: { conversationId, pageNo, pageSize }
     });
-
-    console.log('Messages fetched:', response.data);
     return response.data;
   } catch (error) {
-    handleApiError(error);
+    console.error('Error fetching messages:', error);
+    throw error;
   }
 };
 
 // Disconnect the WebSocket
 export const disconnect = async (accessToken) => {
   try {
-    const response = await axios.post(`${BASEURL}/api/v1/message/disconnect`, {}, {
+    const response = await axiosInstance.post('/api/v1/message/disconnect', {}, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

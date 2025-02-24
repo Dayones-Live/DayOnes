@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider } from 'react-redux';
@@ -31,13 +31,23 @@ import { Alert } from 'react-native';
 const Stack = createStackNavigator();
 const queryClient = new QueryClient();
 
+// Add this type declaration at the top of the file
+declare global {
+  var navigationRef: any;
+}
+
 const App = () => {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
+  const navigationRef = useRef(null);
 
   useEffect(() => {
     SplashScreen.hide();
     getFCMToken(); // Fetch FCM token on app start
     checkAppSetupStatus();
+    // Set up the navigation ref as soon as possible
+    if (navigationRef.current) {
+      global.navigationRef = navigationRef;
+    }
   }, []);
 
   // Function to get FCM token
@@ -115,7 +125,14 @@ const App = () => {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <NavigationContainer>
+        <NavigationContainer
+          ref={navigationRef}
+          onReady={() => {
+            // Ensure navigation ref is set when NavigationContainer is ready
+            global.navigationRef = navigationRef;
+            console.log('Navigation is ready, ref set');
+          }}
+        >
           <Stack.Navigator initialRouteName={initialRoute}>
             <Stack.Screen
               name="TermsAndPrivacyScreen"

@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {BASEURL} from '../constants'; // Replace with your actual BASEURL
 import {Alert} from 'react-native';
 import {PERMISSIONS} from 'react-native-permissions';
+import axiosInstance from '../../utils/axiosConfig';
 
 const useSetupNotificationsAndLocation = () => {
   const dispatch = useDispatch();
@@ -41,7 +42,7 @@ const useSetupNotificationsAndLocation = () => {
         // console.log('FCM Token set:', fcmToken);
 
         // Send FCM Token to your backend
-        await updateNotificationToken(accessToken, fcmToken);
+        await updateNotificationToken(fcmToken);
 
         // Set Location and send to backend
         Geolocation.getCurrentPosition(
@@ -68,23 +69,15 @@ const useSetupNotificationsAndLocation = () => {
 };
 
 // The functions for sending FCM Token and Location to the backend
-const updateNotificationToken = async (token, notificationToken) => {
-  try {
-    const response = await axios.post(
-      `${BASEURL}/api/v1/user-notification/token`,
-      new URLSearchParams({notificationToken}).toString(),
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      },
-    );
-    console.log('Notification token updated successfully:', response.data);
-  } catch (error) {
-    console.error('Error updating notification token:', error);
-    throw new Error('Failed to update notification token.');
-  }
+const updateNotificationToken = async (fcmToken) => {
+  return await axiosInstance.post('/api/v1/user-notification/token', 
+    new URLSearchParams({notificationToken: fcmToken}).toString(),
+    {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      }
+    }
+  );
 };
 
 const updateLocation = async (token, latitude, longitude) => {

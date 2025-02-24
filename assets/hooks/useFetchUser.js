@@ -5,27 +5,11 @@ import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BASEURL } from '../constants';
 import { setAccessToken, setUserProfile } from '../redux/actions'; // Adjust the import path
+import axiosInstance from '../../utils/axiosConfig';
 
-const fetchUserData = async (accessToken) => {
-  try {
-    const response = await axios.post(
-      `${BASEURL}/api/v1/auth/me`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-
-    if (response.status === 200) {
-      return response.data;
-    } else {
-      throw new Error('Could not fetch user information');
-    }
-  } catch (error) {
-    throw error;
-  }
+export const fetchUserData = async () => {
+  const response = await axiosInstance.post('/api/v1/auth/me');
+  return response.data;
 };
 
 const useFetchUser = () => {

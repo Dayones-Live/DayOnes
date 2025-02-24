@@ -2,145 +2,17 @@ import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#000' },
-    container: { flex: 1, backgroundColor: '#000', paddingTop: 10 },
-    scrollView: {
-        flex: 1,
-        paddingHorizontal: 8,
-    },
-    topNav: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#333',
-    },
-    tabContainer: {
-        flexDirection: 'row',
-        paddingHorizontal: 20,
-        marginVertical: 10,
-    },
-    tab: {
-        marginRight: 25,
-        paddingVertical: 8,
-    },
-    tabText: {
-        color: '#888',
-        fontSize: 16,
-    },
-    activeTab: {
-        borderBottomWidth: 2,
-        borderBottomColor: '#FF0080',
-    },
-    activeTabText: {
-        color: '#FFF',
-    },
-    gridContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        paddingTop: 50,
-        paddingHorizontal: 4,
-        paddingBottom: 60,
-    },
-    postContainer: {
-        width: '31%',
-        aspectRatio: 1,
-        marginBottom: 20,
-        backgroundColor: '#000',
-        borderRadius: 12,
-        overflow: 'hidden',
-        marginHorizontal: 4,
-    },
-    headerContainer: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1,
-        padding: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    locationContainer: {
-        flex: 1,
-    },
-    postUser: {
-        fontSize: 13,
-        color: '#ffffff',
-        fontWeight: '600',
-    },
-    fanCountContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    fanCountText: {
-        color: '#FFF',
-        fontSize: 13,
-        marginLeft: 4,
-        fontWeight: '500',
-    },
-    postImage: {
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#111',
-    },
-    inviteOnlyBox: {
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#111',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    inviteOnlyText: {
-        color: '#FFF',
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    interactionContainer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 8,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    interactionText: {
-        fontSize: 13,
-        color: '#FF0080',
-    },
-    postDate: {
-        display: 'none',
-    },
-    loadingText: { 
-        color: '#FFFFFF', 
-        textAlign: 'center', 
-        marginVertical: 30 
-    },
-    plusButton: {
-        position: 'absolute',
-        bottom: 30,
-        right: 20,
-        backgroundColor: '#FF0080',
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        zIndex: 10,
-    },
+    container: { flex: 1, backgroundColor: '#000', padding: 16 },
+    pageTitle: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 20 },
+    scrollView: { flex: 1, marginBottom: 20 },
+    postContainer: { marginBottom: 20, alignItems: 'center' },
+    postUser: { fontSize: 16, color: '#ffffff', marginBottom: 5, fontWeight: 'bold' },
+    postImage: { width: '100%', height: 200, borderRadius: 10 },
+    interactionContainer: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginTop: 10 },
+    interactionText: { fontSize: 16, color: '#FF0080' },
+    postDate: { fontSize: 14, color: '#888', marginTop: 5 },
+    plusButton: { position: 'absolute', top: 8, right: 5, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 25, zIndex: 10 },
+    loadingText: { color: '#FFFFFF', textAlign: 'center', marginVertical: 10 },
     modalBackground: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' },
     modalContainer: { width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
     modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
@@ -166,12 +38,62 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: -10,
         right: -10,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent background
         borderRadius: 15,
         width: 30,
         height: 30,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+
+    headerContainer: {
+        position: 'relative', // Allows absolute positioning for children
+        marginBottom: 5,
+        justifyContent: 'center',
+        alignItems: 'center', // Centers the location text
+    },
+    postUser: {
+        fontSize: 16,
+        color: '#ffffff',
+        fontWeight: 'bold',
+        textAlign: 'center', // Ensures location is centered
+    },
+    fanCountContainer: {
+        position: 'absolute', // Position the icon and count independently
+        right: '-25%', // Distance from the right edge
+        top: 0, // Align with the top of the header
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    fanCountText: {
+        marginLeft: 5, // Space between icon and text
+        fontSize: 16,
+        color: '#FFF',
+        fontWeight: 'bold',
+    },
+    postContainer: {
+        marginBottom: 20,
+        alignItems: 'center',
+    },
+    postImage: {
+        width: '100%',
+        height: 200,
+        borderRadius: 10,
+    },
+    interactionContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '100%',
+        marginTop: 10,
+    },
+    interactionText: {
+        fontSize: 16,
+        color: '#FF0080',
+    },
+    postDate: {
+        fontSize: 14,
+        color: '#888',
+        marginTop: 5,
     },
     fanCountCorner: {
         position: 'absolute',
@@ -182,7 +104,13 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         paddingHorizontal: 10,
         paddingVertical: 8,
-        zIndex: 1,
+        zIndex: 1, // Ensure it stays on top of the image
+    },
+    fanCountText: {
+        fontSize: 14,
+        color: '#FFF',
+        fontWeight: 'bold', // Make the text bolder for readability
+        marginLeft: 5,
     },
 });
 
