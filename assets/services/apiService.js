@@ -17,13 +17,27 @@ export const getConversations = async (accessToken, pageNo = 1, pageSize = 10) =
 
 // Fetch all messages for a given conversation
 export const getMessages = async (conversationId, pageNo = 1, pageSize = 50) => {
+  if (!conversationId) {
+    console.error('No conversation ID provided');
+    throw new Error('Conversation ID is required');
+  }
+
   try {
     const response = await axiosInstance.get('/api/v1/message', {
-      params: { conversationId, pageNo, pageSize }
+      params: { 
+        conversationId,
+        pageNo,
+        pageSize
+      }
     });
+    console.log('Messages fetched successfully:', response.data?.data?.messages?.length);
     return response.data;
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    console.error('Error fetching messages:', {
+      status: error.response?.status,
+      error: error.response?.data || error.message,
+      conversationId
+    });
     throw error;
   }
 };

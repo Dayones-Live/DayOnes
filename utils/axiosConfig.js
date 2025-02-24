@@ -1,10 +1,39 @@
 import axios from 'axios';
 import { BASEURL } from '../assets/constants';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import store from '../assets/redux/store';
 
 const axiosInstance = axios.create({
   baseURL: BASEURL
 });
+
+// Request interceptor - adds token to requests
+axiosInstance.interceptors.request.use(
+  async (config) => {
+    try {
+      // Get token directly from Redux store
+      const token = store.getState().accessToken;
+
+      console.log('Request Interceptor - Token status:', {
+        hasToken: !!token,
+        url: config.url,
+        method: config.method
+      });
+      
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        console.error('No access token found in Redux store');
+      }
+    } catch (error) {
+      console.error('Error setting auth header:', error);
+    }
+    return config;
+  },
+  (error) => {
+    console.error('Request interceptor error:', error);
+    return Promise.reject(error);
+  }
+);
 
 // Response interceptor - only handles 401 by redirecting to login
 axiosInstance.interceptors.response.use(
@@ -41,31 +70,6 @@ axiosInstance.interceptors.response.use(
         console.error('No navigation object available');
       }
     }
-    return Promise.reject(error);
-  }
-);
-
-// Request interceptor - adds token to requests
-axiosInstance.interceptors.request.use(
-  async (config) => {
-    try {
-      const token = await AsyncStorage.getItem('authToken');
-      console.log('Request Interceptor - Token status:', {
-        hasToken: !!token,
-        url: config.url,
-        method: config.method
-      });
-      
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.error('Error setting auth header:', error);
-    }
-    return config;
-  },
-  (error) => {
-    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );

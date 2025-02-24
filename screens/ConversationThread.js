@@ -44,14 +44,13 @@ const formatDateLabel = (date) => {
   }
 };
 
-const ConversationThread = () => {
+const ConversationThread = ({ route }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [mediaType, setMediaType] = useState(null);
   const [isImageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageForViewer, setSelectedImageForViewer] = useState(null);
-  const route = useRoute();
   const navigation = useNavigation();
   const { conversationId, profilePicture, username } = route.params;
   const accessToken = useSelector((state) => state.accessToken);
@@ -87,22 +86,33 @@ const ConversationThread = () => {
   };
 
   const fetchMessages = async () => {
-    if (!accessToken) return;
+    if (!conversationId || !accessToken) {
+      console.log('Missing required data:', { 
+        hasConversationId: !!conversationId,
+        hasToken: !!accessToken 
+      });
+      return;
+    }
 
     try {
-      const data = await getMessages(conversationId, accessToken);
-      const sortedMessages = data.data.messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-      setMessages(sortedMessages);
-    } catch (err) {
-      console.error('Error fetching messages:', err.message);
+      const response = await getMessages(conversationId);
+      if (response?.data?.messages) {
+        const sortedMessages = response.data.messages.sort(
+          (a, b) => new Date(a.created_at) - new Date(b.created_at)
+        );
+        setMessages(sortedMessages);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
     }
   };
 
   useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
-
-    return () => clearInterval(interval);
+    if (accessToken && conversationId) {
+      fetchMessages();
+      const interval = setInterval(fetchMessages, 5000);
+      return () => clearInterval(interval);
+    }
   }, [accessToken, conversationId]);
 
   const handleMediaUpload = async (uri) => {
@@ -214,55 +224,39 @@ const ConversationThread = () => {
   
 
    const handleSendMessage = async () => {
-    // Check if both the message and media are empty
-    if (isSending) return;
+    if ((!newMessage.trim() && !selectedMedia) || isSending) return;
   
-    if (!newMessage.trim() && selectedMedia) {
-      Alert.alert(
-        'Message Required',
-        'A message is required when sending an image or video. Please include a message.'
-      );
-      return;
-    }
-  
-    if (newMessage.trim() === '' && !selectedMedia) {
-      Alert.alert('Error', 'Please enter a message or attach media.');
-      return;
-    }
-  
-    setIsSending(true); // Disable the button
+    setIsSending(true);
     try {
       let mediaUrl = null;
       if (selectedMedia) {
         mediaUrl = await handleMediaUpload(selectedMedia);
         if (!mediaUrl) {
-          setIsSending(false); // Re-enable the button if media upload fails
+          setIsSending(false);
           return;
         }
       }
   
-      await sendMessage(conversationId, newMessage, mediaUrl, mediaType);
+      await sendMessage(
+        conversationId,
+        newMessage.trim(),
+        mediaUrl,
+        mediaType
+      );
   
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          id: Date.now().toString(),
-          message: newMessage,
-          url: mediaUrl,
-          mediaType: mediaType,
-          sender_id: loggedInUserId,
-          created_at: new Date().toISOString(),
-          messageSender: { email: loggedInUserEmail },
-        },
-      ]);
-  
+      // Clear the input and media
       setNewMessage('');
       setSelectedMedia(null);
       setMediaType(null);
+  
+      // Fetch messages with token
+      await fetchMessages();
+  
     } catch (error) {
       console.error('Error sending message:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
     } finally {
-      setIsSending(false); // Re-enable the button
+      setIsSending(false);
     }
   };
   

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import axios from 'axios';
-import socket from '../services/socket';
 import { Alert } from 'react-native';
 import { BASE_URL } from '../../config/config';
 
@@ -38,11 +37,6 @@ const useSendMessage = (accessToken) => {
 
       // Handle successful response
       console.log('Message sent successfully via API:', response.data);
-
-      // Emit the message via WebSocket for real-time updates
-      console.log('Emitting message via WebSocket:', payload);
-      socket.emit('chat-message', payload); // Emit message via WebSocket
-
       return response.data;
 
     } catch (err) {
