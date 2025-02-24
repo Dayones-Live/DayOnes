@@ -101,6 +101,23 @@ const LoginScreen = () => {
     saveRoleToAsyncStorage();
   }, [userProfile]);
 
+  useEffect(() => {
+    const clearStaleData = async () => {
+      try {
+        await AsyncStorage.multiRemove([
+          'authToken',
+          'userRole',
+          'loggedInUser',
+          'fcmToken'
+        ]);
+      } catch (error) {
+        console.error('Error clearing stale data:', error);
+      }
+    };
+    
+    clearStaleData();
+  }, []);
+
   const handleLogin = () => {
     if (!username || !password) {
       Alert.alert('Validation Error', 'Please enter both username and password.');

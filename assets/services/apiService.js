@@ -1,21 +1,16 @@
 import axios from 'axios';
 import { BASEURL } from '../constants';
 
-// Fetch all conversations with pagination
-export const getConversations = async (accessToken, pageNo = 1, pageSize = 10) => {
-  console.log('Fetching conversations...');
-  try {
-    const response = await axios.get(`${BASEURL}/api/v1/conversation`, {
-      params: { pageNo, pageSize },
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
 
-    console.log('Conversations fetched:', response.data);
-    return response.data;
+// Fetch all conversations with pagination
+export const getConversations = async (pageNo, pageSize) => {
+  try {
+    const response = await axiosInstance.get(`/api/v1/conversation?pageNo=${pageNo}&pageSize=${pageSize}`);
+    return response.data || { conversations: [] };
   } catch (error) {
-    handleApiError(error, pageNo, pageSize);
+    // If the interceptor handled the 401, we'll get null data
+    if (!error) return { conversations: [] };
+    throw error;
   }
 };
 

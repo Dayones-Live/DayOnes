@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import FHomePage from '../screens/fan/FHomePage'; // Fan's Home Page
 import MyCollectionsPage from '../screens/fan/MyCollectionsPage'; // "My Collections" page
 import DayOnesScreen from '../screens/fan/DayOnesScreen'; // DayOnes screen
 import DMsScreen from '../screens/DMsScreen'; // Direct Messages screen
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import FanOnboardingTutorial from '../screens/fan/FanOnboardingTutorial';
 
 const Tab = createBottomTabNavigator();
@@ -20,24 +20,24 @@ const FanStack = ({ navigation }) => {
   const checkTutorialStatus = async () => {
     try {
       const tutorialComplete = await AsyncStorage.getItem('fanTutorialComplete');
-      const userLoggedIn = await AsyncStorage.getItem('loggedInUser');
+      console.log('Tutorial Status Check:', {
+        tutorialComplete,
+        isNull: tutorialComplete === null,
+        value: tutorialComplete,
+      });
       
-      // Only show tutorial if it hasn't been completed AND user is logged in
-      if (tutorialComplete !== 'true' && userLoggedIn) {
-        setShowTutorial(true);
-      }
+      setShowTutorial(!tutorialComplete);
+      console.log('Show Tutorial Set to:', !tutorialComplete);
     } catch (error) {
       console.error('Error checking tutorial status:', error);
+      setShowTutorial(true);
+      console.log('Show Tutorial defaulted to true due to error');
     }
   };
 
-  const handleTutorialComplete = async () => {
-    try {
-      await AsyncStorage.setItem('fanTutorialComplete', 'true');
-      setShowTutorial(false);
-    } catch (error) {
-      console.error('Error saving tutorial completion:', error);
-    }
+  const handleTutorialComplete = () => {
+    console.log('Tutorial Complete Handler Called');
+    setShowTutorial(false);
   };
 
   return (

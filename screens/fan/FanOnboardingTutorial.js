@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import LinearGradient from 'react-native-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 85 : 60;
@@ -11,41 +12,36 @@ const FanOnboardingTutorial = ({ navigation, isVisible, onComplete }) => {
   const [spotlight] = useState(new Animated.Value(0));
   const [bounce] = useState(new Animated.Value(0));
   const [fade] = useState(new Animated.Value(0));
-  const [canProgress, setCanProgress] = useState(true);
 
   const steps = [
     {
       title: "Welcome to DayOnes!",
-      description: "You're on the Home Screen. Wait for an artist to send out an Invite then you will press the 'Get Invites' button to start your personal connection with them.",
+      description: "You're on the Home Screen. Be in attendance when an artist to sends out an Invite, then press the 'Get Invites' button to join their exclusive DayOnes group AND get an awesome autograph!",
       target: 'home',
-      requiresNavigation: false
+      position: { bottom: 0, left: width * 0 }
     },
     {
       title: "My Collections",
-      description: "Next, let's check out My Collections. Tap the star icon to see where your exclusive autographs and collectibles will be stored!",
+      description: "Next, let's check out My Collections. Every DayOnes invite comes with an exclusive autograph which is stored here! Start collecting today!",
       target: 'collections',
-      requiresNavigation: true,
       position: { bottom: 0, left: width * 0.25 }
     },
     {
       title: "Dayones Messages",
-      description: "This is where you'll receive special updates and messages from artists. Tap the message icon to take a look!",
+      description: "This is where the artist's DayOnes will receive messages from them personally! You can even message them back for closer-than-ever interactions! Get cool perks like early tickets and merch access! Remember, you have to be in attendance when the artist sends the invite to join! This is only for their DayOnes!",
       target: 'messages',
-      requiresNavigation: true,
       position: { bottom: 0, left: width * 0.5 }
     },
     {
       title: "Direct Messages",
-      description: "Finally, here's your DMs section. This is your private space for one-on-one conversations with artists. Tap the envelope icon to explore!",
+      description: "Finally, here's your DMs section. This is your private space for one-on-one conversations with artists. Be sure to show them love in the DayOnes messages for a chance to get a DM!",
       target: 'dms',
-      requiresNavigation: true,
       position: { bottom: 0, left: width * 0.75 }
     }
   ];
 
   useEffect(() => {
     if (isVisible) {
-      setCanProgress(step === 0);
       animateArrow();
     }
   }, [step, isVisible]);
@@ -67,29 +63,39 @@ const FanOnboardingTutorial = ({ navigation, isVisible, onComplete }) => {
     ).start();
   };
 
-  const handleTabPress = async (targetName) => {
-    if (steps[step].target === targetName) {
-      switch (targetName) {
-        case 'collections':
+  const handlePrevious = () => {
+    if (step > 0) {
+      switch (step) {
+        case 1:
+          navigation.navigate('Home');
+          break;
+        case 2:
           navigation.navigate('My Collections');
           break;
-        case 'messages':
+        case 3:
           navigation.navigate('DayOnes');
           break;
-        case 'dms':
-          navigation.navigate("DM's");
-          break;
       }
-      setCanProgress(true);
+      setStep(step - 1);
+    } else {
+      navigation.goBack();
     }
   };
 
   const handleNext = async () => {
-    if (!canProgress) return;
-    
     if (step < steps.length - 1) {
+      switch (step) {
+        case 0:
+          navigation.navigate('My Collections');
+          break;
+        case 1:
+          navigation.navigate('DayOnes');
+          break;
+        case 2:
+          navigation.navigate("DM's");
+          break;
+      }
       setStep(step + 1);
-      setCanProgress(!steps[step + 1].requiresNavigation);
     } else {
       await AsyncStorage.setItem('fanTutorialComplete', 'true');
       onComplete();
@@ -135,26 +141,29 @@ const FanOnboardingTutorial = ({ navigation, isVisible, onComplete }) => {
   return (
     <View style={styles.container}>
       <ArrowOverlay />
-      <TouchableOpacity
-        style={[
-          styles.touchableArea,
-          steps[step].position,
-          { width: width * 0.25, height: TAB_BAR_HEIGHT }
-        ]}
-        onPress={() => handleTabPress(steps[step].target)}
-      />
       <View style={styles.contentContainer}>
         <Text style={styles.title}>{steps[step].title}</Text>
         <Text style={styles.description}>{steps[step].description}</Text>
-        <TouchableOpacity 
-          style={[styles.nextButton, !canProgress && styles.nextButtonDisabled]}
-          onPress={handleNext}
-          disabled={!canProgress}
-        >
-          <Text style={styles.nextButtonText}>
-            {step === steps.length - 1 ? "Got it!" : "Next"}
-          </Text>
-        </TouchableOpacity>
+        
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            style={[styles.navigationButton, styles.previousButton]}
+            onPress={handlePrevious}
+          >
+            <Icon name="chevron-left" size={20} color="#FFF" />
+            <Text style={styles.buttonText}>Previous</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.navigationButton}
+            onPress={handleNext}
+          >
+            <Text style={styles.buttonText}>
+              {step === steps.length - 1 ? "Got it!" : "Next"}
+            </Text>
+            <Icon name="chevron-right" size={20} color="#FFF" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -174,10 +183,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     bottom: "50%",
     left:"20%"
-  },
-  touchableArea: {
-    position: 'absolute',
-    backgroundColor: 'transparent',
   },
   contentContainer: {
     position: 'absolute',
@@ -201,20 +206,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  nextButton: {
-    backgroundColor: '#FF0080',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 20,
+    marginTop: 20,
   },
-  nextButtonDisabled: {
+  navigationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF0080',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    minWidth: 120,
+    justifyContent: 'center',
+  },
+  previousButton: {
     backgroundColor: '#666',
   },
-  nextButtonText: {
+  buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-  }
+    marginHorizontal: 5,
+  },
 });
 
-export default FanOnboardingTutorial; 
+export default FanOnboardingTutorial;
