@@ -1,8 +1,8 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#000' },
-    container: { flex: 1, backgroundColor: '#000', padding: 16 },
+    safeArea: { flex: 1, backgroundColor: '#000000' },
+    container: { flex: 1, backgroundColor: '#000000', padding: 16 },
     pageTitle: { fontSize: 28, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', marginBottom: 20 },
     scrollView: { flex: 1, marginBottom: 20 },
     postContainer: { marginBottom: 20, alignItems: 'center' },
@@ -111,6 +111,24 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontWeight: 'bold', // Make the text bolder for readability
         marginLeft: 5,
+    },
+    footer: {
+        padding: 10,
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    noMorePosts: {
+        padding: 10,
+        color: '#666',
+        textAlign: 'center',
+        fontSize: 14,
+    },
+    flatListContent: {
+        flexGrow: 1,
+    },
+    flatListContentEnded: {
+        paddingBottom: 20,
+        flexGrow: 0,
     },
 });
 

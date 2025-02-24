@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { SafeAreaView, View, Text, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { SafeAreaView, View, Text, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, FlatList, RefreshControl, LayoutAnimation, UIManager } from 'react-native';
 import { useSelector } from 'react-redux';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { BASEURL } from '../../assets/constants';
@@ -15,8 +15,13 @@ import styles from './artistStyles/ArtistPostsPageStyles';
 import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // Import icon library
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
-import {  Linking } from 'react-native';
+import { Linking } from 'react-native';
+import { debounce } from 'lodash';
 
+// Enable LayoutAnimation for Android (add near the top of the file)
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -33,9 +38,16 @@ const ArtistPostsPage = () => {
   const [genericPostId, setGenericPostId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSendingPost, setIsSendingPost] = useState(false);
-
-
-
+  const [refreshing, setRefreshing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [listHeight, setListHeight] = useState(0);
+  const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
+  const isFirstMount = useRef(true);
+  const isFetching = useRef(false);
+  const genericPostIdRef = useRef(null);
+  const mountedRef = useRef(false);
+  const flatListRef = useRef(null);
+  const currentScrollPosition = useRef(0);
 
   const formatCount = (count) => {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}m`;
@@ -43,81 +55,87 @@ const ArtistPostsPage = () => {
     return count.toString();
   };
 
-
-
   const findGenericPost = (posts) => {
     return posts.find(post => post.type === 'GENERIC')?.id;
   };
 
-
+  const POSTS_PER_PAGE = 25;
 
   const fetchArtistPosts = async (pageNum = 1) => {
-    if (loading || !hasMore) return;
+    console.log('fetchArtistPosts called with:', {
+      pageNum,
+      loading,
+      hasMore,
+      accessToken: !!accessToken
+    });
+
+    if (loading) {
+      console.log('Skipping fetch - already loading');
+      return;
+    }
+    
+    if (!accessToken) {
+      console.log('Skipping fetch - no access token');
+      return;
+    }
+
     setLoading(true);
-
     try {
-      console.log(`Fetching posts for page number: ${pageNum}`);
-
-      const apiUrl = `${BASEURL}/api/v1/post?pageNo=${pageNum}&pageSize=25`;
+      console.log(`Making API request for page ${pageNum}`);
+      const apiUrl = `${BASEURL}/api/v1/post?pageNo=${pageNum}&pageSize=${POSTS_PER_PAGE}`;
       const response = await axios.get(apiUrl, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       const postsData = response.data?.data?.posts || [];
-      console.log("Fetched Posts Data:", postsData);
+      console.log(`Received ${postsData.length} posts for page ${pageNum}`);
+      
+      // Set hasMore based on whether we received a full page of posts
+      if (postsData.length < POSTS_PER_PAGE) {
+        console.log('No more posts available');
+        setHasMore(false);
+      }
 
-      // Separate generic post from other posts
+      // Separate generic post and other posts
       const genericPost = postsData.find(post => post.type === 'GENERIC');
       const otherPosts = postsData.filter(post => post.type !== 'GENERIC');
 
       // Sort other posts by date (newest first)
-      const sortedOtherPosts = otherPosts.sort((a, b) => 
-        new Date(b.created_at) - new Date(a.created_at)
-      );
-
-      // Combine with generic post always at the top
-      const finalPosts = genericPost 
-        ? [genericPost, ...sortedOtherPosts]
-        : sortedOtherPosts;
+      const sortedOtherPosts = otherPosts.sort((a, b) => {
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
 
       if (pageNum === 1) {
-        setPosts(finalPosts);
+        const newPosts = genericPost ? [genericPost, ...sortedOtherPosts] : sortedOtherPosts;
+        setPosts(newPosts);
+        
+        if (genericPost?.id) {
+          setGenericPostId(genericPost.id);
+        }
       } else {
         setPosts(prev => {
-          // Keep generic post at top, append new posts after
           const prevGenericPost = prev.find(p => p.type === 'GENERIC');
-          const prevOtherPosts = prev.filter(p => p.type !== 'GENERIC');
-          return prevGenericPost 
-            ? [prevGenericPost, ...prevOtherPosts, ...sortedOtherPosts]
-            : [...prev, ...sortedOtherPosts];
+          const allOtherPosts = [...prev.filter(p => p.type !== 'GENERIC'), ...sortedOtherPosts];
+          const sortedAllPosts = allOtherPosts.sort((a, b) => {
+            return new Date(b.created_at) - new Date(a.created_at);
+          });
+          return prevGenericPost ? [prevGenericPost, ...sortedAllPosts] : sortedAllPosts;
         });
       }
 
-      // Find and set the generic post ID
-      if (genericPost) {
-        console.log('Found generic post ID:', genericPost.id);
-        setGenericPostId(genericPost.id);
+      setHasMore(postsData.length === POSTS_PER_PAGE);
+      if (pageNum === 1) {
+        setPage(2);
+      } else {
+        setPage(pageNum + 1);
       }
-
-      setHasMore(postsData.length > 0);
-      setPage(pageNum);
     } catch (error) {
-      console.error("Error fetching posts:", error);
+      console.error('Error fetching posts:', error);
+      setHasMore(false); // Also set hasMore to false on error
     } finally {
       setLoading(false);
     }
   };
-
-
-
-
-
-
-
-
-
-
-
 
   const handleDelete = async (postId) => {
     try {
@@ -149,34 +167,56 @@ const ArtistPostsPage = () => {
   };
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      setPosts([]);
-      setPage(1);
-      setHasMore(true);
-    } else {
-      fetchArtistPosts(1);
-    }
-  }, [isLoggedIn]);
+    const loadInitialData = async () => {
+      console.log('loadInitialData called with:', {
+        accessToken: !!accessToken,
+        isLoggedIn,
+        postsLength: posts.length
+      });
 
-  useFocusEffect(
-    useCallback(() => {
-      const resetAndFetch = async () => {
-        setPage(1); // Reset pagination
-        setHasMore(true); // Reset the "has more" flag
-        await fetchArtistPosts(1); // Fetch the first page of posts
-      };
+      if (!accessToken) {
+        console.log('Skipping initial load - no access token');
+        return;
+      }
+      
+      try {
+        console.log('Starting initial load of posts');
+        setPage(1);
+        setHasMore(true);
+        await fetchArtistPosts(1);
+        setLastRefreshTime(Date.now());
+        isFirstMount.current = false;
+        console.log('Initial load completed successfully');
+      } catch (error) {
+        console.error('Error in initial load:', error);
+      }
+    };
 
-      resetAndFetch();
-    }, [])
-  );
+    loadInitialData();
+  }, [accessToken]); // Only depend on accessToken
 
-
-  const handleLoadMore = ({ nativeEvent }) => {
-    const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
-    if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 20 && !loading && hasMore) {
-      fetchArtistPosts(page);
-    }
+  const handleScroll = (event) => {
+    currentScrollPosition.current = event.nativeEvent.contentOffset.y;
   };
+
+  const handleLoadMore = useCallback(() => {
+    if (!loading && hasMore && currentScrollPosition.current > 0) {
+      const nextPage = page + 1;
+      console.log('Loading more posts, page:', nextPage);
+      
+      setPage(nextPage);
+      fetchArtistPosts(nextPage).then(() => {
+        if (flatListRef.current) {
+          setTimeout(() => {
+            flatListRef.current.scrollToOffset({
+              offset: currentScrollPosition.current,
+              animated: false
+            });
+          }, 100);
+        }
+      });
+    }
+  }, [loading, hasMore, page, listHeight]);
 
   const handleOpenModal = () => setModalVisible(true);
   const handleCloseModal = () => {
@@ -185,8 +225,6 @@ const ArtistPostsPage = () => {
     setPostText(''); // Clear the text input
     setModalVisible(false); // Close the modal
   };
-
-
 
   const takePicture = async () => {
     try {
@@ -263,8 +301,6 @@ const ArtistPostsPage = () => {
     }
   };
   
-
-
   const uploadFile = () => {
     launchImageLibrary({ mediaType: 'mixed' }, async (response) => {
       if (!response.didCancel && !response.errorCode) {
@@ -302,7 +338,6 @@ const ArtistPostsPage = () => {
     }
   };
   
-
   const handleSendPost = async () => {
     console.log('Starting handleSendPost with genericPostId:', genericPostId);
 
@@ -374,7 +409,7 @@ const ArtistPostsPage = () => {
       setSelectedImage(null);
       setMediaType(null);
       setModalVisible(false);
-      fetchArtistPosts(1);
+      await forceRefresh();
     } catch (error) {
       console.error("Failed to send post or comment:", error);
       Alert.alert('Error', 'Failed to send. Please try again.');
@@ -383,7 +418,6 @@ const ArtistPostsPage = () => {
     }
   };
   
-
   // Add this helper function to check if a post exists
   const checkPostExists = async (postId) => {
     try {
@@ -446,14 +480,35 @@ const ArtistPostsPage = () => {
     );
   };
 
-  // Add useEffect to set genericPostId when component mounts
-  useEffect(() => {
-    const genericId = findGenericPost(posts);
-    if (genericId) {
-      console.log('Setting generic post ID on mount:', genericId);
-      setGenericPostId(genericId);
+  const handleRefresh = async () => {
+    console.log('handleRefresh called');
+    setRefreshing(true);
+    try {
+      setPage(1);
+      setHasMore(true);
+      await fetchArtistPosts(1);
+      setLastRefreshTime(Date.now());
+      console.log('Refresh completed successfully');
+    } catch (error) {
+      console.error('Error in handleRefresh:', error);
+    } finally {
+      setRefreshing(false);
     }
-  }, [posts]);
+  };
+
+  const forceRefresh = async () => {
+    if (isFetching.current) return;
+    
+    try {
+      isFetching.current = true;
+      setPage(1);
+      setHasMore(true);
+      await fetchArtistPosts(1);
+      setLastRefreshTime(Date.now());
+    } finally {
+      isFetching.current = false;
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -463,19 +518,44 @@ const ArtistPostsPage = () => {
           <AntDesign name="pluscircleo" size={35} color="#FFFFFF" />
         </TouchableOpacity>
 
-
         <Text style={styles.pageTitle}>Posts</Text>
-        <ScrollView
-          style={styles.scrollView}
-          onScroll={handleLoadMore}
-          scrollEventThrottle={400}
-        >
-
-
-          {posts.map((post, index) => renderPostItem(post, index))}
-        </ScrollView>
-
-        {loading && <Text style={styles.loadingText}>Loading more posts...</Text>}
+        <FlatList
+          ref={flatListRef}
+          data={posts}
+          renderItem={({ item, index }) => renderPostItem(item, index)}
+          keyExtractor={item => item.id}
+          onEndReached={hasMore ? handleLoadMore : null}
+          onEndReachedThreshold={0.5}
+          onScroll={handleScroll}
+          onContentSizeChange={(w, h) => setListHeight(h)}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#FFFFFF"
+              colors={["#FFFFFF"]}
+              progressBackgroundColor="#000000"
+              progressViewOffset={20}
+              size="large"
+            />
+          }
+          ListFooterComponent={() => (
+            <View style={styles.footer}>
+              {loading && <ActivityIndicator size="small" color="#FFFFFF" />}
+              {!hasMore && posts.length > 0 && (
+                <Text style={styles.noMorePosts}>No more posts</Text>
+              )}
+            </View>
+          )}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
+          contentContainerStyle={[
+            styles.flatListContent,
+            !hasMore && posts.length > 0 && styles.flatListContentEnded
+          ]}
+        />
 
         <Modal
           animationType="slide"
@@ -519,7 +599,6 @@ const ArtistPostsPage = () => {
                 </View>
               )}
 
-
               <View style={styles.iconRow}>
                 <TouchableOpacity onPress={uploadFile}>
                   <Icon name="image" size={24} color="blue" />
@@ -552,7 +631,5 @@ const ArtistPostsPage = () => {
     </SafeAreaView>
   );
 };
-
-
 
 export default ArtistPostsPage;
