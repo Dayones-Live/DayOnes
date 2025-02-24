@@ -6,37 +6,62 @@ import {useSelector} from 'react-redux';
 
 // Fetch notifications function
 const fetchNotifications = async accessToken => {
-  const response = await axios.get(`${BASEURL}/api/v1/notifications/`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  return response;
+  try {
+    const response = await axios.get(`${BASEURL}/api/v1/notifications`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    
+    console.log('Raw notifications response:', response.data);
+
+    // Ensure we have the correct data structure
+    const notifications = response.data?.data || response.data || [];
+    
+    // Transform the data to match expected structure
+    return {
+      data: {
+        data: Array.isArray(notifications) ? notifications : []
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return { data: { data: [] } };
+  }
 };
 
 // Custom hook for notifications
 const useNotifications = () => {
   const accessToken = useSelector(state => state.accessToken);
 
-  const response = useQuery({
-    queryKey: ['useNotifications'],
-    queryFn: async () => {
-      try {
-        if (!accessToken) {
-          throw new Error('No access token available');
-        }
-        const notificationList = await fetchNotifications(accessToken);
-        return notificationList; // Assuming this returns the notifications data
-      } catch (error) {
-        console.error('Notification fetch error:', error);
-        throw error;
+  return useQuery(
+    ['notifications', accessToken],
+    () => fetchNotifications(accessToken),
+    {
+      enabled: !!accessToken,
+      // Add these options for better real-time behavior
+      refetchInterval: 30000, // Refetch every 30 seconds
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+      staleTime: 0, // Consider data immediately stale
+      // Add retry and error handling
+      retry: 3,
+      retryDelay: 1000,
+      // Don't cache the data between component mounts
+      cacheTime: 1000 * 60 * 5, // Cache for 5 minutes
+      // Always refetch on mount
+      refetchOnMount: 'always',
+      // Log any errors
+      onError: (error) => {
+        console.error('Notifications query error:', error);
+      },
+      // Log successful fetches
+      onSuccess: (data) => {
+        console.log('Notifications fetched successfully:', {
+          count: data?.data?.data?.length || 0,
+          unreadCount: data?.data?.data?.filter(n => !n.is_read).length || 0
+        });
       }
-    },
-  });
-
-  // Return the entire response object for use in components
-  return response;
+    }
+  );
 };
 
 export default useNotifications;

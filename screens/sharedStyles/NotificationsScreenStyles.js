@@ -71,6 +71,49 @@ const styles = StyleSheet.create({
         marginTop: 20,
         textAlign: 'center',
     },
+    headerContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+    },
+    markReadButton: {
+        backgroundColor: '#FF0080',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 15,
+    },
+    markReadText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyText: {
+        fontSize: 16,
+        color: '#666',
+    },
+    errorText: {
+        fontSize: 16,
+        color: 'red',
+        textAlign: 'center',
+        marginTop: 20,
+    },
+    retryButton: {
+        padding: 10,
+        marginTop: 10,
+        backgroundColor: '#007AFF',
+        borderRadius: 5,
+    },
+    retryText: {
+        color: 'white',
+        fontSize: 16,
+    },
 });
 
 export default styles;
