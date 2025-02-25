@@ -12,6 +12,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
@@ -28,6 +29,35 @@ import Video from 'react-native-video';
 import ImageViewing from 'react-native-image-viewing';
 import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+
+const detectAndStyleLinks = (text) => {
+  // Regex pattern to match URLs
+  const urlPattern = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/g;
+  
+  if (!text) return null;
+
+  // Split text by URLs
+  const parts = text.split(urlPattern);
+  
+  return parts.map((part, index) => {
+    // Check if this part matches a URL pattern
+    if (part && (part.startsWith('http') || part.startsWith('www.'))) {
+      const url = part.startsWith('www.') ? `https://${part}` : part;
+      return (
+        <Text
+          key={index}
+          style={styles.linkText}
+          onPress={() => Linking.openURL(url)}
+        >
+          {part}
+        </Text>
+      );
+    }
+    // Return regular text
+    return part ? <Text key={index}>{part}</Text> : null;
+  });
+};
+
 const PostDetailPage = () => {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -680,7 +710,7 @@ const PostDetailPage = () => {
                         </View>
                       </View>
                       <Text style={[styles.commentText, styles.artistCommentText]}>
-                        {artistComment.message}
+                        {detectAndStyleLinks(artistComment.message)}
                       </Text>
                       {artistComment.url && artistComment.media_type === "PHOTO" && (
                         <TouchableOpacity onPress={() => openFullScreenImage(artistComment.url)}>
@@ -812,7 +842,7 @@ const PostDetailPage = () => {
                             item.user.type === 'artist' ? styles.artistCommentText : styles.fanCommentText,
                           ]}
                         >
-                          {item.message}
+                          {detectAndStyleLinks(item.message)}
                         </Text>
                       </View>
                     </View>

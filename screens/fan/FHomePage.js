@@ -183,6 +183,11 @@ const FHomePage = ({ navigation }) => {
 
   const handleConfirmInvite = async (inviteId, artistPostId) => {
     try {
+      // Stop polling and clean up
+      handleCancel();
+      dispatch(setInvitesEnabled(false));
+      setIsInviteEnabled(false);
+
       await fetch(`${BASEURL}/api/v1/invites/${inviteId}`, {
         method: 'PATCH',
         headers: {
@@ -191,6 +196,9 @@ const FHomePage = ({ navigation }) => {
         },
         body: JSON.stringify({ status: 'ACCEPTED' }),
       });
+
+      // Clear the accepted invite from the UI
+      setInvites(prevInvites => prevInvites.filter(invite => invite.id !== inviteId));
 
       Alert.alert('Success', 'Invite confirmed.');
 

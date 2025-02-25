@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, Image, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView, View, Text, Image, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import EvilIcons from 'react-native-vector-icons/EvilIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -21,6 +21,34 @@ import { convertToTemporaryFile } from '../../assets/components/convertToTempora
 
 
 const MAX_COMMENT_LENGTH = 200;
+
+const detectAndStyleLinks = (text) => {
+  // Regex pattern to match URLs
+  const urlPattern = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/g;
+  
+  if (!text) return null;
+
+  // Split text by URLs
+  const parts = text.split(urlPattern);
+  
+  return parts.map((part, index) => {
+    // Check if this part matches a URL pattern
+    if (part && (part.startsWith('http') || part.startsWith('www.'))) {
+      const url = part.startsWith('www.') ? `https://${part}` : part;
+      return (
+        <Text
+          key={index}
+          style={styles.linkText}
+          onPress={() => Linking.openURL(url)}
+        >
+          {part}
+        </Text>
+      );
+    }
+    // Return regular text
+    return part ? <Text key={index}>{part}</Text> : null;
+  });
+};
 
 const DMDetailPage = ({ route }) => {
   const { postId } = route.params;
@@ -484,7 +512,7 @@ const DMDetailPage = ({ route }) => {
 
           {post.message && (
             <View style={styles.postMessageContainer}>
-              <Text style={styles.postMessageText}>{post.message}</Text>
+              <Text style={styles.postMessageText}>{detectAndStyleLinks(post.message)}</Text>
             </View>
           )}
 
@@ -562,7 +590,12 @@ const DMDetailPage = ({ route }) => {
                   )}
                   <View style={styles.commentTextContainer}>
                     <Text style={styles.commentAuthor}>{comment.user?.full_name}</Text>
-                    <Text style={styles.commentText}>{comment.message}</Text>
+                    <Text style={[
+                      styles.commentText,
+                      comment.isArtistComment ? styles.artistCommentText : styles.fanCommentText
+                    ]}>
+                      {detectAndStyleLinks(comment.message)}
+                    </Text>
 
                     {comment.media_type === "PHOTO" && comment.url && (
                       <TouchableOpacity onPress={() => openImageViewer(comment.url)}>
