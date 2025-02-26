@@ -140,6 +140,23 @@ const styles = StyleSheet.create({
         fontSize: wp('4.5%'),
         fontWeight: 'bold',
     },
+    // Update the patent text style
+    patentText: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: hp('1%'),
+    },
+    patentLabel: {
+        color: '#FFF',
+        fontSize: wp('2%'),
+        textAlign: 'center',
+    },
+    patentNumber: {
+        color: '#FFF',
+        fontSize: wp('1.5%'),
+        textAlign: 'center',
+    },
 });
 
 export default styles;

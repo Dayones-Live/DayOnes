@@ -522,7 +522,10 @@ const HHomePage = () => {
                       )}
                     </LinearGradient>
                   </TouchableOpacity>
-
+                  <View style={styles.patentText}>
+                    <Text style={styles.patentLabel}>U.S Patent </Text>
+                    <Text style={styles.patentNumber}>#10749935</Text>
+                  </View>
                 </Animated.View>
               </View>
             </ScrollView>

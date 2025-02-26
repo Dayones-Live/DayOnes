@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     },
     pictureButton: {
         width: '45%',
-        height: verticalScale(100), // Adjusted height for scaling
+        height: verticalScale(60), // Adjusted height for scaling
         backgroundColor: '#000',
         borderColor: '#000',
         borderWidth: 1,
@@ -75,10 +75,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     cameraIcon: {
-        marginBottom: verticalScale(5), // Scaled margin
+        marginBottom: verticalScale(1), // Scaled margin
     },
     uploadIcon: {
-        marginBottom: verticalScale(5), // Scaled margin
+        marginBottom: verticalScale(1), // Scaled margin
     },
     buttonText: {
         color: '#C0C0C0',
@@ -97,23 +97,43 @@ const styles = StyleSheet.create({
     },
     sendButtonContainer: {
         width: '100%',
-        borderRadius: scale(10), // Scaled border radius
+        borderRadius: scale(10),
         overflow: 'hidden',
-        marginVertical: verticalScale(15), // Scaled margin
+        marginVertical: verticalScale(-5
+
+        ),
+        marginBottom: verticalScale(25), // Increased bottom margin
     },
     sendButtonGradient: {
-        paddingVertical: verticalScale(10), // Scaled padding
+        paddingVertical: verticalScale(15), // Slightly increased padding
         borderRadius: scale(10),
         width: '100%',
         alignItems: 'center',
     },
     sendButtonText: {
         color: '#ffffff',
-        fontSize: moderateScale(16), // Scaled font size
+        fontSize: moderateScale(16),
         fontWeight: 'bold',
     },
+    patentText: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: verticalScale(1),
+        marginBottom: verticalScale(4),
+    },
+    patentLabel: {
+        color: '#FFF',
+        fontSize: moderateScale(8),
+        textAlign: 'center',
+    },
+    patentNumber: {
+        color: '#FFF',
+        fontSize: moderateScale(6),
+        textAlign: 'center',
+    },
     radioGroup: {
-        marginBottom: verticalScale(15), // Scaled margin
+        marginBottom: verticalScale(10), // Scaled margin
         alignItems: 'center',
         color: '#C0C0C0',
     },

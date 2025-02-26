@@ -332,7 +332,10 @@ const FHomePage = ({ navigation }) => {
               <Text style={styles.sendButtonText}>Get Invites</Text>
             </LinearGradient>
           </TouchableOpacity>
-
+          <View style={styles.patentText}>
+            <Text style={styles.patentLabel}>U.S Patent </Text>
+            <Text style={styles.patentNumber}>#10749935</Text>
+          </View>
         </View>
       )}
 

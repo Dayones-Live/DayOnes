@@ -12,11 +12,11 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		2115F8E625884814BCC7F426 /* Montserrat-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 899165D32C4249ED96AC6C54 /* Montserrat-VariableFont_wght.ttf */; };
-		37B3E813401B1529E5ED4075 /* Pods_DayOnes.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3AE44492EF3E139872CB75A2 /* Pods_DayOnes.framework */; };
+		48A20059E26A56D6075ED8CB /* Pods_DayOnes_DayOnesTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F978914AAA02984436B8A939 /* Pods_DayOnes_DayOnesTests.framework */; };
 		6AA3F40C2CB435B300A932DA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6AA3F40B2CB435B300A932DA /* GoogleService-Info.plist */; };
 		6AA3F40D2CB435B300A932DA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6AA3F40B2CB435B300A932DA /* GoogleService-Info.plist */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		AC78DA3B9E973F1CB29F08E1 /* Pods_DayOnes_DayOnesTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 95431C1A7F60D299E5CEECCA /* Pods_DayOnes_DayOnesTests.framework */; };
+		8726265C7E3AFF4845E83012 /* Pods_DayOnes.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBD2087B862F90B380DF539A /* Pods_DayOnes.framework */; };
 		C56841622C90E357003EA1CF /* main.jsbundle in Resources */ = {isa = PBXBuildFile; fileRef = C56841602C90E146003EA1CF /* main.jsbundle */; };
 		EEBD8BC22CA4A971798AC313 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0DDD20CD0CE9F6C6B9BF814E /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
@@ -43,19 +43,19 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = DayOnes/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = DayOnes/main.m; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = DayOnes/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		13E72119F50C5B40B82CEC0A /* Pods-DayOnes.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes.debug.xcconfig"; path = "Target Support Files/Pods-DayOnes/Pods-DayOnes.debug.xcconfig"; sourceTree = "<group>"; };
 		1B5158E52D19873800D2383D /* DayOnesDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = DayOnesDebug.entitlements; path = DayOnes/DayOnesDebug.entitlements; sourceTree = "<group>"; };
-		3AE44492EF3E139872CB75A2 /* Pods_DayOnes.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DayOnes.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		6344EF4D27F8606DB69FF78B /* Pods-DayOnes-DayOnesTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes-DayOnesTests.release.xcconfig"; path = "Target Support Files/Pods-DayOnes-DayOnesTests/Pods-DayOnes-DayOnesTests.release.xcconfig"; sourceTree = "<group>"; };
+		6A9CBE16F48EE6C00D79ABB6 /* Pods-DayOnes.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes.release.xcconfig"; path = "Target Support Files/Pods-DayOnes/Pods-DayOnes.release.xcconfig"; sourceTree = "<group>"; };
 		6AA3F40B2CB435B300A932DA /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		6AB8D0872CB5872100DFD91A /* DayOnesRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = DayOnesRelease.entitlements; path = DayOnes/DayOnesRelease.entitlements; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = DayOnes/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		899165D32C4249ED96AC6C54 /* Montserrat-VariableFont_wght.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-VariableFont_wght.ttf"; path = "../assets/fonts/Montserrat-VariableFont_wght.ttf"; sourceTree = "<group>"; };
-		8DEFB0271BCF7A6B4BD127F3 /* Pods-DayOnes.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes.release.xcconfig"; path = "Target Support Files/Pods-DayOnes/Pods-DayOnes.release.xcconfig"; sourceTree = "<group>"; };
-		95431C1A7F60D299E5CEECCA /* Pods_DayOnes_DayOnesTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DayOnes_DayOnesTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		97BBA6238F76C73096DCC2F8 /* Pods-DayOnes-DayOnesTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes-DayOnesTests.release.xcconfig"; path = "Target Support Files/Pods-DayOnes-DayOnesTests/Pods-DayOnes-DayOnesTests.release.xcconfig"; sourceTree = "<group>"; };
-		A8383AC10349E4565AB6C4CC /* Pods-DayOnes-DayOnesTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes-DayOnesTests.debug.xcconfig"; path = "Target Support Files/Pods-DayOnes-DayOnesTests/Pods-DayOnes-DayOnesTests.debug.xcconfig"; sourceTree = "<group>"; };
+		98919CC0023F497EB8E9670C /* Pods-DayOnes.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes.debug.xcconfig"; path = "Target Support Files/Pods-DayOnes/Pods-DayOnes.debug.xcconfig"; sourceTree = "<group>"; };
 		C56841602C90E146003EA1CF /* main.jsbundle */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.jsbundle; sourceTree = "<group>"; };
+		EA5DEEA4CFC9B8DD3321A626 /* Pods-DayOnes-DayOnesTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes-DayOnesTests.debug.xcconfig"; path = "Target Support Files/Pods-DayOnes-DayOnesTests/Pods-DayOnes-DayOnesTests.debug.xcconfig"; sourceTree = "<group>"; };
+		EBD2087B862F90B380DF539A /* Pods_DayOnes.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DayOnes.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F978914AAA02984436B8A939 /* Pods_DayOnes_DayOnesTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DayOnes_DayOnesTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,7 +63,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AC78DA3B9E973F1CB29F08E1 /* Pods_DayOnes_DayOnesTests.framework in Frameworks */,
+				48A20059E26A56D6075ED8CB /* Pods_DayOnes_DayOnesTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,7 +71,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				37B3E813401B1529E5ED4075 /* Pods_DayOnes.framework in Frameworks */,
+				8726265C7E3AFF4845E83012 /* Pods_DayOnes.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,8 +117,8 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				3AE44492EF3E139872CB75A2 /* Pods_DayOnes.framework */,
-				95431C1A7F60D299E5CEECCA /* Pods_DayOnes_DayOnesTests.framework */,
+				EBD2087B862F90B380DF539A /* Pods_DayOnes.framework */,
+				F978914AAA02984436B8A939 /* Pods_DayOnes_DayOnesTests.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -167,10 +167,10 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				13E72119F50C5B40B82CEC0A /* Pods-DayOnes.debug.xcconfig */,
-				8DEFB0271BCF7A6B4BD127F3 /* Pods-DayOnes.release.xcconfig */,
-				A8383AC10349E4565AB6C4CC /* Pods-DayOnes-DayOnesTests.debug.xcconfig */,
-				97BBA6238F76C73096DCC2F8 /* Pods-DayOnes-DayOnesTests.release.xcconfig */,
+				98919CC0023F497EB8E9670C /* Pods-DayOnes.debug.xcconfig */,
+				6A9CBE16F48EE6C00D79ABB6 /* Pods-DayOnes.release.xcconfig */,
+				EA5DEEA4CFC9B8DD3321A626 /* Pods-DayOnes-DayOnesTests.debug.xcconfig */,
+				6344EF4D27F8606DB69FF78B /* Pods-DayOnes-DayOnesTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -182,11 +182,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "DayOnesTests" */;
 			buildPhases = (
-				63E8C95793C1D9A14B08D082 /* [CP] Check Pods Manifest.lock */,
+				8EFF4868A99B1568547E5C54 /* [CP] Check Pods Manifest.lock */,
 				00E356EA1AD99517003FC87E /* Sources */,
 				00E356EB1AD99517003FC87E /* Frameworks */,
 				00E356EC1AD99517003FC87E /* Resources */,
-				1F97F515C749CFF0C9302F20 /* [CP] Copy Pods Resources */,
+				87F55A1B4CE19659208618A3 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -202,13 +202,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "DayOnes" */;
 			buildPhases = (
-				CD050776A0E6B57B68C88495 /* [CP] Check Pods Manifest.lock */,
+				93F0DDD95C3C5B36BFA1ACBD /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				A1995643319D15C005D9CA11 /* [CP] Copy Pods Resources */,
-				EED33F15085128A1A1B7F40B /* [CP-User] [RNFB] Core Configuration */,
+				540C0646138F70A786526073 /* [CP] Copy Pods Resources */,
+				9E9FC0EE44999A0F3367A730 /* [CP-User] [RNFB] Core Configuration */,
 			);
 			buildRules = (
 			);
@@ -300,7 +300,24 @@
 			shellPath = /bin/sh;
 			shellScript = "# Ensure to set -e to terminate if any command fails\nset -e\n\n# Ensure REACT_NATIVE_PATH is set correctly, or set it explicitly\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n# First, source the environment setup, then run the Xcode build script\n/bin/sh -c \"source $WITH_ENVIRONMENT && /bin/sh $REACT_NATIVE_XCODE\"\n";
 		};
-		1F97F515C749CFF0C9302F20 /* [CP] Copy Pods Resources */ = {
+		540C0646138F70A786526073 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-DayOnes/Pods-DayOnes-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-DayOnes/Pods-DayOnes-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DayOnes/Pods-DayOnes-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		87F55A1B4CE19659208618A3 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -317,7 +334,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DayOnes-DayOnesTests/Pods-DayOnes-DayOnesTests-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		63E8C95793C1D9A14B08D082 /* [CP] Check Pods Manifest.lock */ = {
+		8EFF4868A99B1568547E5C54 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -339,24 +356,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		A1995643319D15C005D9CA11 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-DayOnes/Pods-DayOnes-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-DayOnes/Pods-DayOnes-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DayOnes/Pods-DayOnes-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		CD050776A0E6B57B68C88495 /* [CP] Check Pods Manifest.lock */ = {
+		93F0DDD95C3C5B36BFA1ACBD /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -378,7 +378,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		EED33F15085128A1A1B7F40B /* [CP-User] [RNFB] Core Configuration */ = {
+		9E9FC0EE44999A0F3367A730 /* [CP-User] [RNFB] Core Configuration */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -424,7 +424,7 @@
 /* Begin XCBuildConfiguration section */
 		00E356F61AD99517003FC87E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A8383AC10349E4565AB6C4CC /* Pods-DayOnes-DayOnesTests.debug.xcconfig */;
+			baseConfigurationReference = EA5DEEA4CFC9B8DD3321A626 /* Pods-DayOnes-DayOnesTests.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -452,7 +452,7 @@
 		};
 		00E356F71AD99517003FC87E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 97BBA6238F76C73096DCC2F8 /* Pods-DayOnes-DayOnesTests.release.xcconfig */;
+			baseConfigurationReference = 6344EF4D27F8606DB69FF78B /* Pods-DayOnes-DayOnesTests.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -477,12 +477,12 @@
 		};
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 13E72119F50C5B40B82CEC0A /* Pods-DayOnes.debug.xcconfig */;
+			baseConfigurationReference = 98919CC0023F497EB8E9670C /* Pods-DayOnes.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = DayOnes/DayOnesDebug.entitlements;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = MJLZ899VA2;
 				ENABLE_BITCODE = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -509,12 +509,12 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8DEFB0271BCF7A6B4BD127F3 /* Pods-DayOnes.release.xcconfig */;
+			baseConfigurationReference = 6A9CBE16F48EE6C00D79ABB6 /* Pods-DayOnes.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = DayOnes/DayOnesRelease.entitlements;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = MJLZ899VA2;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FUSE_BUILD_SCRIPT_PHASES = YES;
