@@ -90,40 +90,54 @@ const ArtistPostsPage = () => {
       const postsData = response.data?.data?.posts || [];
       console.log(`Received ${postsData.length} posts for page ${pageNum}`);
       
-      // Set hasMore based on whether we received a full page of posts
-      if (postsData.length < POSTS_PER_PAGE) {
-        console.log('No more posts available');
-        setHasMore(false);
-      }
-
-      // Separate generic post and other posts
+      // Find generic post in current batch
       const genericPost = postsData.find(post => post.type === 'GENERIC');
-      const otherPosts = postsData.filter(post => post.type !== 'GENERIC');
+      console.log('Generic post found in current batch:', genericPost ? {
+        id: genericPost.id,
+        type: genericPost.type,
+        created_at: genericPost.created_at
+      } : 'None');
 
-      // Sort other posts by date (newest first)
-      const sortedOtherPosts = otherPosts.sort((a, b) => {
+      // Filter out generic posts from regular posts
+      const regularPosts = postsData.filter(post => post.type !== 'GENERIC');
+      console.log(`Regular posts count: ${regularPosts.length}`);
+      
+      // Sort regular posts by date (newest first)
+      const sortedPosts = regularPosts.sort((a, b) => {
         return new Date(b.created_at) - new Date(a.created_at);
       });
 
       if (pageNum === 1) {
-        const newPosts = genericPost ? [genericPost, ...sortedOtherPosts] : sortedOtherPosts;
+        // For first page, include generic post at the top if it exists
+        const newPosts = genericPost ? [genericPost, ...sortedPosts] : sortedPosts;
         setPosts(newPosts);
         
         if (genericPost?.id) {
+          console.log('Setting generic post ID:', genericPost.id);
           setGenericPostId(genericPost.id);
         }
       } else {
+        // For subsequent pages
         setPosts(prev => {
           const prevGenericPost = prev.find(p => p.type === 'GENERIC');
-          const allOtherPosts = [...prev.filter(p => p.type !== 'GENERIC'), ...sortedOtherPosts];
-          const sortedAllPosts = allOtherPosts.sort((a, b) => {
-            return new Date(b.created_at) - new Date(a.created_at);
-          });
-          return prevGenericPost ? [prevGenericPost, ...sortedAllPosts] : sortedAllPosts;
+          if (prevGenericPost) {
+            // Already have generic post, just append regular posts
+            return [prevGenericPost, ...prev.filter(p => p.type !== 'GENERIC'), ...sortedPosts];
+          }
+          // Found generic post in this batch
+          if (genericPost) {
+            setHasMore(false); // Stop pagination since we found the generic post
+            return [genericPost, ...prev, ...sortedPosts];
+          }
+          // No generic post found yet, continue looking
+          return [...prev, ...sortedPosts];
         });
       }
 
-      setHasMore(postsData.length === POSTS_PER_PAGE);
+      // Set hasMore based on regular posts count and whether we found generic post
+      setHasMore(regularPosts.length === POSTS_PER_PAGE && !genericPost);
+      console.log(`Has more posts: ${regularPosts.length === POSTS_PER_PAGE && !genericPost}`);
+      
       if (pageNum === 1) {
         setPage(2);
       } else {
@@ -131,7 +145,7 @@ const ArtistPostsPage = () => {
       }
     } catch (error) {
       console.error('Error fetching posts:', error);
-      setHasMore(false); // Also set hasMore to false on error
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
@@ -432,7 +446,9 @@ const ArtistPostsPage = () => {
   };
 
   const renderPostItem = (post, index) => {
-    const postDate = new Date(post.created_at).toLocaleString();
+    // Format date to US style (MM/DD/YY)
+    const date = new Date(post.created_at);
+    const postDate = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)} ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
 
     return (
       <TouchableOpacity
