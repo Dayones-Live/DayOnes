@@ -16,13 +16,9 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
 import Geocoder from 'react-native-geocoder-reborn';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
-import NotificationsScreen from '../NotificationsScreen';
-import DMsScreen from '../DMsScreen';
-import ArtistPostsPage from './ArtistPostsPage';
 import { BASEURL } from '../../assets/constants';
 import { uploadImageToBucket } from '../../utils';
 import styles from './artistStyles/HHomePageStyles';
@@ -32,7 +28,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import useFetchUser from '../../assets/hooks/useFetchUser';
 import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
-const Tab = createBottomTabNavigator();
 
 const HHomePage = () => {
   const [isMaxRange, setIsMaxRange] = useState(true);
@@ -107,8 +102,6 @@ const HHomePage = () => {
     ]).start();
   };
 
-
-
   const takePicture = async () => {
     try {
       const permission =
@@ -176,7 +169,6 @@ const HHomePage = () => {
       console.error('Error checking camera permission:', error);
     }
   };
-
 
   const uploadImageToS3 = async imageUri => {
     try {
@@ -367,178 +359,139 @@ const HHomePage = () => {
   };
 
   return (
-    <Tab.Navigator
-      initialRouteName="Main"
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          let iconName;
-          switch (route.name) {
-            case 'Posts':
-              iconName = 'file-text-o';
-              break;
-            case 'Notifications':
-              iconName = 'bell-o';
-              break;
-            case "DM's":
-              iconName = 'envelope-o';
-              break;
-            default:
-              iconName = 'home';
-              break;
-          }
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#FFF',
-        tabBarInactiveTintColor: 'gray',
-        tabBarStyle: {
-          backgroundColor: '#000',
-          borderTopWidth: 0,
-        },
-        headerShown: false,
-      })}>
-      <Tab.Screen name="Main" options={{ tabBarLabel: 'Home' }}>
-        {() => (
-          <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
-            <ScrollView contentContainerStyle={styles.container}>
-              <ProfilePictureButton />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <ProfilePictureButton />
 
-              <View style={styles.header}>
-                <Image
-                  source={require('../../assets/images/1024.png')}
-                  style={styles.logo}
-                />
-              </View>
+        <View style={styles.header}>
+          <Image
+            source={require('../../assets/images/1024.png')}
+            style={styles.logo}
+          />
+        </View>
 
-              <Text style={styles.personalMediaText}>Personal Media</Text>
+        <Text style={styles.personalMediaText}>Personal Media</Text>
 
-              <View style={styles.imageContainer}>
-                {selectedImage ? (
-                  <View style={styles.selectedImageContainer}>
-                    <Image
-                      source={{ uri: selectedImage.uri }}
-                      style={styles.selectedImage}
-                    />
-                    <TouchableOpacity
-                      style={styles.clearButton}
-                      onPress={clearSelectedImage}>
-                      <Icon name="times" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.placeholderContainer}>
-                    <Image
-                      source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
-                      style={styles.placeholderImage}
-                    />
-                    <View style={styles.overlayTextContainer}>
-                      <Text style={styles.overlayText}>
-                        Unleash Your Reach{' '}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.pictureContainer}>
-                <TouchableOpacity
-                  style={styles.pictureButton}
-                  onPress={takePicture}>
-                  <FontAwesome5
-                    name="camera"
-                    size={35}
-                    color="#C0C0C0"
-                    style={styles.cameraIcon}
-                  />
-                  <Text style={styles.buttonText}>Take Picture</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.pictureButton}
-                  onPress={uploadFile}>
-                  <FontAwesome5
-                    name="file-upload"
-                    size={35}
-                    color="#C0C0C0"
-                    style={styles.uploadIcon}
-                  />
-                  <Text style={styles.buttonText}>Upload File</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.radioGroup}>
-                <Text style={styles.radioGroupLabel}>Choose what to send:</Text>
-                <TouchableOpacity
-                  style={styles.radioButton}
-                  onPress={() => setPostType('INVITE_PHOTO')}>
-                  <Icon
-                    name={
-                      postType === 'INVITE_PHOTO' ? 'dot-circle-o' : 'circle-o'
-                    }
-                    size={24}
-                    color="#fff"
-                  />
-                  <Text style={styles.radioLabel}>Invite + Photo</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.radioButton}
-                  onPress={() => setPostType('INVITE_ONLY')}>
-                  <Icon
-                    name={
-                      postType === 'INVITE_ONLY' ? 'dot-circle-o' : 'circle-o'
-                    }
-                    size={24}
-                    color="#fff"
-                  />
-                  <Text style={styles.radioLabel}>Invite Only</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.switchContainer}>
-                <Text style={styles.sliderLabel}>
-                  {isMaxRange ? 'Max (1000ft)' : 'Min (100ft)'}
+        <View style={styles.imageContainer}>
+          {selectedImage ? (
+            <View style={styles.selectedImageContainer}>
+              <Image
+                source={{ uri: selectedImage.uri }}
+                style={styles.selectedImage}
+              />
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={clearSelectedImage}>
+                <Icon name="times" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.placeholderContainer}>
+              <Image
+                source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
+                style={styles.placeholderImage}
+              />
+              <View style={styles.overlayTextContainer}>
+                <Text style={styles.overlayText}>
+                  Unleash Your Reach{' '}
                 </Text>
-                <Switch
-                  value={isMaxRange}
-                  onValueChange={() => setIsMaxRange(!isMaxRange)}
-                  trackColor={{ false: '#FFF', true: '#E03FD8' }}
-                  thumbColor={isMaxRange ? '#FFF' : '#FFF'}
-                />
               </View>
+            </View>
+          )}
+        </View>
 
-              <View style={styles.sendButtonContainer}>
-                <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
-                  <TouchableOpacity
-                    style={styles.sendButtonGradient}
-                    onPress={createPost}
-                    disabled={isLoading}>
-                    <LinearGradient
-                      colors={['#00E5FF', '#D500F9']}
-                      style={styles.sendButtonGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}>
-                      {isLoading ? (
-                        <ActivityIndicator size="large" color="#FFF" />
-                      ) : (
-                        <Text style={styles.sendButtonText}>Send Invite</Text>
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
-                  <View style={styles.patentText}>
-                    <Text style={styles.patentLabel}>U.S Patent </Text>
-                    <Text style={styles.patentNumber}>#10749935</Text>
-                  </View>
-                </Animated.View>
-              </View>
-            </ScrollView>
-          </SafeAreaView>
-        )}
-      </Tab.Screen>
-      <Tab.Screen name="Posts" component={ArtistPostsPage} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} />
-      <Tab.Screen name="DM's" component={DMsScreen} />
-    </Tab.Navigator>
+        <View style={styles.pictureContainer}>
+          <TouchableOpacity
+            style={styles.pictureButton}
+            onPress={takePicture}>
+            <FontAwesome5
+              name="camera"
+              size={35}
+              color="#C0C0C0"
+              style={styles.cameraIcon}
+            />
+            <Text style={styles.buttonText}>Take Picture</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.pictureButton}
+            onPress={uploadFile}>
+            <FontAwesome5
+              name="file-upload"
+              size={35}
+              color="#C0C0C0"
+              style={styles.uploadIcon}
+            />
+            <Text style={styles.buttonText}>Upload File</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.radioGroup}>
+          <Text style={styles.radioGroupLabel}>Choose what to send:</Text>
+          <TouchableOpacity
+            style={styles.radioButton}
+            onPress={() => setPostType('INVITE_PHOTO')}>
+            <Icon
+              name={
+                postType === 'INVITE_PHOTO' ? 'dot-circle-o' : 'circle-o'
+              }
+              size={24}
+              color="#fff"
+            />
+            <Text style={styles.radioLabel}>Invite + Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.radioButton}
+            onPress={() => setPostType('INVITE_ONLY')}>
+            <Icon
+              name={
+                postType === 'INVITE_ONLY' ? 'dot-circle-o' : 'circle-o'
+              }
+              size={24}
+              color="#fff"
+            />
+            <Text style={styles.radioLabel}>Invite Only</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.switchContainer}>
+          <Text style={styles.sliderLabel}>
+            {isMaxRange ? 'Max (1000ft)' : 'Min (100ft)'}
+          </Text>
+          <Switch
+            value={isMaxRange}
+            onValueChange={() => setIsMaxRange(!isMaxRange)}
+            trackColor={{ false: '#FFF', true: '#E03FD8' }}
+            thumbColor={isMaxRange ? '#FFF' : '#FFF'}
+          />
+        </View>
+
+        <View style={styles.sendButtonContainer}>
+          <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+            <TouchableOpacity
+              style={styles.sendButtonGradient}
+              onPress={createPost}
+              disabled={isLoading}>
+              <LinearGradient
+                colors={['#00E5FF', '#D500F9']}
+                style={styles.sendButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}>
+                {isLoading ? (
+                  <ActivityIndicator size="large" color="#FFF" />
+                ) : (
+                  <Text style={styles.sendButtonText}>Send Invite</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+            <View style={styles.patentText}>
+              <Text style={styles.patentLabel}>U.S Patent </Text>
+              <Text style={styles.patentNumber}>#10749935</Text>
+            </View>
+          </Animated.View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
-
-
 
 export default HHomePage;

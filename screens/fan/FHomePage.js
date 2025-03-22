@@ -20,12 +20,19 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import useFetchUser from '../../assets/hooks/useFetchUser';
 import styles from './fanStyles/FHomePageStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import useNotifications from '../../assets/hooks/useNotifications';
 
 const FHomePage = ({ navigation }) => {
   const dispatch = useDispatch();
   const invitesFromRedux = useSelector((state) => state.invitesEnabled);
   const { mutate: fetchUser } = useFetchUser();
-
+  const { data: notificationsData } = useNotifications();
+  const userProfile = useSelector((state) => state.userProfile);
+  const unreadCount = notificationsData?.data?.data?.filter(n => 
+    !n.is_read && 
+    n.from_user_profile?.id !== userProfile?.data?.id
+  )?.length || 0;
 
   const [isInviteEnabled, setIsInviteEnabled] = useState(invitesFromRedux);
   const [invites, setInvites] = useState([]);
@@ -33,9 +40,6 @@ const FHomePage = ({ navigation }) => {
   const [countdown, setCountdown] = useState(60);
   const [isPolling, setIsPolling] = useState(false);
   const [intervalId, setIntervalId] = useState(null);
-
-  //hello
-
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -55,13 +59,11 @@ const FHomePage = ({ navigation }) => {
     fetchUserData();
   }, [fetchUser]); // Include `fetchUser` in the dependency array
 
-
   const accessToken = useSelector((state) => state.accessToken);
 
   useEffect(() => {
     setIsInviteEnabled(invitesFromRedux);
   }, [invitesFromRedux]);
-
 
   const toggleInviteAndFetch = () => {
     setIsLoading(true);
@@ -102,7 +104,6 @@ const FHomePage = ({ navigation }) => {
       throw new Error('Failed to update notification status');
     }
   };
-
 
   const startInvitePolling = () => {
     if (isPolling) {
@@ -175,12 +176,6 @@ const FHomePage = ({ navigation }) => {
     };
   }, [intervalId]);
 
-
-
-
-
-
-
   const handleConfirmInvite = async (inviteId, artistPostId) => {
     try {
       // Stop polling and clean up
@@ -209,7 +204,6 @@ const FHomePage = ({ navigation }) => {
       Alert.alert('Error', 'Failed to confirm invite.');
     }
   };
-
 
   const handleDenyInvite = async (inviteId) => {
     Alert.alert(
@@ -284,10 +278,22 @@ const FHomePage = ({ navigation }) => {
     </LinearGradient>
   );
 
-
   return (
     <SafeAreaView style={styles.container}>
       <ProfilePictureButton navigation={navigation} />
+      
+      {/* Add notification button */}
+      <TouchableOpacity 
+        style={styles.notificationButton} 
+        onPress={() => navigation.navigate('Notifications')}
+      >
+        <FontAwesome name="bell" size={24} color="white" />
+        {unreadCount > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{unreadCount}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
 
       {/* Header Section for Logo and Text */}
       <View style={styles.header}>
@@ -352,7 +358,5 @@ const FHomePage = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
-
 
 export default FHomePage;

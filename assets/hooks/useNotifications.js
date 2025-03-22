@@ -11,7 +11,7 @@ const fetchNotifications = async accessToken => {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
     
-    console.log('Raw notifications response:', response.data);
+    
 
     // Ensure we have the correct data structure
     const notifications = response.data?.data || response.data || [];

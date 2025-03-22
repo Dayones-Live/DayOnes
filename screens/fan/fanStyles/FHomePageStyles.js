@@ -157,6 +157,29 @@ const styles = StyleSheet.create({
         fontSize: wp('1.5%'),
         textAlign: 'center',
     },
+    notificationButton: {
+        position: 'absolute',
+        top: hp('9.3%'),
+        right: wp('4%'),
+        padding: wp('2%'),
+        zIndex: 1,
+    },
+    badge: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        backgroundColor: '#D500F9',
+        borderRadius: wp('2%'),
+        minWidth: wp('4%'),
+        height: wp('4%'),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    badgeText: {
+        color: 'white',
+        fontSize: wp('2.5%'),
+        fontWeight: 'bold',
+    },
 });
 
 export default styles;

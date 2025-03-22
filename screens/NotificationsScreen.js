@@ -8,6 +8,7 @@ import {
   Image,
   Button,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -28,22 +29,15 @@ const NotificationsScreen = () => {
   const accessToken = useSelector(state => state.accessToken);
   const [markingAsRead, setMarkingAsRead] = useState(false);
 
-  // Safely access notifications array
+  // Modify the filtering to exclude notifications from the current user
   const notifications = data?.data?.data || [];
-  const hasUnreadNotifications = notifications.some(notification => !notification.is_read);
+  const filteredNotifications = notifications.filter(notification => 
+    !notification.is_read && 
+    notification.from_user_profile?.id !== userProfile?.data?.id
+  );
 
-  // Filter to only show unread notifications
-  const unreadNotifications = notifications.filter(notification => !notification.is_read);
+  const hasUnreadNotifications = filteredNotifications.length > 0;
   
-  console.log('Notifications render:', {
-    dataExists: !!data,
-    totalCount: notifications.length,
-    unreadCount: unreadNotifications.length,
-    hasUnread: hasUnreadNotifications,
-    isLoading,
-    error: error?.message
-  });
-
   // Add polling effect
   useEffect(() => {
     // Initial fetch
@@ -73,7 +67,7 @@ const NotificationsScreen = () => {
     try {
       setMarkingAsRead(true);
       
-      const unreadNotifications = notifications.filter(notification => !notification.is_read) || [];
+      const unreadNotifications = filteredNotifications.filter(notification => !notification.is_read) || [];
       
       console.log('Starting to mark notifications as read:', {
         total: unreadNotifications.length,
@@ -159,8 +153,103 @@ const NotificationsScreen = () => {
           ? `Commented: "${item.message}"!`
           : 'Sent you a DM';
 
+    const handleNotificationPress = () => {
+      // Log the notification data for debugging
+      console.log('=== Notification Navigation Debug ===');
+      console.log('Raw notification:', JSON.stringify(item, null, 2));
+
+      // Parse the data field if it's a string, or use it directly if it's an object
+      let parsedData = null;
+      if (item.data) {
+        if (typeof item.data === 'string') {
+          try {
+            parsedData = JSON.parse(item.data);
+            console.log('Parsed data from string:', parsedData);
+          } catch (error) {
+            console.log('Data is not JSON:', item.data);
+          }
+        } else if (typeof item.data === 'object') {
+          parsedData = item.data;
+          console.log('Data is already an object:', parsedData);
+        }
+      }
+
+      // Determine the action and ID based on notification type and parsed data
+      let action, id;
+      switch (item.type) {
+        case 'reaction':
+          action = 'post';
+          id = parsedData.post_id || item.post_id;
+          console.log('Reaction notification - Using post_id:', id);
+          break;
+        case 'comments':
+          action = 'post';
+          id = parsedData?.post_id || item.post_id;
+          break;
+        case 'message':
+          action = 'conversation';
+          // For messages, get the conversation_id from the parsed data or item
+          id = parsedData?.conversation_id || item.conversation_id;
+          break;
+        default:
+          console.log('Unknown notification type:', item.type);
+          break;
+      }
+
+      console.log('=== Navigation Data ===');
+      console.log('Type:', item.type);
+      console.log('Action:', action);
+      console.log('ID:', id);
+      console.log('Parsed Data:', parsedData);
+
+      switch (action) {
+        case 'post':
+          if (id) {
+            navigation.navigate('PostDetailPage', { postId: id });
+          } else {
+            console.log('❌ Navigation failed: Missing post ID in notification data');
+            Alert.alert(
+              'Error',
+              'Could not find the associated post. Please try again later.'
+            );
+          }
+          break;
+
+        case 'conversation':
+          if (id) {
+            navigation.navigate('ConversationThread', {
+              conversationId: id,
+              userId: item.from_user_profile?.id,
+              username: item.from_user_profile?.username,
+              profilePicture: item.from_user_profile?.avatar_url || item.from_user_profile?.img_profile
+            });
+          } else {
+            console.log('❌ Navigation failed: Missing conversation ID in notification data');
+            console.log('Available data:', {
+              parsedData,
+              conversation_id: item.conversation_id,
+              from_id: item.from_id,
+              to_id: item.to_id
+            });
+            Alert.alert(
+              'Error',
+              'Could not find the conversation. Please try again later.'
+            );
+          }
+          break;
+
+        default:
+          console.log('❌ Unknown notification action:', action);
+          break;
+      }
+      console.log('=== End Navigation Debug ===');
+    };
+
     return (
-      <View style={styles.notificationCard}>
+      <TouchableOpacity 
+        style={styles.notificationCard}
+        onPress={handleNotificationPress}
+      >
         <View style={styles.header}>
           {fromUserProfile?.img_profile ? (
             <Image
@@ -190,7 +279,7 @@ const NotificationsScreen = () => {
         {item.type === 'message' && item.message && (
           <Text style={styles.dmContent}>Message: {item.message}</Text>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -213,13 +302,13 @@ const NotificationsScreen = () => {
         )}
       </View>
       
-      {unreadNotifications.length === 0 ? (
+      {filteredNotifications.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No new notifications</Text>
         </View>
       ) : (
         <FlatList
-          data={unreadNotifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))}
+          data={filteredNotifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderNotification}
           contentContainerStyle={styles.listContent}

@@ -108,7 +108,11 @@ const EditScreen = ({ route, navigation }) => {
       console.log("Base64 data generated.");
 
       Alert.alert('Success', 'Image saved successfully!');
-      navigation.navigate('HHomePage', { editedImage: { uri: `file://${newFilePath}`, base64: base64Data } });
+      // Navigate back to the main tabs and then to the home screen with the edited image
+      navigation.navigate('MainTabs', {
+        screen: 'Main',
+        params: { editedImage: { uri: `file://${newFilePath}`, base64: base64Data } }
+      });
     } catch (error) {
       console.error('Error capturing and saving image:', error);
       Alert.alert('Error', 'Failed to save the image. Please try again.');

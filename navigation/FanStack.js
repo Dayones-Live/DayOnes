@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FHomePage from '../screens/fan/FHomePage'; // Fan's Home Page
@@ -7,8 +8,20 @@ import MyCollectionsPage from '../screens/fan/MyCollectionsPage'; // "My Collect
 import DayOnesScreen from '../screens/fan/DayOnesScreen'; // DayOnes screen
 import DMsScreen from '../screens/DMsScreen'; // Direct Messages screen
 import FanOnboardingTutorial from '../screens/fan/FanOnboardingTutorial';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 const Tab = createBottomTabNavigator();
+const HomeStack = createStackNavigator();
+
+// Create a stack navigator for the Home tab
+const HomeStackScreen = () => {
+  return (
+    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStack.Screen name="FHomePage" component={FHomePage} />
+      <HomeStack.Screen name="Notifications" component={NotificationsScreen} />
+    </HomeStack.Navigator>
+  );
+};
 
 const FanStack = ({ navigation }) => {
   const [showTutorial, setShowTutorial] = useState(false);
@@ -77,7 +90,7 @@ const FanStack = ({ navigation }) => {
       >
         <Tab.Screen
           name="Home"
-          component={FHomePage}
+          component={HomeStackScreen}
           options={{ tabBarLabel: 'Home', tabBarTestID: 'homeButton' }}
         />
         <Tab.Screen
@@ -86,7 +99,7 @@ const FanStack = ({ navigation }) => {
           options={{ tabBarLabel: 'My Collections', tabBarTestID: 'collectionsButton' }}
         />
         <Tab.Screen
-          name="DayOnes" // Add DayOnes to the tab bar
+          name="DayOnes"
           component={DayOnesScreen}
           options={{ tabBarLabel: 'DayOnes', tabBarTestID: 'messagesButton' }}
         />

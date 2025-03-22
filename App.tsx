@@ -27,6 +27,7 @@ import DMDetailPage from './screens/fan/DMDetailPage';
 import SuperAdminDashboard from './screens/superadmin/SuperAdminDashboard';
 import messaging from '@react-native-firebase/messaging';
 import { Alert, Platform } from 'react-native';
+import NotificationsScreen from './screens/NotificationsScreen';
 
 const Stack = createStackNavigator();
 const queryClient = new QueryClient();
@@ -176,6 +177,11 @@ const App = () => {
             <Stack.Screen
               name="ProfileScreen"
               component={ProfileScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen

@@ -1,24 +1,47 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import HHomePage from '../screens/artist/HHomePage'; // Artist's Home Page
-import ProfileScreen from '../screens/ProfileScreen'; // Import the Profile screen
+import ArtistTabNavigator from './ArtistTabNavigator';
+import ProfileScreen from '../screens/ProfileScreen';
+import EditScreen from '../screens/artist/EditScreen';
+import PostDetailPage from '../screens/artist/PostDetailsPage';
+import SignaturePage from '../screens/artist/SignaturePage';
+import ArtistSignatures from '../screens/artist/ArtistSignatures';
 
 const Stack = createStackNavigator();
 
 const ArtistStack = () => {
   return (
-    <Stack.Navigator initialRouteName="HHomePage">
+    <Stack.Navigator initialRouteName="MainTabs">
       <Stack.Screen
-        name="HHomePage"
-        component={HHomePage}
-        options={{ headerShown: false }}  // Disable the header
+        name="MainTabs"
+        component={ArtistTabNavigator}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="ProfileScreen"
         component={ProfileScreen}
-        options={{ headerShown: false }}  // Disable the header
+        options={{ headerShown: false }}
       />
-      {/* Add other artist-specific screens here */}
+      <Stack.Screen
+        name="EditScreen"
+        component={EditScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PostDetailPage"
+        component={PostDetailPage}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="SignaturePage"
+        component={SignaturePage}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ArtistSignatures"
+        component={ArtistSignatures}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 };

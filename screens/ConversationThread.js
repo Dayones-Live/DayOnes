@@ -52,7 +52,8 @@ const ConversationThread = ({ route }) => {
   const [isImageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageForViewer, setSelectedImageForViewer] = useState(null);
   const navigation = useNavigation();
-  const { conversationId, profilePicture, username } = route.params;
+  const { conversationId: initialConversationId, userId, profilePicture, username } = route.params;
+  const [conversationId, setConversationId] = useState(initialConversationId);
   const accessToken = useSelector((state) => state.accessToken);
   const loggedInUser = useSelector((state) => state.userProfile);
   const loggedInUserEmail = loggedInUser?.data.email || null;
@@ -62,28 +63,71 @@ const ConversationThread = ({ route }) => {
   const [isSending, setIsSending] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [reason, setReason] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleDeleteMessage = async (messageId) => {
+  // Function to get or create conversation
+  const getOrCreateConversation = async () => {
+    if (!userId || conversationId) {
+      setIsLoading(false);
+      return;
+    }
+    
     try {
-      const response = await fetch(`${BASEURL}/api/v1/message/${messageId}`, {
-        method: 'DELETE',
+      setIsLoading(true);
+      // First try to find an existing conversation
+      const response = await fetch(`${BASEURL}/api/v1/conversation/find/${userId}`, {
+        method: 'GET',
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
         },
       });
 
+      let foundConversation = false;
       if (response.ok) {
-        setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId));
-        Alert.alert('Message deleted successfully');
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Failed to delete the message', errorData.message || 'Unknown error');
+        const data = await response.json();
+        if (data.data?.id) {
+          setConversationId(data.data.id);
+          foundConversation = true;
+        }
+      }
+
+      // If no existing conversation, create a new one
+      if (!foundConversation) {
+        const createResponse = await fetch(`${BASEURL}/api/v1/conversation`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recieverId: userId,
+            lastMessage: ''
+          }),
+        });
+
+        if (createResponse.ok) {
+          const createData = await createResponse.json();
+          if (createData.data?.id) {
+            setConversationId(createData.data.id);
+          } else {
+            throw new Error('Failed to get conversation ID from response');
+          }
+        } else {
+          throw new Error('Failed to create conversation');
+        }
       }
     } catch (error) {
-      console.error('Error deleting message:', error);
-      Alert.alert('Error', 'Failed to delete the message. Please try again.');
+      console.error('Error getting/creating conversation:', error);
+      Alert.alert('Error', 'Failed to load conversation. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    getOrCreateConversation();
+  }, [userId, accessToken]);
 
   const fetchMessages = async () => {
     if (!conversationId || !accessToken) {
@@ -114,6 +158,28 @@ const ConversationThread = ({ route }) => {
       return () => clearInterval(interval);
     }
   }, [accessToken, conversationId]);
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const response = await fetch(`${BASEURL}/api/v1/message/${messageId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.ok) {
+        setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId));
+        Alert.alert('Message deleted successfully');
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Failed to delete the message', errorData.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      Alert.alert('Error', 'Failed to delete the message. Please try again.');
+    }
+  };
 
   const handleMediaUpload = async (uri) => {
     try {
@@ -157,7 +223,6 @@ const ConversationThread = ({ route }) => {
       }
     });
   };
-
 
   const handleTakeMedia = async () => {
     try {
@@ -222,9 +287,13 @@ const ConversationThread = ({ route }) => {
     }
   };
   
-
-   const handleSendMessage = async () => {
-    if ((!newMessage.trim() && !selectedMedia) || isSending) return;
+  const handleSendMessage = async () => {
+    if ((!newMessage.trim() && !selectedMedia) || isSending || !conversationId) {
+      if (!conversationId) {
+        Alert.alert('Error', 'Please wait for the conversation to load before sending a message.');
+      }
+      return;
+    }
   
     setIsSending(true);
     try {
@@ -260,9 +329,6 @@ const ConversationThread = ({ route }) => {
     }
   };
   
-
-
-
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
   };
@@ -319,8 +385,6 @@ const ConversationThread = ({ route }) => {
     );
   };
 
-
-
   const handleReportUser = async () => {
     console.log('Route Params:', route.params); // Log the route parameters
 
@@ -367,9 +431,6 @@ const ConversationThread = ({ route }) => {
       setReason(''); // Clear the reason
     }
   };
-
-
-
 
   const renderMessage = ({ item }) => {
     const senderEmail = item.messageSender?.email || null;
@@ -500,12 +561,8 @@ const ConversationThread = ({ route }) => {
                 </View>
               </View>
             </Modal>
-
           )}
-
         </View>
-
-
 
         <FlatList
           ref={flatListRef}
@@ -516,7 +573,6 @@ const ConversationThread = ({ route }) => {
           inverted={true}
           contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
         />
-
 
         <ImageViewing
           images={[{ uri: selectedImageForViewer }]}
@@ -565,13 +621,10 @@ const ConversationThread = ({ route }) => {
           >
             <Icon name="send" size={24} color="#fff" />
           </TouchableOpacity>
-
         </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
 };
-
-
 
 export default ConversationThread;

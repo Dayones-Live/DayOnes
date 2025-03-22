@@ -329,9 +329,16 @@ const ProfileScreen = () => {
 
   const handleNavigateHome = () => {
     if (profile.data?.role === 'ARTIST') {
-      navigation.navigate('HHomePage');
+      navigation.navigate('ArtistStack', {
+        screen: 'MainTabs',
+        params: {
+          screen: 'Main'
+        }
+      });
     } else if (profile.data?.role === 'USER') {
-      navigation.navigate('FanStack');
+      navigation.navigate('FanStack', {
+        screen: 'Home'
+      });
     } else {
       Alert.alert('Error', 'Unknown role. Cannot navigate to the home page.');
     }
