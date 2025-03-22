@@ -626,8 +626,9 @@ const PostDetailPage = () => {
         console.log('Existing conversation found. Navigating to ConversationThread...');
         navigation.navigate('ConversationThread', {
           conversationId: existingConversation.id,
-          profilePicture: existingConversation.reciever.avatar_url, // Fan's profile picture
-          username: existingConversation.reciever.full_name, // Fan's username
+          profilePicture: existingConversation.reciever.avatar_url,
+          username: existingConversation.reciever.full_name,
+          userId: existingConversation.reciever.id
         });
       } else {
         console.log('No existing conversation found. Creating a new conversation...');
@@ -645,8 +646,9 @@ const PostDetailPage = () => {
           console.log('New conversation created. Navigating to ConversationThread...');
           navigation.navigate('ConversationThread', {
             conversationId: newConversationId,
-            profilePicture, // Pass fan's profile picture
-            username, // Pass fan's username
+            profilePicture: profilePicture || 'https://example.com/default-avatar.png',
+            username: username || 'User',
+            userId: userId
           });
         } else {
           console.error('Failed to retrieve conversation ID. Response:', response.data);
@@ -773,7 +775,7 @@ const PostDetailPage = () => {
                                       color={likedReplies.includes(reply.id) ? "red" : "#333"}
                                     />
                                   </TouchableOpacity>
-                                  <TouchableOpacity onPress={() => createOrNavigateConversation(reply.user.id)}>
+                                  <TouchableOpacity onPress={() => createOrNavigateConversation(reply.user.id, reply.user.avatar_url, reply.user.full_name)}>
                                     <Icon name="paper-plane" size={20} color="#333" />
                                   </TouchableOpacity>
                                   <TouchableOpacity onPress={() => openReportMenu(reply.id)}>
@@ -858,7 +860,7 @@ const PostDetailPage = () => {
                         />
                       </TouchableOpacity>
 
-                      <TouchableOpacity onPress={() => createOrNavigateConversation(item.user.id)}>
+                      <TouchableOpacity onPress={() => createOrNavigateConversation(item.user.id, item.user.avatar_url, item.user.full_name)}>
                         <Icon name="paper-plane" size={20} color="#333" />
                       </TouchableOpacity>
                       {/* Three-Dot Button */}
