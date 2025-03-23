@@ -188,7 +188,6 @@ const NotificationsScreen = () => {
           break;
         case 'message':
           action = 'conversation';
-          // For messages, get the conversation_id from the parsed data or item
           id = parsedData?.conversation_id || item.conversation_id;
           break;
         default:
@@ -201,11 +200,26 @@ const NotificationsScreen = () => {
       console.log('Action:', action);
       console.log('ID:', id);
       console.log('Parsed Data:', parsedData);
+      console.log('Full User Profile:', JSON.stringify(userProfile, null, 2));
+      console.log('User Type:', userProfile?.data?.type);
+      console.log('User Email:', userProfile?.data?.email);
 
       switch (action) {
         case 'post':
           if (id) {
-            navigation.navigate('PostDetailPage', { postId: id });
+            // Check if user is a fan and navigate to DMDetailPage
+            const isFan = userProfile?.data?.role === 'USER';
+            console.log('=== Navigation Decision ===');
+            console.log('Is Fan?', isFan);
+            console.log('User Role Check:', userProfile?.data?.role);
+            
+            if (isFan) {
+              console.log('🚀 Navigating to DMDetailPage for fan');
+              navigation.navigate('DMDetailPage', { postId: id });
+            } else {
+              console.log('🚀 Navigating to PostDetailPage for artist');
+              navigation.navigate('PostDetailPage', { postId: id });
+            }
           } else {
             console.log('❌ Navigation failed: Missing post ID in notification data');
             Alert.alert(
