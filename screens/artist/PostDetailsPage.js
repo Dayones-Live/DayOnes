@@ -631,29 +631,14 @@ const PostDetailPage = () => {
           userId: existingConversation.reciever.id
         });
       } else {
-        console.log('No existing conversation found. Creating a new conversation...');
-        // Step 2: Create a new conversation
-        const response = await axios.post(
-          `${BASEURL}/api/v1/conversation`,
-          { recieverId: userId, lastMessage: 'Hello!' },
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-
-        console.log('Create conversation response:', response.data);
-
-        const newConversationId = response.data?.data?.id;
-        if (newConversationId) {
-          console.log('New conversation created. Navigating to ConversationThread...');
-          navigation.navigate('ConversationThread', {
-            conversationId: newConversationId,
-            profilePicture: profilePicture || 'https://example.com/default-avatar.png',
-            username: username || 'User',
-            userId: userId
-          });
-        } else {
-          console.error('Failed to retrieve conversation ID. Response:', response.data);
-          Alert.alert('Error', 'Failed to create a conversation. Please try again.');
-        }
+        console.log('No existing conversation found. Navigating to new ConversationThread...');
+        // Navigate directly to ConversationThread without creating conversation
+        navigation.navigate('ConversationThread', {
+          profilePicture: profilePicture || 'https://example.com/default-avatar.png',
+          username: username || 'User',
+          userId: userId,
+          isNewConversation: true // Add this flag to indicate it's a new conversation
+        });
       }
     } catch (error) {
       console.error('Error in createOrNavigateConversation:', error.response?.data || error.message);

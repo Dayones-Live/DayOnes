@@ -54,6 +54,7 @@ const ConversationThread = ({ route }) => {
   const navigation = useNavigation();
   const { conversationId: initialConversationId, userId, profilePicture, username } = route.params;
   const [conversationId, setConversationId] = useState(initialConversationId);
+  const [isNewConversation, setIsNewConversation] = useState(route.params.isNewConversation);
   const accessToken = useSelector((state) => state.accessToken);
   const loggedInUser = useSelector((state) => state.userProfile);
   const loggedInUserEmail = loggedInUser?.data.email || null;
@@ -63,71 +64,7 @@ const ConversationThread = ({ route }) => {
   const [isSending, setIsSending] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [reason, setReason] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Function to get or create conversation
-  const getOrCreateConversation = async () => {
-    if (!userId || conversationId) {
-      setIsLoading(false);
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      // First try to find an existing conversation
-      const response = await fetch(`${BASEURL}/api/v1/conversation/find/${userId}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      let foundConversation = false;
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data?.id) {
-          setConversationId(data.data.id);
-          foundConversation = true;
-        }
-      }
-
-      // If no existing conversation, create a new one
-      if (!foundConversation) {
-        const createResponse = await fetch(`${BASEURL}/api/v1/conversation`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            recieverId: userId,
-            lastMessage: ''
-          }),
-        });
-
-        if (createResponse.ok) {
-          const createData = await createResponse.json();
-          if (createData.data?.id) {
-            setConversationId(createData.data.id);
-          } else {
-            throw new Error('Failed to get conversation ID from response');
-          }
-        } else {
-          throw new Error('Failed to create conversation');
-        }
-      }
-    } catch (error) {
-      console.error('Error getting/creating conversation:', error);
-      Alert.alert('Error', 'Failed to load conversation. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    getOrCreateConversation();
-  }, [userId, accessToken]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchMessages = async () => {
     if (!conversationId || !accessToken) {
@@ -288,13 +225,10 @@ const ConversationThread = ({ route }) => {
   };
   
   const handleSendMessage = async () => {
-    if ((!newMessage.trim() && !selectedMedia) || isSending || !conversationId) {
-      if (!conversationId) {
-        Alert.alert('Error', 'Please wait for the conversation to load before sending a message.');
-      }
+    if ((!newMessage.trim() && !selectedMedia) || isSending) {
       return;
     }
-  
+
     setIsSending(true);
     try {
       let mediaUrl = null;
@@ -305,22 +239,84 @@ const ConversationThread = ({ route }) => {
           return;
         }
       }
-  
-      await sendMessage(
-        conversationId,
-        newMessage.trim(),
-        mediaUrl,
-        mediaType
-      );
-  
-      // Clear the input and media
-      setNewMessage('');
-      setSelectedMedia(null);
-      setMediaType(null);
-  
-      // Fetch messages with token
-      await fetchMessages();
-  
+
+      let currentConversationId = conversationId;
+
+      // If this is a new conversation, check if one exists first
+      if (isNewConversation) {
+        try {
+          // Check for existing conversation
+          const checkResponse = await fetch(`${BASEURL}/api/v1/conversation/find/${userId}`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          const data = await checkResponse.json();
+          
+          if (checkResponse.ok && data.data?.id) {
+            // Use existing conversation
+            currentConversationId = data.data.id;
+            setConversationId(currentConversationId);
+            setIsNewConversation(false);
+          } else {
+            // Create new conversation with the message as lastMessage
+            const createResponse = await fetch(`${BASEURL}/api/v1/conversation`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                recieverId: userId,
+                lastMessage: newMessage.trim()
+              }),
+            });
+
+            if (!createResponse.ok) {
+              throw new Error('Failed to create conversation');
+            }
+
+            const createData = await createResponse.json();
+            currentConversationId = createData.data.id;
+            setConversationId(currentConversationId);
+            setIsNewConversation(false);
+            
+            // Clear inputs since the message is already set as lastMessage
+            setNewMessage('');
+            setSelectedMedia(null);
+            setMediaType(null);
+            
+            // Fetch messages to update the UI
+            await fetchMessages();
+            return; // Exit here since message is already set as lastMessage
+          }
+        } catch (error) {
+          console.error('Error handling conversation:', error);
+          throw new Error('Failed to handle conversation creation');
+        }
+      }
+
+      // Only send a new message if we're using an existing conversation
+      if (currentConversationId) {
+        await sendMessage(
+          currentConversationId,
+          newMessage.trim(),
+          mediaUrl,
+          mediaType
+        );
+
+        // Clear the input and media
+        setNewMessage('');
+        setSelectedMedia(null);
+        setMediaType(null);
+
+        // Fetch messages with token
+        await fetchMessages();
+      }
+
     } catch (error) {
       console.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to send message. Please try again.');
