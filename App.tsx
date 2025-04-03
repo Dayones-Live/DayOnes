@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SplashScreen from 'react-native-splash-screen';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import store from './assets/redux/store';
 import TermsAndPrivacyScreen from './auth/TermsAndPrivacyScreen';
 import LoginPage from './screens/LoginPage';
@@ -31,6 +32,13 @@ import NotificationsScreen from './screens/NotificationsScreen';
 
 const Stack = createStackNavigator();
 const queryClient = new QueryClient();
+
+// Configure Google Sign-In
+GoogleSignin.configure({
+  iosClientId: '918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com',
+  webClientId: '918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com', // Use the same client ID
+  offlineAccess: true,
+});
 
 // Add this type declaration at the top of the file
 declare global {

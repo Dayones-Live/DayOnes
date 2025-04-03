@@ -55,6 +55,7 @@ target 'DayOnes' do
   # Firebase Core and other services
 #  pod 'Firebase/Core'
 #  pod 'Firebase/Auth'   # Add other Firebase services as needed
+pod 'GoogleSignIn'
 
   target 'DayOnesTests' do
     inherit! :complete
