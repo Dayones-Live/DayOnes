@@ -52,7 +52,7 @@ const userProfileReducer = (state = initialState.userProfile, action) => {
 const accessTokenReducer = (state = initialState.accessToken, action) => {
     switch (action.type) {
         case SET_ACCESS_TOKEN:
-            return action.payload;
+            return action.payload === null || action.payload === undefined ? '' : action.payload;
         default:
             return state;
     }

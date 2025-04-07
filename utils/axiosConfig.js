@@ -13,8 +13,17 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   async (config) => {
     try {
-      // Get token directly from Redux store
-      const token = store.getState().accessToken;
+      // Get token from Redux store first
+      let token = store.getState().accessToken;
+
+      // If no token in Redux, try AsyncStorage
+      if (!token) {
+        token = await AsyncStorage.getItem('authToken');
+        if (token) {
+          // If found in AsyncStorage, update Redux
+          store.dispatch(setAccessToken(token));
+        }
+      }
 
       console.log('Request Interceptor - Token status:', {
         hasToken: !!token,
@@ -25,7 +34,7 @@ axiosInstance.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       } else {
-        console.error('No access token found in Redux store');
+        console.error('No access token found in Redux store or AsyncStorage');
       }
     } catch (error) {
       console.error('Error setting auth header:', error);

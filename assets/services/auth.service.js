@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { BASEURL } from '../constants';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import store from '../redux/store';
+import { setAccessToken, setUserProfile } from '../redux/actions';
 
 // Initialize Google Sign-In as soon as the module is imported
 GoogleSignin.configure({
@@ -27,8 +29,8 @@ export const handleGoogleSignIn = async () => {
       throw new Error('Failed to get ID token from Google');
     }
 
+    // Send Google ID token to backend
     console.log('Sending ID token to backend...', BASEURL);
-    // Send only the ID token to backend
     const response = await axios.post(`${BASEURL}/api/v1/auth/google`, {
       idToken: signInResult.data.idToken
     });
@@ -36,29 +38,43 @@ export const handleGoogleSignIn = async () => {
     console.log('Backend response:', response.data);
 
     // Validate response structure
-    if (!response.data?.data?.user) {
+    if (!response.data?.data?.access_token || !response.data?.data?.user) {
       console.error('Invalid response structure:', response.data);
       throw new Error('Invalid response from server');
     }
 
-    // Extract user data from response
-    const user = response.data.data.user;
+    // Extract user data and tokens from response
+    const { access_token, refresh_token, expires_in, user } = response.data.data;
 
-    // Validate that backend provided a role
-    if (!user.role) {
-      console.error('No role provided in user data:', user);
-      throw new Error('No role received from server. Please contact support.');
+    // Store auth data in AsyncStorage
+    try {
+      await AsyncStorage.multiSet([
+        ['authToken', access_token],
+        ['refreshToken', refresh_token],
+        ['tokenExpiry', (Date.now() + expires_in * 1000).toString()],
+        ['userRole', user.role],
+        ['userData', JSON.stringify(user)]
+      ]);
+      console.log('Auth data stored in AsyncStorage successfully');
+    } catch (storageError) {
+      console.error('Error storing auth data in AsyncStorage:', storageError);
+      throw new Error('Failed to store authentication data');
     }
 
-    // Store auth data
-    await AsyncStorage.multiSet([
-      ['authToken', response.data.data.token || ''],
-      ['userRole', user.role],
-      ['userData', JSON.stringify(user)]
-    ]);
+    // Store auth data in Redux
+    try {
+      store.dispatch(setAccessToken(access_token));
+      store.dispatch(setUserProfile(user));
+      console.log('Auth data stored in Redux successfully');
+    } catch (reduxError) {
+      console.error('Error storing auth data in Redux:', reduxError);
+      throw new Error('Failed to update application state');
+    }
 
     return {
-      token: response.data.data.token || '',
+      token: access_token,
+      refreshToken: refresh_token,
+      expiresIn: expires_in,
       user
     };
 
@@ -81,16 +97,14 @@ export const handleGoogleSignIn = async () => {
       throw new Error('Sign in is already in progress');
     } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
       throw new Error('Google Play services are not available');
-    } else if (error.response) {
-      // Handle backend errors
-      const message = error.response.data?.message || 'Server error occurred';
-      
-      // Special handling for existing user error
-      if (error.response.status === 401 && message.includes('already exists')) {
-        throw new Error('This email is already registered. Please sign in with your existing account or contact support if you need help.');
-      }
-      
+    } else if (error.response?.status === 401) {
+      // Handle authentication errors
+      const message = error.response.data?.message || 'Authentication failed';
       throw new Error(`Authentication failed: ${message}`);
+    } else if (error.response) {
+      // Handle other backend errors
+      const message = error.response.data?.message || 'Server error occurred';
+      throw new Error(`Server error: ${message}`);
     } else {
       // Handle other errors
       throw new Error(`Sign in failed: ${error.message}`);

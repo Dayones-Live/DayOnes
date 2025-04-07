@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import SplashScreen from 'react-native-splash-screen';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import store from './assets/redux/store';
+import { BASEURL } from './assets/constants';
 import TermsAndPrivacyScreen from './auth/TermsAndPrivacyScreen';
 import LoginPage from './screens/LoginPage';
 import PermissionsScreen from './screens/PermissionsScreen';
@@ -29,9 +30,22 @@ import SuperAdminDashboard from './screens/superadmin/SuperAdminDashboard';
 import messaging from '@react-native-firebase/messaging';
 import { Alert, Platform } from 'react-native';
 import NotificationsScreen from './screens/NotificationsScreen';
+import { setAccessToken, setUserProfile, setUserID } from './assets/redux/actions';
+import axios from 'axios';
 
 const Stack = createStackNavigator();
 const queryClient = new QueryClient();
+
+type RootParamList = {
+  TermsAndPrivacyScreen: undefined;
+  LoginPage: undefined;
+  PermissionsScreen: undefined;
+  RegArtistPage: undefined;
+  RegFanPage: undefined;
+  ArtistStack: undefined;
+  FanStack: undefined;
+  // ... other screen types ...
+};
 
 // Configure Google Sign-In
 GoogleSignin.configure({
@@ -46,34 +60,17 @@ declare global {
 }
 
 const App = () => {
-  const [initialRoute, setInitialRoute] = useState<string | null>(null);
-  const navigationRef = useRef(null);
+  const [initialRoute, setInitialRoute] = useState('TermsAndPrivacyScreen');
+  const navigationRef = useRef<NavigationContainerRef<RootParamList>>(null);
 
   useEffect(() => {
-    SplashScreen.hide();
-    getFCMToken(); // Fetch FCM token on app start
-    checkAppSetupStatus();
-    // Set up the navigation ref as soon as possible
-    if (navigationRef.current) {
-      global.navigationRef = navigationRef;
-    }
+    // Store navigation reference globally
+    global.navigationRef = navigationRef;
   }, []);
 
-  // Function to get FCM token
-  const getFCMToken = async () => {
-    try {
-      // Only register for remote messages on Android
-      if (Platform.OS === 'android') {
-        await messaging().registerDeviceForRemoteMessages();
-      }
-      
-      const fcmToken = await messaging().getToken();
-      console.log('FCM Token:', fcmToken);
-      await AsyncStorage.setItem('fcmToken', fcmToken);
-    } catch (error) {
-      console.error('Error fetching FCM token:', error);
-    }
-  };
+  useEffect(() => {
+    checkAppSetupStatus();
+  }, []);
 
   const checkAppSetupStatus = async () => {
     try {
@@ -82,7 +79,6 @@ const App = () => {
       const authToken = await AsyncStorage.getItem('authToken');
       const userRole = await AsyncStorage.getItem('userRole');
 
-      // Add debugging logs
       console.log('App Setup Status:', {
         termsAccepted,
         permissionsGranted,
@@ -90,8 +86,33 @@ const App = () => {
         userRole
       });
 
-      if (authToken && userRole) {
-        setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
+      if (authToken) {
+        try {
+          // Validate token by fetching user data
+          const response = await axios.get(`${BASEURL}/api/v1/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${authToken}`
+            }
+          });
+
+          if (response.data?.data?.user) {
+            // Token is valid, update Redux store
+            store.dispatch(setAccessToken(authToken));
+            store.dispatch(setUserProfile(response.data.data.user));
+            
+            // Navigate to appropriate stack based on role
+            setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
+          } else {
+            // Token is invalid, clear storage and go to login
+            await clearAuthData();
+            setInitialRoute('LoginPage');
+          }
+        } catch (error) {
+          console.error('Error validating token:', error);
+          // Token validation failed, clear storage and go to login
+          await clearAuthData();
+          setInitialRoute('LoginPage');
+        }
       } else if (termsAccepted === 'true') {
         if (permissionsGranted === 'true') {
           setInitialRoute('LoginPage');
@@ -107,29 +128,38 @@ const App = () => {
     }
   };
 
-  // Add this function to handle logout
-  const handleLogout = async () => {
+  const clearAuthData = async () => {
     try {
-      // Save terms and permissions status
-      const termsAccepted = await AsyncStorage.getItem('termsAccepted');
-      const permissionsGranted = await AsyncStorage.getItem('permissionsGranted');
-      
-      // Clear all AsyncStorage
-      await AsyncStorage.clear();
-      
-      // Restore only terms and permissions
-      await AsyncStorage.setItem('termsAccepted', termsAccepted || 'false');
-      await AsyncStorage.setItem('permissionsGranted', permissionsGranted || 'false');
-      
-      // Clear any stored user data
-      await AsyncStorage.removeItem('loggedInUser');
-      await AsyncStorage.removeItem('authToken');
-      await AsyncStorage.removeItem('userRole');
-      
-      // Navigate to login
-      setInitialRoute('LoginPage');
+      // Clear Redux store
+      store.dispatch(setAccessToken(null));
+      store.dispatch(setUserProfile(null));
+      store.dispatch(setUserID(null));
+
+      // Clear AsyncStorage
+      await AsyncStorage.multiRemove([
+        'authToken',
+        'userProfile',
+        'userRole',
+        'loggedInUser'
+      ]);
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error('Error clearing auth data:', error);
+    }
+  };
+
+  // Function to get FCM token
+  const getFCMToken = async () => {
+    try {
+      // Only register for remote messages on Android
+      if (Platform.OS === 'android') {
+        await messaging().registerDeviceForRemoteMessages();
+      }
+      
+      const fcmToken = await messaging().getToken();
+      console.log('FCM Token:', fcmToken);
+      await AsyncStorage.setItem('fcmToken', fcmToken);
+    } catch (error) {
+      console.error('Error fetching FCM token:', error);
     }
   };
 

@@ -127,7 +127,11 @@ const LoginScreen = () => {
       setIsGoogleLoading(true);
       const result = await handleGoogleSignIn();
       
-      if (result?.user?.role) {
+      if (result.needsRegistration) {
+        navigation.navigate('RegFanPage', {
+          userData: result.user
+        });
+      } else if (result?.user?.role) {
         setRole(result.user.role);
         navigateToAppropriateStack();
       } else {
