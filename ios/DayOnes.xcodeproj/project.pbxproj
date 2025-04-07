@@ -13,10 +13,10 @@
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		2115F8E625884814BCC7F426 /* Montserrat-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 899165D32C4249ED96AC6C54 /* Montserrat-VariableFont_wght.ttf */; };
 		48A20059E26A56D6075ED8CB /* Pods_DayOnes_DayOnesTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F978914AAA02984436B8A939 /* Pods_DayOnes_DayOnesTests.framework */; };
-		6A93A5B12D9DD83800DC44C4 /* client_918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6A93A5B02D9DD83800DC44C4 /* client_918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com.plist */; };
-		6A93A5B22D9DD83800DC44C4 /* client_918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6A93A5B02D9DD83800DC44C4 /* client_918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com.plist */; };
 		6AA3F40C2CB435B300A932DA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6AA3F40B2CB435B300A932DA /* GoogleService-Info.plist */; };
 		6AA3F40D2CB435B300A932DA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6AA3F40B2CB435B300A932DA /* GoogleService-Info.plist */; };
+		6AE298982DA346E20062C506 /* client_918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com 2.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6AE298972DA346E20062C506 /* client_918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com 2.plist */; };
+		6AE298992DA346E20062C506 /* client_918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com 2.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6AE298972DA346E20062C506 /* client_918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com 2.plist */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		8726265C7E3AFF4845E83012 /* Pods_DayOnes.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EBD2087B862F90B380DF539A /* Pods_DayOnes.framework */; };
 		C56841622C90E357003EA1CF /* main.jsbundle in Resources */ = {isa = PBXBuildFile; fileRef = C56841602C90E146003EA1CF /* main.jsbundle */; };
@@ -47,10 +47,10 @@
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = DayOnes/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1B5158E52D19873800D2383D /* DayOnesDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = DayOnesDebug.entitlements; path = DayOnes/DayOnesDebug.entitlements; sourceTree = "<group>"; };
 		6344EF4D27F8606DB69FF78B /* Pods-DayOnes-DayOnesTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes-DayOnesTests.release.xcconfig"; path = "Target Support Files/Pods-DayOnes-DayOnesTests/Pods-DayOnes-DayOnesTests.release.xcconfig"; sourceTree = "<group>"; };
-		6A93A5B02D9DD83800DC44C4 /* client_918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "client_918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com.plist"; sourceTree = "<group>"; };
 		6A9CBE16F48EE6C00D79ABB6 /* Pods-DayOnes.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes.release.xcconfig"; path = "Target Support Files/Pods-DayOnes/Pods-DayOnes.release.xcconfig"; sourceTree = "<group>"; };
 		6AA3F40B2CB435B300A932DA /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		6AB8D0872CB5872100DFD91A /* DayOnesRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = DayOnesRelease.entitlements; path = DayOnes/DayOnesRelease.entitlements; sourceTree = "<group>"; };
+		6AE298972DA346E20062C506 /* client_918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com 2.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "client_918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com 2.plist"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = DayOnes/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		899165D32C4249ED96AC6C54 /* Montserrat-VariableFont_wght.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-VariableFont_wght.ttf"; path = "../assets/fonts/Montserrat-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		98919CC0023F497EB8E9670C /* Pods-DayOnes.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DayOnes.debug.xcconfig"; path = "Target Support Files/Pods-DayOnes/Pods-DayOnes.debug.xcconfig"; sourceTree = "<group>"; };
@@ -105,6 +105,7 @@
 				6AB8D0872CB5872100DFD91A /* DayOnesRelease.entitlements */,
 				6AA3F40B2CB435B300A932DA /* GoogleService-Info.plist */,
 				13B07FAF1A68108700A75B9A /* AppDelegate.h */,
+				6AE298972DA346E20062C506 /* client_918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com 2.plist */,
 				13B07FB01A68108700A75B9A /* AppDelegate.mm */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -112,7 +113,6 @@
 				13B07FB71A68108700A75B9A /* main.m */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				0DDD20CD0CE9F6C6B9BF814E /* PrivacyInfo.xcprivacy */,
-				6A93A5B02D9DD83800DC44C4 /* client_918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com.plist */,
 			);
 			name = DayOnes;
 			sourceTree = "<group>";
@@ -268,8 +268,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6AE298982DA346E20062C506 /* client_918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com 2.plist in Resources */,
 				6AA3F40D2CB435B300A932DA /* GoogleService-Info.plist in Resources */,
-				6A93A5B12D9DD83800DC44C4 /* client_918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,8 +277,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6A93A5B22D9DD83800DC44C4 /* client_918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com.plist in Resources */,
 				C56841622C90E357003EA1CF /* main.jsbundle in Resources */,
+				6AE298992DA346E20062C506 /* client_918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com 2.plist in Resources */,
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				6AA3F40C2CB435B300A932DA /* GoogleService-Info.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,

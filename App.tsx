@@ -35,8 +35,8 @@ const queryClient = new QueryClient();
 
 // Configure Google Sign-In
 GoogleSignin.configure({
-  iosClientId: '918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com',
-  webClientId: '918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com', // Use the same client ID
+  iosClientId: '918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com',
+  webClientId: '918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com', // Use the same client ID
   offlineAccess: true,
 });
 

@@ -19,7 +19,7 @@ import { check, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { Platform } from 'react-native';
 import styles from './sharedStyles/LoginPageStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { handleGoogleSignIn } from '../assets/services/auth.service';
 
 const { width } = Dimensions.get('window');
 
@@ -28,6 +28,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [role, setRole] = useState(null);
   const [permissionsGranted, setPermissionsGranted] = useState(false);
 
@@ -119,6 +120,30 @@ const LoginScreen = () => {
     clearStaleData();
   }, []);
 
+  const handleGoogleSignInPress = async () => {
+    if (isGoogleLoading) return;
+    
+    try {
+      setIsGoogleLoading(true);
+      const result = await handleGoogleSignIn();
+      
+      if (result?.user?.role) {
+        setRole(result.user.role);
+        navigateToAppropriateStack();
+      } else {
+        throw new Error('No role received from server');
+      }
+    } catch (error) {
+      console.error('Google Sign-In Error in LoginPage:', error);
+      Alert.alert(
+        'Sign In Error',
+        error.message || 'Failed to sign in with Google. Please try again.'
+      );
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   const handleLogin = () => {
     if (!username || !password) {
       Alert.alert('Validation Error', 'Please enter both username and password.');
@@ -151,48 +176,6 @@ const LoginScreen = () => {
         },
       }
     );
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      console.log('[GoogleSignIn] Starting Google Sign-In process');
-      
-      // Check if play services are available
-      const playServicesAvailable = await GoogleSignin.hasPlayServices({
-        showPlayServicesUpdateDialog: true,
-      });
-      console.log('[GoogleSignIn] Play services available:', playServicesAvailable);
-      
-      // Attempt sign in
-      console.log('[GoogleSignIn] Attempting to sign in...');
-      const userInfo = await GoogleSignin.signIn();
-      console.log('[GoogleSignIn] Sign-in successful:', userInfo);
-      
-      // Here you would typically send this to your backend
-      const { idToken, user } = userInfo;
-      console.log('[GoogleSignIn] ID Token:', idToken);
-      console.log('[GoogleSignIn] User:', user);
-      
-      Alert.alert('Success', 'Google Sign-In successful!');
-    } catch (error) {
-      console.log('[GoogleSignIn] Error object:', error);
-      console.log('[GoogleSignIn] Error code:', error.code);
-      console.log('[GoogleSignIn] Error message:', error.message);
-      
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        console.log('[GoogleSignIn] User cancelled the sign-in flow');
-        Alert.alert('Cancelled', 'Sign-in was cancelled');
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        console.log('[GoogleSignIn] Sign-in is already in progress');
-        Alert.alert('In Progress', 'Sign-in is already in progress');
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        console.log('[GoogleSignIn] Play services not available');
-        Alert.alert('Error', 'Play services not available');
-      } else {
-        console.log('[GoogleSignIn] Other error:', error);
-        Alert.alert('Error', 'Failed to sign in with Google. Please try again.');
-      }
-    }
   };
 
   return (
@@ -251,12 +234,14 @@ const LoginScreen = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={handleGoogleSignIn}
+            onPress={handleGoogleSignInPress}
             style={[styles.fullButtonContainer, { marginTop: 10 }]}
-            disabled={isLoading}
+            disabled={isGoogleLoading}
           >
             <View style={[styles.loginButton, { backgroundColor: '#fff' }]}>
-              <Text style={[styles.buttonText, { color: '#000' }]}>Sign in with Google</Text>
+              <Text style={[styles.buttonText, { color: '#000' }]}>
+                {isGoogleLoading ? 'Signing in...' : 'Sign in with Google'}
+              </Text>
             </View>
           </TouchableOpacity>
         </View>

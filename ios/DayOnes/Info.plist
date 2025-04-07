@@ -29,14 +29,14 @@
 			<string>google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7</string>
+				<string>com.googleusercontent.apps.918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>GIDClientID</key>
-	<string>918802616844-i70nbh2s07srj1u1ub8a5r0jdrttvqq7.apps.googleusercontent.com</string>
+	<string>918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
