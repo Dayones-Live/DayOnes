@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Image } from 'react-native';
 import { authService } from '../services/auth.service';
 
 export const GoogleSignInButton: React.FC<{
@@ -17,30 +17,57 @@ export const GoogleSignInButton: React.FC<{
       }
     },
     onError: (error) => {
-      console.error('Google login error:', error);
-      onError?.(error);
+      // Log the error silently or handle it without UI feedback
+      console.log('Google login error:', error);
     },
   });
 
   return (
     <TouchableOpacity style={styles.button} onPress={() => login()}>
-      <Text style={styles.buttonText}>Sign in with Google</Text>
+      <View style={styles.buttonContent}>
+        <Image
+          source={require('../assets/images/7123025_logo_google_g_icon-2.png')}
+          style={styles.googleLogo}
+        />
+        <Text style={styles.buttonText}>Sign in with Google</Text>
+      </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#4285F4',
+    backgroundColor: '#FFFFFF',
     padding: 12,
-    borderRadius: 4,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 10,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleLogo: {
+    width: 30,
+    height: 30,
+    marginRight: 12,
   },
   buttonText: {
-    color: 'white',
+    color: '#757575',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
 }); 

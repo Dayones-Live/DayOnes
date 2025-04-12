@@ -29,11 +29,19 @@ export const handleGoogleSignIn = async () => {
       throw new Error('Failed to get ID token from Google');
     }
 
+    // Get additional user info
+    const userInfo = await GoogleSignin.getCurrentUser();
+    const userData = {
+      idToken: signInResult.data.idToken,
+      email: userInfo.user.email,
+      name: userInfo.user.name,
+      photo: userInfo.user.photo,
+      createIfNotExists: true // Flag to indicate we want to create user if not exists
+    };
+
     // Send Google ID token to backend
     console.log('Sending ID token to backend...', BASEURL);
-    const response = await axios.post(`${BASEURL}/api/v1/auth/google`, {
-      idToken: signInResult.data.idToken
-    });
+    const response = await axios.post(`${BASEURL}/api/v1/auth/google`, userData);
 
     console.log('Backend response:', response.data);
 

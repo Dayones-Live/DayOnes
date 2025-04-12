@@ -11,6 +11,7 @@ import {
   Image,
   AppState,
   ScrollView,
+  Animated,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -140,8 +141,28 @@ const PermissionsScreen = () => {
         [{ text: 'OK' }],
       );
     } else {
-      await AsyncStorage.setItem('permissionsGranted', 'true');
-      navigation.navigate('LoginPage');
+      try {
+        const location = await check(
+          Platform.OS === 'ios'
+            ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
+            : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+        );
+        
+        if (location === RESULTS.GRANTED) {
+          await AsyncStorage.setItem('permissionsGranted', 'true');
+          console.log('Permissions granted, navigating to LoginPage');
+          navigation.navigate('LoginPage');
+        } else {
+          Alert.alert(
+            'Location Required',
+            'Please grant location permission to continue.',
+            [{ text: 'OK' }],
+          );
+        }
+      } catch (error) {
+        console.error('Error checking location permission:', error);
+        Alert.alert('Error', 'Failed to verify permissions. Please try again.');
+      }
     }
   };
 
@@ -244,27 +265,58 @@ const PermissionsScreen = () => {
   );
 };
 
-const PermissionItem = ({ icon, title, description, enabled, onPress, mandatory }) => (
-  <View style={styles.permissionItem}>
-    <Icon name={icon} size={24} color="#fff" />
-    <View style={{ flex: 1, marginLeft: 10 }}>
-      <Text style={styles.permissionText}>
-        {title} {mandatory ? "(Mandatory)" : "(Optional)"}
-      </Text>
-      <Text style={styles.permissionDescription}>{description}</Text>
-    </View>
-    <TouchableOpacity
-      onPress={onPress}
+const PermissionItem = ({ icon, title, description, enabled, onPress, mandatory }) => {
+  const [animation] = useState(new Animated.Value(enabled ? 1 : 0));
+
+  useEffect(() => {
+    Animated.timing(animation, {
+      toValue: enabled ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [enabled]);
+
+  const translateX = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 20]
+  });
+
+  const backgroundColor = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['rgba(255,255,255,0.1)', '#00E5FF']
+  });
+
+  return (
+    <TouchableOpacity 
       style={[
-        styles.permissionButton,
-        { backgroundColor: enabled ? '#D500F9' : 'red' },
-      ]}
+        styles.permissionItem,
+        { backgroundColor: enabled ? 'rgba(0, 229, 255, 0.1)' : 'rgba(0,0,0,0.6)' }
+      ]} 
+      onPress={onPress}
+      activeOpacity={0.8}
     >
-      <Text style={styles.permissionButtonText}>
-        {enabled ? 'Enabled' : 'Enable'}
-      </Text>
+      <View style={styles.permissionIconContainer}>
+        <Icon name={icon} size={24} color={enabled ? "#00E5FF" : "#fff"} />
+      </View>
+      <View style={styles.permissionContent}>
+        <Text style={[styles.permissionText, enabled && { color: '#00E5FF' }]}>
+          {title} <Text style={styles.mandatoryText}>{mandatory ? "(Mandatory)" : "(Optional)"}</Text>
+        </Text>
+        <Text style={styles.permissionDescription}>{description}</Text>
+      </View>
+      <View style={styles.toggleContainer}>
+        <Animated.View style={[
+          styles.toggleButton,
+          { backgroundColor }
+        ]}>
+          <Animated.View style={[
+            styles.toggleCircle,
+            { transform: [{ translateX }] }
+          ]} />
+        </Animated.View>
+      </View>
     </TouchableOpacity>
-  </View>
-);
+  );
+};
 
 export default PermissionsScreen;

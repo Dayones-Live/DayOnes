@@ -352,111 +352,96 @@ const ProfileScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView style={styles.container}>
-            <TouchableOpacity
-              style={styles.homeButton}
-              onPress={handleNavigateHome}>
-              <Icon name="home" size={24} color="#FFF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuIcon}
-              onPress={() => setOptionsVisible(true)} // Show the options modal
-            >
-              <Icon name="ellipsis-v" size={24} color="#FFF" />
-            </TouchableOpacity>
-
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../assets/images/1024.png')}
-                style={styles.logo}
-              />
+            {/* Header Section */}
+            <View style={styles.header}>
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={handleNavigateHome}>
+                <Icon name="home" size={24} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Profile</Text>
+              <TouchableOpacity
+                style={styles.menuIcon}
+                onPress={() => setOptionsVisible(true)}>
+                <Icon name="ellipsis-v" size={24} color="#fff" />
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.profileSection}>
-              <Text style={styles.sectionTitle}>Profile</Text>
-
-              <Image
-                source={
-                  selectedImage
-                    ? { uri: selectedImage }
-                    : profile.data?.avatar_url
-                      ? { uri: profile.data.avatar_url }
-                      : require('../assets/images/defaultProfileImage.jpg')
-                }
-                style={styles.profilePicture}
-              />
-
-              <TouchableOpacity
-                onPress={() =>
-                  Alert.alert('Change Profile Picture', 'Select an option', [
-                    { text: 'Take Picture', onPress: handleTakePicture },
-                    { text: 'Upload File', onPress: handleUploadFile },
-                    { text: 'Cancel', style: 'cancel' },
-                  ])
-                }>
-                <LinearGradient
-                  colors={['#00E5FF', '#D500F9']}
-                  style={styles.gradientButtonFullWidth}>
-                  <Text style={styles.buttonText}>Change Picture</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <TextInput
-                style={styles.input}
-                value={profile.data?.full_name || 'Name'}
-                placeholder="Name"
-                placeholderTextColor="#FFF"
-                editable={false}
-              />
-
-              <TextInput
-                style={styles.input}
-                value={profile.data?.email || 'youremail@gmail.com'}
-                placeholder="youremail@gmail.com"
-                placeholderTextColor="#FFF"
-                editable={false}
-              />
-
-              <View style={[styles.line, { marginBottom: 15 }]} />
-
-              {profile.data?.role === 'ARTIST' && (
+            {/* Profile Image Section */}
+            <View style={styles.profileImageContainer}>
+              <View style={styles.imageWrapper}>
+                <Image
+                  source={
+                    selectedImage
+                      ? { uri: selectedImage }
+                      : profile.data?.avatar_url
+                        ? { uri: profile.data.avatar_url }
+                        : require('../assets/images/defaultProfileImage.jpg')
+                  }
+                  style={styles.profileImage}
+                />
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('SignaturePage')}>
-                  <LinearGradient
-                    colors={['#00E5FF', '#D500F9']}
-                    style={styles.gradientButtonFullWidth}>
-                    <Text style={styles.buttonText}>
-                      Manage Signatures/Texts
-                    </Text>
-                  </LinearGradient>
+                  style={styles.editImageButton}
+                  onPress={() =>
+                    Alert.alert('Change Profile Picture', 'Select an option', [
+                      { text: 'Take Picture', onPress: handleTakePicture },
+                      { text: 'Upload File', onPress: handleUploadFile },
+                      { text: 'Cancel', style: 'cancel' },
+                    ])
+                  }>
+                  <Icon name="camera" size={20} color="#fff" />
                 </TouchableOpacity>
-              )}
+              </View>
+            </View>
 
+            {/* Profile Info Section */}
+            <View style={styles.infoSection}>
+              <Text style={styles.sectionTitle}>Account Information</Text>
+              <View style={styles.infoItem}>
+                <Text style={styles.label}>Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.data?.full_name || 'Name'}
+                  editable={false}
+                  placeholderTextColor="#8E8E93"
+                />
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.data?.email || 'email@example.com'}
+                  editable={false}
+                  placeholderTextColor="#8E8E93"
+                />
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.label}>Role</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.data?.role || 'User'}
+                  editable={false}
+                  placeholderTextColor="#8E8E93"
+                />
+              </View>
+            </View>
+
+            {/* Actions Section */}
+            <View style={styles.actionsSection}>
               <TouchableOpacity
-                onPress={() =>
-                  setPasswordUpdateVisible(!isPasswordUpdateVisible)
-                }
-                style={styles.gradientButtonFullWidth}>
-                <Text style={styles.buttonText}>
-                  {isPasswordUpdateVisible
-                    ? 'Cancel Password Update'
-                    : 'Update Password'}
+                style={styles.actionButton}
+                onPress={() => setPasswordUpdateVisible(!isPasswordUpdateVisible)}>
+                <Text style={styles.actionButtonText}>
+                  {isPasswordUpdateVisible ? 'Cancel Password Update' : 'Update Password'}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteAccountButton}
-                onPress={() => setDeleteModalVisible(true)} // Open the modal
-              >
-                <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
-              </TouchableOpacity>
-
 
               {isPasswordUpdateVisible && (
                 <View style={styles.passwordForm}>
                   <TextInput
                     style={styles.input}
                     placeholder="Current Password"
-                    placeholderTextColor="#AAAAAA"
+                    placeholderTextColor="#8E8E93"
                     secureTextEntry
                     value={currentPassword}
                     onChangeText={setCurrentPassword}
@@ -464,7 +449,7 @@ const ProfileScreen = () => {
                   <TextInput
                     style={styles.input}
                     placeholder="New Password"
-                    placeholderTextColor="#AAAAAA"
+                    placeholderTextColor="#8E8E93"
                     secureTextEntry
                     value={newPassword}
                     onChangeText={setNewPassword}
@@ -472,133 +457,91 @@ const ProfileScreen = () => {
                   <TextInput
                     style={styles.input}
                     placeholder="Confirm New Password"
-                    placeholderTextColor="#AAAAAA"
+                    placeholderTextColor="#8E8E93"
                     secureTextEntry
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                   />
                   <TouchableOpacity
-                    style={styles.logoutButton}
+                    style={[styles.actionButton, styles.submitButton]}
                     onPress={updatePasswordHandler}>
-                    <Text style={styles.logoutButtonText}>Submit</Text>
+                    <Text style={styles.actionButtonText}>Update Password</Text>
                   </TouchableOpacity>
                 </View>
               )}
 
               <TouchableOpacity
-                style={styles.logoutButton}
+                style={[styles.actionButton, styles.logoutButton]}
                 onPress={handleLogout}>
                 <Text style={styles.logoutButtonText}>Logout</Text>
               </TouchableOpacity>
             </View>
 
+            {/* Modals */}
             <Modal
               visible={isDeleteModalVisible}
               transparent={true}
-              animationType="slide"
-              onRequestClose={() => setDeleteModalVisible(false)}
-            >
+              animationType="slide">
               <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
-                  <Text style={styles.modalHeader}>Delete Account</Text>
+                  <Text style={styles.modalTitle}>Delete Account</Text>
                   <Text style={styles.modalMessage}>
-                    Type "delete" below to confirm you want to delete your account. This action cannot be undone.
+                    This action cannot be undone. Please type "delete" to confirm.
                   </Text>
-
-                  {/* Input Box */}
                   <TextInput
                     style={styles.modalInput}
                     placeholder="Type 'delete' to confirm"
-                    placeholderTextColor="#AAA"
+                    placeholderTextColor="#8E8E93"
                     value={deleteInput}
                     onChangeText={setDeleteInput}
                   />
-
-                  {/* Action Buttons */}
-                  <View style={[styles.modalButtons, { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }]}>
+                  <View style={styles.modalButtons}>
                     <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton, { flex: 1, marginRight: 10 }]}
+                      style={[styles.modalButton, styles.cancelButton]}
                       onPress={() => {
                         setDeleteModalVisible(false);
                         setDeleteInput('');
-                      }}
-                    >
-                      <Text style={styles.modalButtonText}>Cancel</Text>
+                      }}>
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
                     </TouchableOpacity>
-
                     <TouchableOpacity
-                      style={[styles.modalButton, styles.deleteButton, { flex: 1, marginLeft: 10 }]}
-                      onPress={deleteUser} // Trigger the delete function
-                    >
-                      <Text style={styles.modalButtonText}>Confirm</Text>
+                      style={[styles.modalButton, styles.deleteButton]}
+                      onPress={deleteUser}>
+                      <Text style={styles.deleteButtonText}>Delete Account</Text>
                     </TouchableOpacity>
                   </View>
-
                 </View>
               </View>
             </Modal>
 
-
-
-            <Modal
-              visible={menuVisible}
-              animationType="slide"
-              transparent={false}>
-              <View style={styles.modalContainer}>
-                <Text style={styles.modalHeader}>Blocked Users</Text>
-                <FlatList
-                  data={blockedUsers}
-                  keyExtractor={item => item.id.toString()}
-                  renderItem={({ item }) => (
-                    <View style={styles.blockedUserContainer}>
-                      <Image
-                        source={
-                          item.blockedUser.avatar_url
-                            ? { uri: item.blockedUser.avatar_url }
-                            : require('../assets/images/defaultProfileImage.jpg') // Default image if no avatar
-                        }
-                        style={styles.blockedUserAvatar}
-                      />
-                      <Text style={styles.blockedUserText}>
-                        {item.blockedUser.full_name || 'Unknown User'}
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => unblockUser(item.blockedUser.id)} // Use `blockedUser.id`
-                        style={styles.unblockButton}>
-                        <Text style={styles.unblockButtonText}>Unblock</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                />
-
-                <TouchableOpacity
-                  onPress={() => setMenuVisible(false)}
-                  style={styles.closeModalButton}>
-                  <Text style={styles.closeModalText}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </Modal>
+            {/* Options Modal */}
             <Modal
               visible={optionsVisible}
               animationType="fade"
               transparent={true}>
-              <TouchableWithoutFeedback
-                onPress={() => setOptionsVisible(false)}>
+              <TouchableWithoutFeedback onPress={() => setOptionsVisible(false)}>
                 <View style={styles.optionsModalContainer}>
                   <View style={styles.optionsBox}>
                     <TouchableOpacity
                       style={styles.optionButton}
                       onPress={() => {
-                        setOptionsVisible(false); // Close the options menu
-                        setMenuVisible(true); // Open the Blocked Users modal
+                        setOptionsVisible(false);
+                        setMenuVisible(true);
                         fetchBlockedUsers();
                       }}>
-                      <Text style={styles.optionText}>View Blocked Users</Text>
+                      <Text style={styles.optionText}>Blocked Users</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={styles.optionButton}
-                      onPress={() => setOptionsVisible(false)} // Close the options menu
-                    >
+                      style={[styles.optionButton, styles.deleteOptionButton]}
+                      onPress={() => {
+                        setOptionsVisible(false);
+                        setDeleteModalVisible(true);
+                      }}>
+                      <Text style={styles.deleteOptionText}>Delete Account</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.optionButton, styles.lastOptionButton]}
+                      onPress={() => setOptionsVisible(false)}>
                       <Text style={styles.optionText}>Cancel</Text>
                     </TouchableOpacity>
                   </View>

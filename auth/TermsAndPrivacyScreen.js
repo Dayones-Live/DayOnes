@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -18,14 +18,39 @@ const TermsAndPrivacyScreen = () => {
   const [viewing, setViewing] = useState('terms');
   const navigation = useNavigation();
 
+  useEffect(() => {
+    // Check if terms are already accepted
+    const checkTermsAccepted = async () => {
+      try {
+        const termsAccepted = await AsyncStorage.getItem('termsAccepted');
+        if (termsAccepted === 'true') {
+          navigation.navigate('PermissionsScreen');
+        }
+      } catch (error) {
+        console.error('Error checking terms acceptance:', error);
+      }
+    };
+    checkTermsAccepted();
+  }, [navigation]);
+
   const handleAccept = async () => {
     if (isAgreed) {
       try {
+        // Store terms acceptance
         await AsyncStorage.setItem('termsAccepted', 'true');
         console.log('Terms accepted and stored successfully');
+        
+        // Clear any existing auth data
+        await AsyncStorage.multiRemove([
+          'authToken',
+          'userRole',
+          'userProfile'
+        ]);
+        
         navigation.navigate('PermissionsScreen');
       } catch (error) {
         console.error('Error saving acceptance status:', error.message);
+        Alert.alert('Error', 'Failed to save terms acceptance. Please try again.');
       }
     } else {
       Alert.alert('Please agree to the Terms and Privacy Policy to continue.');

@@ -2,8 +2,14 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#512BD4">  <!-- Solid background color -->
+    android:background="#000000"
+    android:orientation="vertical">
 
-    <!-- You can add a simple view here if needed, or leave it empty for just the background color -->
+    <ImageView
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_centerInParent="true"
+        android:scaleType="centerInside"
+        android:src="@drawable/splash" />
 
 </RelativeLayout>

@@ -86,6 +86,27 @@ const App = () => {
         userRole
       });
 
+      // If terms and permissions are accepted but no auth token, go to login
+      if (termsAccepted === 'true' && permissionsGranted === 'true' && !authToken) {
+        console.log('Terms and permissions accepted, no auth token - navigating to LoginPage');
+        setInitialRoute('LoginPage');
+        return;
+      }
+
+      // If terms are accepted but no permissions, go to permissions screen
+      if (termsAccepted === 'true' && permissionsGranted !== 'true') {
+        console.log('Terms accepted but no permissions - navigating to PermissionsScreen');
+        setInitialRoute('PermissionsScreen');
+        return;
+      }
+
+      // If terms are not accepted, go to terms screen
+      if (termsAccepted !== 'true') {
+        console.log('Terms not accepted - navigating to TermsAndPrivacyScreen');
+        setInitialRoute('TermsAndPrivacyScreen');
+        return;
+      }
+
       if (authToken) {
         try {
           // Validate token by fetching user data
@@ -113,18 +134,13 @@ const App = () => {
           await clearAuthData();
           setInitialRoute('LoginPage');
         }
-      } else if (termsAccepted === 'true') {
-        if (permissionsGranted === 'true') {
-          setInitialRoute('LoginPage');
-        } else {
-          setInitialRoute('PermissionsScreen');
-        }
-      } else {
-        setInitialRoute('TermsAndPrivacyScreen');
       }
     } catch (error) {
       console.error('Error checking app setup status:', error);
-      setInitialRoute('TermsAndPrivacyScreen');
+      setInitialRoute('LoginPage');
+    } finally {
+      // Hide splash screen after all checks are done
+      SplashScreen.hide();
     }
   };
 
@@ -162,6 +178,16 @@ const App = () => {
       console.error('Error fetching FCM token:', error);
     }
   };
+
+  // Add useEffect to watch for changes in initialRoute
+  useEffect(() => {
+    console.log('Initial route changed to:', initialRoute);
+    if (navigationRef.current && initialRoute) {
+      console.log('Attempting to navigate to:', initialRoute);
+      // Use type assertion to handle the navigation
+      (navigationRef.current as any).navigate(initialRoute);
+    }
+  }, [initialRoute]);
 
   if (initialRoute === null) return null;
 

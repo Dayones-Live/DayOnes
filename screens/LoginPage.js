@@ -9,6 +9,7 @@ import {
   Dimensions,
   Image,
   Alert,
+  Keyboard
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
@@ -19,6 +20,7 @@ import { check, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { Platform } from 'react-native';
 import styles from './sharedStyles/LoginPageStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { handleGoogleSignIn } from '../assets/services/auth.service';
 
 const { width } = Dimensions.get('window');
@@ -120,34 +122,6 @@ const LoginScreen = () => {
     clearStaleData();
   }, []);
 
-  const handleGoogleSignInPress = async () => {
-    if (isGoogleLoading) return;
-    
-    try {
-      setIsGoogleLoading(true);
-      const result = await handleGoogleSignIn();
-      
-      if (result.needsRegistration) {
-        navigation.navigate('RegFanPage', {
-          userData: result.user
-        });
-      } else if (result?.user?.role) {
-        setRole(result.user.role);
-        navigateToAppropriateStack();
-      } else {
-        throw new Error('No role received from server');
-      }
-    } catch (error) {
-      console.error('Google Sign-In Error in LoginPage:', error);
-      Alert.alert(
-        'Sign In Error',
-        error.message || 'Failed to sign in with Google. Please try again.'
-      );
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
-
   const handleLogin = () => {
     if (!username || !password) {
       Alert.alert('Validation Error', 'Please enter both username and password.');
@@ -182,6 +156,29 @@ const LoginScreen = () => {
     );
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      setIsGoogleLoading(true);
+      const result = await handleGoogleSignIn();
+      if (result?.user?.role) {
+        setRole(result.user.role);
+        navigateToAppropriateStack();
+      } else {
+        navigation.navigate('RegFanPage', {
+          userData: result.user
+        });
+      }
+    } catch (error) {
+      console.error('Google Sign-In Error in LoginPage:', error);
+      Alert.alert(
+        'Sign In Error',
+        error.message || 'Failed to sign in with Google. Please try again.'
+      );
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -195,6 +192,9 @@ const LoginScreen = () => {
         </View>
 
         <View style={styles.middleSection}>
+          <Text style={styles.pageTitle}>Log into DayOnes</Text>
+
+          <Text style={styles.inputLabel}>EMAIL</Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
@@ -203,10 +203,13 @@ const LoginScreen = () => {
               value={username}
               onChangeText={setUsername}
               editable={!isLoading}
-              textContentType="oneTimeCode"
+              textContentType="emailAddress"
+              keyboardType="email-address"
+              autoCapitalize="none"
             />
           </View>
 
+          <Text style={styles.inputLabel}>PASSWORD</Text>
           <View style={styles.passwordContainer}>
             <TextInput
               style={styles.passwordInput}
@@ -233,49 +236,42 @@ const LoginScreen = () => {
             disabled={isLoading}
           >
             <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.loginButton}>
-              <Text style={styles.buttonText}>{isLoading ? 'Logging in...' : 'Login'}</Text>
+              <Text style={[styles.buttonText, styles.loginButtonText]}>{isLoading ? 'Logging in...' : 'LOG IN'}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
+          <View style={styles.orDividerContainer}>
+            <View style={styles.orDividerLine} />
+            <Text style={styles.orDividerText}>OR</Text>
+            <View style={styles.orDividerLine} />
+          </View>
+
           <TouchableOpacity
-            onPress={handleGoogleSignInPress}
-            style={[styles.fullButtonContainer, { marginTop: 10 }]}
+            onPress={handleGoogleLogin}
+            style={styles.googleButton}
             disabled={isGoogleLoading}
           >
-            <View style={[styles.loginButton, { backgroundColor: '#fff' }]}>
-              <Text style={[styles.buttonText, { color: '#000' }]}>
-                {isGoogleLoading ? 'Signing in...' : 'Sign in with Google'}
+            <View style={styles.buttonContent}>
+              <Image
+                source={require('../assets/images/7123025_logo_google_g_icon-2.png')}
+                style={styles.googleLogo}
+              />
+              <Text style={[styles.buttonText, styles.googleButtonText]}>
+                {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
               </Text>
             </View>
           </TouchableOpacity>
+
+          <View style={styles.signupContainer}>
+            <Text style={styles.signupText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('RegFanPage')}>
+              <Text style={[styles.signupText, styles.signupLink]}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+
         </View>
 
-        <Text style={styles.signupText}>
-          Are you an Artist?{' '}
-          <Text
-            onPress={() =>
-              Alert.alert(
-                'Artists!',
-                'Email DayOnesMedia@gmail.com for more information on how to partner with DayOnes.'
-              )
-            }
-            style={styles.signupLink}
-          >
-            Contact Us!
-          </Text>
-        </Text>
-
-        <View style={styles.bottomSection}>
-          <Text style={styles.artistQuestionText}>Don't have an account?</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('RegFanPage')}
-            style={styles.fullButtonContainer}
-          >
-            <LinearGradient colors={['#ffcc00', '#ff8800']} style={styles.signupArtistButton}>
-              <Text style={styles.signupArtistText}>Signup</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+        <View style={styles.bottomPlaceholder} />
       </View>
     </SafeAreaView>
   );
