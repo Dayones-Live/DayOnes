@@ -197,7 +197,7 @@ const LoginScreen = () => {
           <Text style={styles.inputLabel}>EMAIL</Text>
           <View style={styles.inputContainer}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: '#000' }]}
               placeholder="Email"
               placeholderTextColor="#888"
               value={username}
@@ -212,7 +212,7 @@ const LoginScreen = () => {
           <Text style={styles.inputLabel}>PASSWORD</Text>
           <View style={styles.passwordContainer}>
             <TextInput
-              style={styles.passwordInput}
+              style={[styles.passwordInput, { color: '#000' }]}
               placeholder="Password"
               placeholderTextColor="#888"
               value={password}

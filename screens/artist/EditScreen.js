@@ -30,6 +30,15 @@ const EditScreen = ({ route, navigation }) => {
   const [activeTab, setActiveTab] = useState(0);
   const viewShotRef = useRef(null);
   const dispatch = useDispatch();
+  const [scale] = useState(new Animated.Value(1));
+  const [signatureCenter, setSignatureCenter] = useState({ x: 0, y: 0 });
+  
+  // Define sizes at the component level so they're accessible
+  const sizes = {
+    small: { width: scaleValue(200), height: scaleValue(200) },
+    medium: { width: scaleValue(300), height: scaleValue(300) },
+    large: { width: scaleValue(400), height: scaleValue(400) }
+  };
 
   const { data: signatures, isLoading, isError } = useSignatures();
 
@@ -38,54 +47,113 @@ const EditScreen = ({ route, navigation }) => {
   }, [signatures]);
 
   const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
-    onPanResponderMove: Animated.event(
-      [null, { dx: draggedSignaturePosition.x, dy: draggedSignaturePosition.y }],
-      { useNativeDriver: false }
-    ),
+    onPanResponderMove: (event, gestureState) => {
+      if (event.nativeEvent.changedTouches.length >= 2) {
+        // Get touch points
+        const touch1 = event.nativeEvent.changedTouches[0];
+        const touch2 = event.nativeEvent.changedTouches[1];
+        
+        // Calculate center point between touches
+        const centerX = (touch1.pageX + touch2.pageX) / 2;
+        const centerY = (touch1.pageY + touch2.pageY) / 2;
+        
+        // Calculate distance for scaling
+        const distance = Math.sqrt(
+          Math.pow(touch2.pageX - touch1.pageX, 2) +
+          Math.pow(touch2.pageY - touch1.pageY, 2)
+        );
+
+        if (!this.previousDistance) {
+          this.previousDistance = distance;
+          setSignatureCenter({ x: centerX, y: centerY });
+          return;
+        }
+
+        // Calculate and apply scale while maintaining position
+        const scaleFactor = distance / this.previousDistance;
+        const newScale = scale._value * scaleFactor;
+
+        if (newScale >= 0.5 && newScale <= 3) {
+          scale.setValue(newScale);
+        }
+
+        this.previousDistance = distance;
+      } else {
+        // Regular dragging
+        Animated.event(
+          [null, { dx: draggedSignaturePosition.x, dy: draggedSignaturePosition.y }],
+          { useNativeDriver: false }
+        )(event, gestureState);
+      }
+    },
     onPanResponderRelease: () => {
       draggedSignaturePosition.flattenOffset();
-      setLastPosition({ x: draggedSignaturePosition.x._value, y: draggedSignaturePosition.y._value });
+      setLastPosition({
+        x: draggedSignaturePosition.x._value,
+        y: draggedSignaturePosition.y._value
+      });
+      this.previousDistance = null;
     },
     onPanResponderGrant: () => {
-      draggedSignaturePosition.setOffset({ x: lastPosition.x, y: lastPosition.y });
+      draggedSignaturePosition.setOffset({
+        x: lastPosition.x,
+        y: lastPosition.y
+      });
       draggedSignaturePosition.setValue({ x: 0, y: 0 });
     },
   });
 
   const handleSignatureSelect = (item) => {
     setSelectedSignature(item);
-    console.log("Selected signature URL:", item.url); // Log URL for debugging
-    const startX = (width - signatureSize.width) / 2;
-    const startY = (height * 0.75 - signatureSize.height) / 2;
+    console.log("Selected signature URL:", item.url);
+    dispatch(setSignatureSize(sizes.small)); // Set initial size
+    const startX = (width - sizes.small.width) / 2;
+    const startY = (height * 0.75 - sizes.small.height) / 2;
     setDraggedSignaturePosition(new Animated.ValueXY({ x: startX, y: startY }));
     setLastPosition({ x: startX, y: startY });
     setActiveTab(2);
   };
 
   const handleDoubleTap = () => {
-    // Doubling the sizes
-    const smallSize = { width: scaleValue(100), height: scaleValue(100) };  // doubled from 110
-    const mediumSize = { width: scaleValue(200), height: scaleValue(200) }; // doubled from 150
-    const largeSize = { width: scaleValue(300), height: scaleValue(300) };  // doubled from 220
-    const XlargeSize = { width: scaleValue(400), height: scaleValue(400) };  // doubled from 220
-
-    if (signatureSize.width === smallSize.width) {
-      dispatch(setSignatureSize(mediumSize));
-    } else if (signatureSize.width === mediumSize.width) {
-      dispatch(setSignatureSize(largeSize));
-    }
-    else if (signatureSize.width === largeSize.width) {
-      dispatch(setSignatureSize(XlargeSize));
-    }
-    else {
-      dispatch(setSignatureSize(smallSize));
+    console.log('Double tap detected');
+    console.log('Current size:', signatureSize);
+    
+    // Store current position before resizing
+    const currentX = draggedSignaturePosition.x._value;
+    const currentY = draggedSignaturePosition.y._value;
+    
+    if (signatureSize.width === sizes.small.width) {
+      console.log('Changing to medium size');
+      dispatch(setSignatureSize(sizes.medium));
+      // Adjust position to maintain center
+      const xOffset = (sizes.medium.width - sizes.small.width) / 2;
+      const yOffset = (sizes.medium.height - sizes.small.height) / 2;
+      draggedSignaturePosition.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+    } else if (signatureSize.width === sizes.medium.width) {
+      console.log('Changing to large size');
+      dispatch(setSignatureSize(sizes.large));
+      // Adjust position to maintain center
+      const xOffset = (sizes.large.width - sizes.medium.width) / 2;
+      const yOffset = (sizes.large.height - sizes.medium.height) / 2;
+      draggedSignaturePosition.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+    } else {
+      console.log('Changing to small size');
+      dispatch(setSignatureSize(sizes.small));
+      // Adjust position to maintain center
+      const xOffset = (sizes.small.width - sizes.large.width) / 2;
+      const yOffset = (sizes.small.height - sizes.large.height) / 2;
+      draggedSignaturePosition.setValue({ x: currentX - xOffset, y: currentY - yOffset });
     }
   };
 
   const handleTap = () => {
     const now = Date.now();
+    console.log('Tap detected, last tap:', lastTap.current);
+    
     if (lastTap.current && (now - lastTap.current) < 300) {
+      console.log('Double tap interval detected');
       handleDoubleTap();
     }
     lastTap.current = now;
@@ -224,6 +292,14 @@ const EditScreen = ({ route, navigation }) => {
     </TouchableOpacity>
   );
   
+  const signatureStyle = {
+    position: 'absolute',
+    transform: [
+      { translateX: draggedSignaturePosition.x },
+      { translateY: draggedSignaturePosition.y },
+      { scale: scale }
+    ]
+  };
 
   return (
     <View style={styles.container}>
@@ -234,15 +310,22 @@ const EditScreen = ({ route, navigation }) => {
         <Image source={{ uri: selectedImage.uri }} style={styles.image} resizeMode="contain" />
         {selectedSignature && (
           <Animated.View
-            style={[styles.signatureContainer, draggedSignaturePosition.getLayout()]}
+            style={[styles.signatureContainer, signatureStyle]}
             {...panResponder.panHandlers}
           >
             <TouchableOpacity activeOpacity={1} onPress={handleTap}>
-              {/* Render signature 4 times with slight offsets */}
               {[0, 1, 2, 3].map((_, index) => (
                 <MaskedView
                   key={index}
-                  style={[signatureSize, { position: 'absolute', left: index * 0.1, top: index * 0.1 }]}
+                  style={[
+                    signatureSize,
+                    {
+                      position: 'absolute',
+                      left: index * 0.1,
+                      top: index * 0.1,
+                      transformOrigin: 'center'
+                    }
+                  ]}
                   maskElement={
                     <Image
                       source={{ uri: selectedSignature.url }}
@@ -406,6 +489,8 @@ const styles = StyleSheet.create({
   signatureContainer: {
     position: 'absolute',
     zIndex: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   signatureImage: {
     shadowOffset: { width: 0, height: 0 },
