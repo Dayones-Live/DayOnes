@@ -126,10 +126,26 @@ const PermissionsScreen = () => {
 
   const storePermissionsStatus = async () => {
     try {
-      await AsyncStorage.setItem('permissionsGranted', 'true');
+      await AsyncStorage.setItem('permissionsAccepted', 'true');
       console.log('Permissions status saved to AsyncStorage');
     } catch (error) {
       console.error('Error storing permissions status:', error);
+    }
+  };
+
+  const handlePermissionsGranted = async () => {
+    try {
+      console.log('Saving permissions status...');
+      await AsyncStorage.multiSet([
+        ['permissionsAccepted', 'true'],
+        ['locationPermission', 'true'],
+        ['notificationPermission', 'true']
+      ]);
+      console.log('Permissions status saved successfully');
+      navigation.navigate('LoginPage');
+    } catch (error) {
+      console.error('Error saving permissions:', error);
+      Alert.alert('Error', 'Failed to save permissions. Please try again.');
     }
   };
 
@@ -149,7 +165,7 @@ const PermissionsScreen = () => {
         );
         
         if (location === RESULTS.GRANTED) {
-          await AsyncStorage.setItem('permissionsGranted', 'true');
+          await AsyncStorage.setItem('permissionsAccepted', 'true');
           console.log('Permissions granted, navigating to LoginPage');
           navigation.navigate('LoginPage');
         } else {
@@ -252,7 +268,7 @@ const PermissionsScreen = () => {
                 colors={['#00E5FF', '#D500F9']}
                 style={styles.continueButton}>
                 <TouchableOpacity
-                  onPress={handleContinue}
+                  onPress={handlePermissionsGranted}
                   style={styles.fullWidth}>
                   <Text style={styles.buttonText}>Continue</Text>
                 </TouchableOpacity>

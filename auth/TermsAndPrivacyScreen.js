@@ -22,7 +22,7 @@ const TermsAndPrivacyScreen = () => {
     // Check if terms are already accepted
     const checkTermsAccepted = async () => {
       try {
-        const termsAccepted = await AsyncStorage.getItem('termsAccepted');
+        const termsAccepted = await AsyncStorage.getItem('tosAccepted');
         if (termsAccepted === 'true') {
           navigation.navigate('PermissionsScreen');
         }
@@ -37,7 +37,7 @@ const TermsAndPrivacyScreen = () => {
     if (isAgreed) {
       try {
         // Store terms acceptance
-        await AsyncStorage.setItem('termsAccepted', 'true');
+        await AsyncStorage.setItem('tosAccepted', 'true');
         console.log('Terms accepted and stored successfully');
         
         // Clear any existing auth data

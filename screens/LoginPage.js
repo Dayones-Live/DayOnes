@@ -14,7 +14,7 @@ import {
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import useLogin from '../assets/hooks/useLogin';
 import { check, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { Platform } from 'react-native';
@@ -22,6 +22,7 @@ import styles from './sharedStyles/LoginPageStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { handleGoogleSignIn } from '../assets/services/auth.service';
+import { setAccessToken, setUserProfile } from '../assets/redux/actions';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +38,7 @@ const LoginScreen = () => {
   const navigation = useNavigation();
   const userProfile = useSelector((state) => state.userProfile);
   const { mutate: loginUser } = useLogin();
+  const dispatch = useDispatch();
 
   const checkAllPermissions = async () => {
     try {
@@ -105,75 +107,96 @@ const LoginScreen = () => {
     saveRoleToAsyncStorage();
   }, [userProfile]);
 
-  useEffect(() => {
-    const clearStaleData = async () => {
-      try {
-        await AsyncStorage.multiRemove([
-          'authToken',
-          'userRole',
-          'loggedInUser',
-          'fcmToken'
-        ]);
-      } catch (error) {
-        console.error('Error clearing stale data:', error);
-      }
-    };
-    
-    clearStaleData();
-  }, []);
-
   const handleLogin = () => {
+    console.log('🔑 [LoginPage] Starting login process...');
     if (!username || !password) {
+      console.error('❌ [LoginPage] Validation Error: Missing username or password');
       Alert.alert('Validation Error', 'Please enter both username and password.');
       return;
     }
 
     setIsLoading(true);
+    console.log('🔄 [LoginPage] Calling login mutation...');
     loginUser(
       { email: username, password },
       {
         onSuccess: async (data) => {
+          console.log('✅ [LoginPage] Login mutation successful');
           setIsLoading(false);
-          const userRole = data?.role || userProfile?.data?.role;
-          const token = data?.token;
+          const userRole = data?.userProfile?.role || userProfile?.data?.role;
+          console.log('👤 [LoginPage] User role:', userRole);
 
-          if (token) {
-            await AsyncStorage.setItem('authToken', token);
-            if (userRole) {
-              await AsyncStorage.setItem('userRole', userRole);
+          if (data?.token) {
+            console.log('🔄 [LoginPage] Navigating to appropriate stack...');
+            if (userRole === 'ARTIST') {
+              console.log('🎨 [LoginPage] Navigating to ArtistStack');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'ArtistStack' }],
+              });
+            } else if (userRole === 'USER') {
+              console.log('👤 [LoginPage] Navigating to FanStack');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'FanStack' }],
+              });
             }
-            if (userRole === 'ARTIST') navigation.navigate('ArtistStack');
-            else if (userRole === 'USER') navigation.navigate('FanStack');
           } else {
+            console.error('❌ [LoginPage] Token missing in response');
             Alert.alert('Error', 'Token missing in response.');
           }
         },
         onError: (error) => {
+          console.error('❌ [LoginPage] Login mutation error:', error);
           setIsLoading(false);
-          Alert.alert('Error', 'Login failed. Please try again.');
+          Alert.alert('Error', error.message || 'Login failed. Please try again.');
         },
       }
     );
   };
 
   const handleGoogleLogin = async () => {
+    console.log('🔑 [LoginPage] Starting Google login process...');
     try {
       setIsGoogleLoading(true);
+      console.log('🔄 [LoginPage] Calling Google sign-in...');
       const result = await handleGoogleSignIn();
-      if (result?.user?.role) {
-        setRole(result.user.role);
-        navigateToAppropriateStack();
+      console.log('✅ [LoginPage] Google sign-in result:', JSON.stringify(result, null, 2));
+
+      if (result?.token) {
+        console.log('💾 [LoginPage] Storing Google auth data in AsyncStorage...');
+        await AsyncStorage.multiSet([
+          ['authToken', result.token],
+          ['refreshToken', result.refreshToken],
+          ['tokenExpiry', (Date.now() + result.expiresIn * 1000).toString()],
+          ['userRole', result.user.role],
+          ['userData', JSON.stringify(result.user)]
+        ]);
+        console.log('✅ [LoginPage] Google auth data stored successfully');
+
+        console.log('🔄 [LoginPage] Updating Redux store...');
+        dispatch(setAccessToken(result.token));
+        dispatch(setUserProfile({
+          data: result.user,
+          role: result.user.role
+        }));
+        console.log('✅ [LoginPage] Redux store updated successfully');
+
+        console.log('🔄 [LoginPage] Navigating to appropriate stack...');
+        if (result.user.role === 'ARTIST') {
+          console.log('🎨 [LoginPage] Navigating to ArtistStack');
+          navigation.navigate('ArtistStack');
+        } else if (result.user.role === 'USER') {
+          console.log('👤 [LoginPage] Navigating to FanStack');
+          navigation.navigate('FanStack');
+        }
       } else {
-        navigation.navigate('RegFanPage', {
-          userData: result.user
-        });
+        console.error('❌ [LoginPage] Token missing in Google sign-in result');
+        Alert.alert('Error', 'Failed to get authentication token from Google sign-in.');
       }
     } catch (error) {
-      console.error('Google Sign-In Error in LoginPage:', error);
-      Alert.alert(
-        'Sign In Error',
-        error.message || 'Failed to sign in with Google. Please try again.'
-      );
+      console.error('❌ [LoginPage] Google sign-in error:', error);
+      Alert.alert('Error', 'Google sign-in failed. Please try again.');
     } finally {
       setIsGoogleLoading(false);
     }

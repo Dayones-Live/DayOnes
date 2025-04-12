@@ -25,6 +25,36 @@ axiosInstance.interceptors.request.use(
         }
       }
 
+      // Check token expiration
+      const tokenExpiry = await AsyncStorage.getItem('tokenExpiry');
+      if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
+        console.log('Token expired, attempting refresh');
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        
+        if (refreshToken) {
+          try {
+            const response = await axios.post(`${BASEURL}/api/v1/auth/refresh`, {
+              refresh_token: refreshToken
+            });
+
+            if (response.data?.data?.access_token) {
+              token = response.data.data.access_token;
+              await AsyncStorage.multiSet([
+                ['authToken', token],
+                ['tokenExpiry', (Date.now() + response.data.data.expires_in * 1000).toString()]
+              ]);
+              store.dispatch(setAccessToken(token));
+            } else {
+              throw new Error('Invalid refresh token response');
+            }
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+            await clearAuthData();
+            throw refreshError;
+          }
+        }
+      }
+
       console.log('Request Interceptor - Token status:', {
         hasToken: !!token,
         url: config.url,
@@ -37,7 +67,8 @@ axiosInstance.interceptors.request.use(
         console.error('No access token found in Redux store or AsyncStorage');
       }
     } catch (error) {
-      console.error('Error setting auth header:', error);
+      console.error('Error in request interceptor:', error);
+      return Promise.reject(error);
     }
     return config;
   },
@@ -57,55 +88,73 @@ axiosInstance.interceptors.response.use(
       method: error.config?.method
     });
 
-    if (error.response?.status === 401) {
-      console.log('401 Error detected - Starting cleanup process');
-      
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log('401 Error detected - Attempting token refresh');
+      originalRequest._retry = true;
+
       try {
-        // Clear Redux store
-        store.dispatch(setAccessToken(null));
-        store.dispatch(setUserProfile(null));
-        store.dispatch(setUserID(null));
-
-        // Clear AsyncStorage
-        await AsyncStorage.multiRemove([
-          'authToken',
-          'userProfile',
-          'userRole',
-          'loggedInUser'
-        ]);
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
         
-        console.log('Auth data cleared from Redux and AsyncStorage');
+        if (refreshToken) {
+          // Attempt to refresh the token
+          const response = await axios.post(`${BASEURL}/api/v1/auth/refresh`, {
+            refresh_token: refreshToken
+          });
 
-        // Show alert to user
-        Alert.alert(
-          'Session Expired',
-          'Your session has expired. Please log in again.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                // Navigate to login after user acknowledges
-                const navigation = global.navigationRef?.current;
-                if (navigation) {
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'LoginPage' }],
-                  });
-                  console.log('Navigation reset successful');
-                } else {
-                  console.error('No navigation object available');
-                }
-              }
-            }
-          ]
-        );
+          if (response.data?.data?.access_token) {
+            // Store new tokens
+            await AsyncStorage.multiSet([
+              ['authToken', response.data.data.access_token],
+              ['tokenExpiry', (Date.now() + response.data.data.expires_in * 1000).toString()]
+            ]);
 
-      } catch (cleanupError) {
-        console.error('Error during auth cleanup:', cleanupError);
+            // Update Redux store
+            store.dispatch(setAccessToken(response.data.data.access_token));
+
+            // Retry the original request with new token
+            originalRequest.headers.Authorization = `Bearer ${response.data.data.access_token}`;
+            return axiosInstance(originalRequest);
+          }
+        }
+
+        // If refresh fails or no refresh token, clear auth data
+        console.log('Token refresh failed - Starting cleanup process');
+        await clearAuthData();
+        throw error;
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        await clearAuthData();
+        throw refreshError;
       }
     }
+
     return Promise.reject(error);
   }
 );
+
+const clearAuthData = async () => {
+  try {
+    // Clear Redux store
+    store.dispatch(setAccessToken(null));
+    store.dispatch(setUserProfile(null));
+    store.dispatch(setUserID(null));
+
+    // Clear AsyncStorage
+    await AsyncStorage.multiRemove([
+      'authToken',
+      'refreshToken',
+      'tokenExpiry',
+      'userProfile',
+      'userRole',
+      'loggedInUser'
+    ]);
+    
+    console.log('Auth data cleared from Redux and AsyncStorage');
+  } catch (error) {
+    console.error('Error clearing auth data:', error);
+  }
+};
 
 export default axiosInstance; 

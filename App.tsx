@@ -59,8 +59,13 @@ declare global {
   var navigationRef: any;
 }
 
+// Add this after the imports
+const PERSISTENCE_KEY = 'NAVIGATION_STATE';
+
 const App = () => {
-  const [initialRoute, setInitialRoute] = useState('TermsAndPrivacyScreen');
+  const [initialRoute, setInitialRoute] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [initialState, setInitialState] = useState();
   const navigationRef = useRef<NavigationContainerRef<RootParamList>>(null);
 
   useEffect(() => {
@@ -69,95 +74,181 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    const checkAppSetupStatus = async () => {
+      try {
+        // Check if TOS and permissions are already accepted
+        const [tosAccepted, permissionsAccepted, authToken, userRole, tokenExpiry, refreshToken] = await Promise.all([
+          AsyncStorage.getItem('tosAccepted'),
+          AsyncStorage.getItem('permissionsAccepted'),
+          AsyncStorage.getItem('authToken'),
+          AsyncStorage.getItem('userRole'),
+          AsyncStorage.getItem('tokenExpiry'),
+          AsyncStorage.getItem('refreshToken')
+        ]);
+
+        console.log('App initialization status:', {
+          tosAccepted,
+          permissionsAccepted,
+          hasAuthToken: !!authToken,
+          userRole,
+          hasTokenExpiry: !!tokenExpiry,
+          hasRefreshToken: !!refreshToken
+        });
+
+        // If user is authenticated, skip TOS and permissions screens
+        if (authToken && userRole) {
+          try {
+            // Check if token is expired
+            const isExpired = tokenExpiry && Date.now() > parseInt(tokenExpiry);
+            
+            if (isExpired && refreshToken) {
+              // Attempt to refresh the token
+              const response = await axios.post(`${BASEURL}/api/v1/auth/refresh`, {
+                refresh_token: refreshToken
+              });
+
+              if (response.data?.data?.access_token) {
+                // Store new tokens
+                await AsyncStorage.multiSet([
+                  ['authToken', response.data.data.access_token],
+                  ['tokenExpiry', (Date.now() + response.data.data.expires_in * 1000).toString()]
+                ]);
+
+                // Update Redux store
+                store.dispatch(setAccessToken(response.data.data.access_token));
+                
+                // Navigate to appropriate stack
+                setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
+                setIsLoading(false);
+                return;
+              }
+            }
+
+            // Validate token by fetching user data
+            console.log('Attempting to validate token with endpoint:', `${BASEURL}/api/v1/auth/me`);
+            const response = await axios.post(`${BASEURL}/api/v1/auth/me`, {}, {
+              headers: {
+                Authorization: `Bearer ${authToken}`
+              }
+            });
+
+            if (response.data?.data) {
+              console.log('Token validation successful:', response.data);
+              // Token is valid, update Redux store
+              store.dispatch(setAccessToken(authToken));
+              store.dispatch(setUserProfile(response.data.data));
+              
+              // Navigate to appropriate stack based on role
+              setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
+              setIsLoading(false);
+              return;
+            }
+          } catch (error: any) {
+            console.error('Error validating token:', error);
+            // If validation fails, try to refresh the token
+            if (refreshToken) {
+              console.log('Attempting token refresh after validation failure');
+              try {
+                const refreshResponse = await axios.post(`${BASEURL}/api/v1/auth/refresh`, {
+                  refresh_token: refreshToken
+                });
+
+                if (refreshResponse.data?.data?.access_token) {
+                  // Store new tokens
+                  await AsyncStorage.multiSet([
+                    ['authToken', refreshResponse.data.data.access_token],
+                    ['tokenExpiry', (Date.now() + refreshResponse.data.data.expires_in * 1000).toString()]
+                  ]);
+
+                  // Update Redux store
+                  store.dispatch(setAccessToken(refreshResponse.data.data.access_token));
+                  setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
+                  setIsLoading(false);
+                  return;
+                }
+              } catch (refreshError) {
+                console.error('Token refresh failed:', refreshError);
+              }
+            }
+            // If all auth attempts fail, clear storage but keep TOS and permissions status
+            await clearAuthData();
+          }
+        }
+
+        // Check TOS and permissions status
+        if (tosAccepted === 'true' && permissionsAccepted === 'true') {
+          console.log('TOS and permissions already accepted, going to login');
+          setInitialRoute('LoginPage');
+        } else if (tosAccepted === 'true') {
+          // If TOS is accepted but permissions aren't, check if we actually need to show permissions
+          const [locationPermission, notificationPermission] = await Promise.all([
+            AsyncStorage.getItem('locationPermission'),
+            AsyncStorage.getItem('notificationPermission')
+          ]);
+          
+          console.log('Permission status:', {
+            locationPermission,
+            notificationPermission
+          });
+
+          if (locationPermission === 'true' && notificationPermission === 'true') {
+            console.log('All permissions granted, marking as accepted');
+            await AsyncStorage.setItem('permissionsAccepted', 'true');
+            setInitialRoute('LoginPage');
+          } else {
+            console.log('Permissions not fully granted, showing permissions screen');
+            setInitialRoute('PermissionsScreen');
+          }
+        } else {
+          // If TOS is not accepted or is null, show TOS screen
+          console.log('TOS not accepted or null, showing TOS screen');
+          setInitialRoute('TermsAndPrivacyScreen');
+        }
+      } catch (error) {
+        console.error('Error checking app setup status:', error);
+        setInitialRoute('TermsAndPrivacyScreen');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     checkAppSetupStatus();
   }, []);
 
-  const checkAppSetupStatus = async () => {
-    try {
-      const termsAccepted = await AsyncStorage.getItem('termsAccepted');
-      const permissionsGranted = await AsyncStorage.getItem('permissionsGranted');
-      const authToken = await AsyncStorage.getItem('authToken');
-      const userRole = await AsyncStorage.getItem('userRole');
-
-      console.log('App Setup Status:', {
-        termsAccepted,
-        permissionsGranted,
-        hasAuthToken: !!authToken,
-        userRole
-      });
-
-      // If terms and permissions are accepted but no auth token, go to login
-      if (termsAccepted === 'true' && permissionsGranted === 'true' && !authToken) {
-        console.log('Terms and permissions accepted, no auth token - navigating to LoginPage');
-        setInitialRoute('LoginPage');
-        return;
-      }
-
-      // If terms are accepted but no permissions, go to permissions screen
-      if (termsAccepted === 'true' && permissionsGranted !== 'true') {
-        console.log('Terms accepted but no permissions - navigating to PermissionsScreen');
-        setInitialRoute('PermissionsScreen');
-        return;
-      }
-
-      // If terms are not accepted, go to terms screen
-      if (termsAccepted !== 'true') {
-        console.log('Terms not accepted - navigating to TermsAndPrivacyScreen');
-        setInitialRoute('TermsAndPrivacyScreen');
-        return;
-      }
-
-      if (authToken) {
-        try {
-          // Validate token by fetching user data
-          const response = await axios.get(`${BASEURL}/api/v1/auth/me`, {
-            headers: {
-              Authorization: `Bearer ${authToken}`
-            }
-          });
-
-          if (response.data?.data?.user) {
-            // Token is valid, update Redux store
-            store.dispatch(setAccessToken(authToken));
-            store.dispatch(setUserProfile(response.data.data.user));
-            
-            // Navigate to appropriate stack based on role
-            setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
-          } else {
-            // Token is invalid, clear storage and go to login
-            await clearAuthData();
-            setInitialRoute('LoginPage');
-          }
-        } catch (error) {
-          console.error('Error validating token:', error);
-          // Token validation failed, clear storage and go to login
-          await clearAuthData();
-          setInitialRoute('LoginPage');
-        }
-      }
-    } catch (error) {
-      console.error('Error checking app setup status:', error);
-      setInitialRoute('LoginPage');
-    } finally {
-      // Hide splash screen after all checks are done
-      SplashScreen.hide();
-    }
-  };
-
   const clearAuthData = async () => {
     try {
+      // First, get the current TOS and permissions status
+      const [tosAccepted, permissionsAccepted] = await Promise.all([
+        AsyncStorage.getItem('tosAccepted'),
+        AsyncStorage.getItem('permissionsAccepted')
+      ]);
+
+      // Clear only auth-related data
+      await AsyncStorage.multiRemove([
+        'authToken',
+        'refreshToken',
+        'tokenExpiry',
+        'userRole',
+        'userData'
+      ]);
+
+      // Restore TOS and permissions status if they existed
+      if (tosAccepted) {
+        await AsyncStorage.setItem('tosAccepted', tosAccepted);
+      }
+      if (permissionsAccepted) {
+        await AsyncStorage.setItem('permissionsAccepted', permissionsAccepted);
+      }
+
       // Clear Redux store
       store.dispatch(setAccessToken(null));
       store.dispatch(setUserProfile(null));
       store.dispatch(setUserID(null));
 
-      // Clear AsyncStorage
-      await AsyncStorage.multiRemove([
-        'authToken',
-        'userProfile',
-        'userRole',
-        'loggedInUser'
-      ]);
+      console.log('Auth data cleared, TOS and permissions status preserved:', {
+        tosAccepted,
+        permissionsAccepted
+      });
     } catch (error) {
       console.error('Error clearing auth data:', error);
     }
@@ -189,20 +280,26 @@ const App = () => {
     }
   }, [initialRoute]);
 
-  if (initialRoute === null) return null;
+  if (isLoading || !initialRoute) {
+    return null;
+  }
 
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <NavigationContainer
           ref={navigationRef}
+          initialState={initialState}
+          onStateChange={(state) => {
+            AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state));
+          }}
           onReady={() => {
             // Ensure navigation ref is set when NavigationContainer is ready
             global.navigationRef = navigationRef;
             console.log('Navigation is ready, ref set');
           }}
         >
-          <Stack.Navigator initialRouteName={initialRoute}>
+          <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
             <Stack.Screen
               name="TermsAndPrivacyScreen"
               component={TermsAndPrivacyScreen}
