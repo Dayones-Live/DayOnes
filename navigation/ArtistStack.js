@@ -6,6 +6,7 @@ import EditScreen from '../screens/artist/EditScreen';
 import PostDetailPage from '../screens/artist/PostDetailsPage';
 import SignaturePage from '../screens/artist/SignaturePage';
 import ArtistSignatures from '../screens/artist/ArtistSignatures';
+import BlockedUsers from '../screens/BlockedUsers';
 
 const Stack = createStackNavigator();
 
@@ -40,6 +41,11 @@ const ArtistStack = () => {
       <Stack.Screen
         name="ArtistSignatures"
         component={ArtistSignatures}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="BlockedUsers"
+        component={BlockedUsers}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

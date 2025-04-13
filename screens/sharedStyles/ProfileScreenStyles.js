@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 
@@ -58,10 +58,10 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     sectionTitle: {
-        color: '#fff',
-        fontSize: 22,
+        fontSize: moderateScale(22),
         fontWeight: '600',
-        marginBottom: 16,
+        color: '#FFFFFF',
+        marginBottom: verticalScale(16),
     },
     infoItem: {
         marginBottom: 16,
@@ -158,11 +158,13 @@ const styles = StyleSheet.create({
     },
     cancelButton: {
         backgroundColor: '#2C2C2E',
-        marginRight: 8,
+        paddingVertical: verticalScale(12),
+        paddingHorizontal: scale(24),
+        borderRadius: scale(8),
     },
     cancelButtonText: {
-        color: '#0A84FF',
-        fontSize: 17,
+        color: '#FFFFFF',
+        fontSize: moderateScale(16),
         fontWeight: '600',
     },
     deleteButton: {
@@ -181,16 +183,14 @@ const styles = StyleSheet.create({
     },
     optionsBox: {
         backgroundColor: '#1C1C1E',
-        borderTopLeftRadius: 14,
-        borderTopRightRadius: 14,
-        padding: 16,
+        borderTopLeftRadius: scale(20),
+        borderTopRightRadius: scale(20),
+        paddingTop: verticalScale(8),
+        paddingBottom: Platform.OS === 'ios' ? verticalScale(40) : verticalScale(20),
     },
     optionButton: {
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#2C2C2E',
-    },
-    deleteOptionButton: {
+        paddingVertical: verticalScale(16),
+        paddingHorizontal: scale(20),
         borderBottomWidth: 1,
         borderBottomColor: '#2C2C2E',
     },
@@ -198,11 +198,17 @@ const styles = StyleSheet.create({
         borderBottomWidth: 0,
     },
     optionText: {
-        color: '#fff',
-        fontSize: 17,
+        color: '#FFFFFF',
+        fontSize: moderateScale(17),
+        fontWeight: '400',
         textAlign: 'center',
     },
     deleteOptionText: {
+        color: '#FF453A',
+        fontSize: 17,
+        textAlign: 'center',
+    },
+    logoutOptionText: {
         color: '#FF453A',
         fontSize: 17,
         textAlign: 'center',
@@ -245,12 +251,316 @@ const styles = StyleSheet.create({
         width: '100%',
         alignSelf: 'stretch',
     },
+    signatureSection: {
+        marginTop: verticalScale(24),
+        paddingHorizontal: scale(20),
+    },
+    signatureButtonsContainer: {
+        flexDirection: 'row',
+        gap: scale(12),
+    },
+    signatureButton: {
+        flex: 1,
+        backgroundColor: '#1C1C1E',
+        borderRadius: scale(16),
+        padding: scale(20),
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: verticalScale(140),
+    },
+    signatureButtonContent: {
+        alignItems: 'center',
+        gap: scale(12),
+    },
+    signatureButtonIcon: {
+        width: scale(32),
+        height: scale(32),
+        tintColor: '#FFFFFF',
+    },
+    signatureButtonText: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(15),
+        fontWeight: '500',
+        textAlign: 'center',
+        opacity: 0.9,
+    },
+    signatureCreationContainer: {
+        marginTop: verticalScale(15),
+    },
+    signaturePreview: {
+        width: '100%',
+        height: verticalScale(200),
+        borderRadius: scale(10),
+        backgroundColor: '#1C1C1E',
+        marginBottom: verticalScale(15),
+    },
+    placeholderText: {
+        color: '#8E8E93',
+        textAlign: 'center',
+        marginVertical: verticalScale(15),
+    },
+    signatureOptions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: verticalScale(15),
+    },
+    createButton: {
+        backgroundColor: '#4A90E2',
+        padding: verticalScale(12),
+        borderRadius: scale(8),
+        marginTop: verticalScale(10),
+    },
+    createButtonText: {
+        color: '#FFFFFF',
+        textAlign: 'center',
+        fontSize: moderateScale(16),
+        fontWeight: '600',
+    },
     modalButtonText: {
         color: '#FFF',
         fontWeight: '400',
         fontSize: moderateScale(16),
         paddingLeft: 60,
     },
+    imageContainer: {
+        width: '100%',
+        height: verticalScale(200),
+        borderRadius: scale(10),
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: verticalScale(15),
+    },
+    image: {
+        width: '100%',
+        height: '100%',
+        borderRadius: scale(10),
+    },
+    imageText: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(16),
+        textAlign: 'center',
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: verticalScale(15),
+    },
+    pictureButton: {
+        flex: 1,
+        backgroundColor: '#1C1C1E',
+        borderRadius: scale(10),
+        padding: verticalScale(15),
+        alignItems: 'center',
+        marginHorizontal: scale(5),
+    },
+    icon: {
+        marginBottom: verticalScale(8),
+    },
+    buttonText: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(14),
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: scale(10),
+    },
+    loadingContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#000000',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    loadingContent: {
+        alignItems: 'center',
+        width: '100%',
+        padding: verticalScale(20),
+    },
+    loadingIcon: {
+        width: scale(120),
+        height: scale(120),
+        marginBottom: verticalScale(40),
+        resizeMode: 'contain',
+    },
+    loadingMainText: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(28),
+        fontWeight: '600',
+        textAlign: 'center',
+        marginBottom: verticalScale(8),
+    },
+    loadingSubText: {
+        color: '#8E8E93',
+        fontSize: moderateScale(17),
+        textAlign: 'center',
+        marginBottom: verticalScale(40),
+    },
+    progressBarContainer: {
+        width: '80%',
+        height: verticalScale(2),
+        backgroundColor: '#2C2C2E',
+        borderRadius: scale(1),
+        overflow: 'hidden',
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: scale(1),
+    },
+    fanSection: {
+        marginTop: verticalScale(20),
+        paddingHorizontal: scale(16),
+    },
+    quickActionsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: verticalScale(16),
+    },
+    quickActionButton: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: scale(12),
+        padding: scale(16),
+        flex: 1,
+        marginHorizontal: scale(8),
+    },
+    quickActionContent: {
+        alignItems: 'center',
+    },
+    quickActionText: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(14),
+        marginTop: verticalScale(8),
+        textAlign: 'center',
+    },
+    featuredCollectionsContainer: {
+        marginTop: verticalScale(24),
+    },
+    collectionCard: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: scale(12),
+        marginBottom: verticalScale(16),
+        overflow: 'hidden',
+    },
+    collectionImage: {
+        width: '100%',
+        height: verticalScale(120),
+        resizeMode: 'cover',
+    },
+    collectionInfo: {
+        padding: scale(16),
+    },
+    collectionTitle: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(18),
+        fontWeight: '600',
+        marginBottom: verticalScale(4),
+    },
+    collectionDescription: {
+        color: '#8E8E93',
+        fontSize: moderateScale(14),
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: verticalScale(24),
+        backgroundColor: '#1C1C1E',
+        borderRadius: scale(12),
+        padding: scale(16),
+    },
+    statItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    statValue: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(20),
+        fontWeight: 'bold',
+    },
+    statLabel: {
+        color: '#8E8E93',
+        fontSize: moderateScale(12),
+        marginTop: verticalScale(4),
+    },
+    recentActivityContainer: {
+        marginTop: verticalScale(24),
+    },
+    subSectionTitle: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(16),
+        fontWeight: '600',
+        marginBottom: verticalScale(16),
+    },
+    activityList: {
+        backgroundColor: '#1C1C1E',
+        borderRadius: scale(12),
+        padding: scale(16),
+        minHeight: verticalScale(100),
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyActivityText: {
+        color: '#8E8E93',
+        fontSize: moderateScale(14),
+    },
+    userLogoSection: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: verticalScale(40),
+        paddingHorizontal: scale(20),
+    },
+    userLogo: {
+        width: scale(200),
+        height: scale(200),
+        resizeMode: 'contain',
+    },
+    connectedArtistsSection: {
+        marginTop: verticalScale(20),
+        paddingHorizontal: scale(16),
+    },
+    artistsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginTop: verticalScale(16),
+    },
+    artistCard: {
+        width: '48%',
+        backgroundColor: '#1C1C1E',
+        borderRadius: scale(12),
+        padding: scale(16),
+        marginBottom: verticalScale(16),
+        alignItems: 'center',
+    },
+    artistAvatar: {
+        width: scale(80),
+        height: scale(80),
+        borderRadius: scale(40),
+        marginBottom: verticalScale(8),
+    },
+    artistName: {
+        color: '#FFFFFF',
+        fontSize: moderateScale(14),
+        fontWeight: '500',
+        textAlign: 'center',
+    },
+    noArtistsText: {
+        color: '#8E8E93',
+        fontSize: moderateScale(16),
+        textAlign: 'center',
+        marginTop: verticalScale(20),
+    },
 });
 
-export default styles
+export default styles;

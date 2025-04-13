@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,19 +15,25 @@ import {
   Keyboard,
   Modal,
   FlatList,
+  ActivityIndicator,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import axios from 'axios';
 import { BASEURL } from '../assets/constants';
 import LinearGradient from 'react-native-linear-gradient';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
-import { uploadImageToBucket } from '../utils';
+import { uploadImageToBucket, uploadSignatureFile } from '../utils';
 import { setAccessToken, setUserProfile } from '../assets/redux/actions'; // Adjust the path as needed
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { convertToTemporaryFile } from '../assets/components/convertToTemporaryFileHelper';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { Linking } from 'react-native';
 import styles from './sharedStyles/ProfileScreenStyles';
 
 
@@ -46,6 +52,27 @@ const ProfileScreen = () => {
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
   const dispatch = useDispatch();
+  const [selectedSignatureImage, setSelectedSignatureImage] = useState(null);
+  const [isSignatureLoading, setIsSignatureLoading] = useState(false);
+  const [showSignatureOptions, setShowSignatureOptions] = useState(false);
+  const [loadingText, setLoadingText] = useState('Creating your signature');
+  const [subLoadingText, setSubLoadingText] = useState('');
+  const [isCancelled, setIsCancelled] = useState(false);
+  const logoScale = useRef(new Animated.Value(0)).current;
+  const progressAnimation = useRef(new Animated.Value(0)).current;
+  const userLogoScale = useRef(new Animated.Value(1)).current;
+  const [connectedArtists, setConnectedArtists] = useState([]);
+
+  const animateProgress = (toValue, duration = 3000) => {
+    return new Promise((resolve) => {
+      Animated.timing(progressAnimation, {
+        toValue,
+        duration,
+        useNativeDriver: false,
+        easing: Easing.inOut(Easing.ease),
+      }).start(resolve);
+    });
+  };
 
   const fetchBlockedUsers = async () => {
     try {
@@ -344,6 +371,323 @@ const ProfileScreen = () => {
     }
   };
 
+  const renderOptions = () => (
+    <View style={styles.optionsBox}>
+      <TouchableOpacity
+        style={styles.optionButton}
+        onPress={() => {
+          setOptionsVisible(false);
+          setPasswordUpdateVisible(true);
+        }}>
+        <Text style={styles.optionText}>Change Password</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.optionButton}
+        onPress={() => {
+          setOptionsVisible(false);
+          fetchBlockedUsers();
+          try {
+            console.log('Attempting to navigate to BlockedUsers with data:', { blockedUsers });
+            navigation.navigate('BlockedUsers', { 
+              blockedUsers: { data: { blocked_users: blockedUsers } }
+            });
+          } catch (error) {
+            console.error('Navigation error:', error);
+            Alert.alert('Error', 'Failed to open blocked users screen. Please try again.');
+          }
+        }}>
+        <Text style={styles.optionText}>Blocked Users</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.optionButton}
+        onPress={() => {
+          setOptionsVisible(false);
+          setDeleteModalVisible(true);
+        }}>
+        <Text style={[styles.optionText, { color: '#FF3B30' }]}>Delete Account</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.optionButton, styles.lastOptionButton]}
+        onPress={() => {
+          setOptionsVisible(false);
+          handleLogout();
+        }}>
+        <Text style={[styles.optionText, { color: '#FF3B30' }]}>Logout</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const takeSignaturePicture = async () => {
+    try {
+      const permission =
+        Platform.OS === 'android'
+          ? PERMISSIONS.ANDROID.CAMERA
+          : PERMISSIONS.IOS.CAMERA;
+  
+      const result = await check(permission);
+  
+      const options = {
+        mediaType: 'photo',
+        includeBase64: false,
+        saveToPhotos: true,
+      };
+  
+      if (result === RESULTS.GRANTED) {
+        launchCamera(options, async (response) => {
+          if (response.didCancel) {
+            console.log('User cancelled image picker');
+          } else if (response.errorMessage) {
+            console.error('ImagePicker Error: ', response.errorMessage);
+          } else if (response.assets && response.assets.length > 0) {
+            const selectedImage = response.assets[0];
+            try {
+              const fileUri = Platform.OS === 'android' && selectedImage.uri.startsWith('content://')
+                ? await convertToTemporaryFile(selectedImage.uri, 'png')
+                : selectedImage.uri;
+
+              await createSignature({ ...selectedImage, uri: fileUri });
+            } catch (error) {
+              console.error('Error handling selected file:', error);
+            }
+          }
+        });
+      } else if (result === RESULTS.DENIED) {
+        const requestResult = await request(permission);
+        if (requestResult === RESULTS.GRANTED) {
+          launchCamera(options, async (response) => {
+            if (response.didCancel) {
+              console.log('User cancelled image picker');
+            } else if (response.errorMessage) {
+              console.error('ImagePicker Error: ', response.errorMessage);
+            } else if (response.assets && response.assets.length > 0) {
+              const selectedImage = response.assets[0];
+              try {
+                const fileUri = Platform.OS === 'android' && selectedImage.uri.startsWith('content://')
+                  ? await convertToTemporaryFile(selectedImage.uri, 'png')
+                  : selectedImage.uri;
+
+                await createSignature({ ...selectedImage, uri: fileUri });
+              } catch (error) {
+                console.error('Error handling selected file:', error);
+              }
+            }
+          });
+        } else {
+          Alert.alert(
+            'Permission Required',
+            'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
+          );
+        }
+      } else if (result === RESULTS.BLOCKED) {
+        Alert.alert(
+          'Permission Required',
+          'Camera access has been blocked. Please enable it in your device settings.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings(),
+            },
+          ],
+        );
+      }
+    } catch (error) {
+      console.error('Error checking camera permission:', error);
+    }
+  };
+
+  const uploadSignatureImage = () => {
+    const options = {
+      mediaType: 'photo',
+      includeBase64: false,
+    };
+    
+    launchImageLibrary(options, async (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorMessage) {
+        console.error('ImagePicker Error: ', response.errorMessage);
+      } else if (response.assets && response.assets.length > 0) {
+        const selectedImage = response.assets[0];
+        try {
+          const fileUri = Platform.OS === 'android' && selectedImage.uri.startsWith('content://')
+            ? await convertToTemporaryFile(selectedImage.uri, 'png')
+            : selectedImage.uri;
+
+          await createSignature({ ...selectedImage, uri: fileUri });
+        } catch (error) {
+          console.error('Error handling selected file:', error);
+        }
+      }
+    });
+  };
+
+  const updateLoadingState = async () => {
+    const states = [
+      { main: 'Creating your signature', sub: 'Verifying your photo', progress: 0.25 },
+      { main: 'Creating your signature', sub: 'Analyzing signature style', progress: 0.5 },
+      { main: 'Creating your signature', sub: 'Generating digital version', progress: 0.75 },
+      { main: 'Creating your signature', sub: 'Almost done', progress: 0.9 }
+    ];
+
+    for (const state of states) {
+      if (isCancelled) return;
+      setLoadingText(state.main);
+      setSubLoadingText(state.sub);
+      await animateProgress(state.progress);
+    }
+  };
+
+  const animateLogo = () => {
+    logoScale.setValue(0);
+    Animated.spring(logoScale, {
+      toValue: 1,
+      friction: 3,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const createSignature = async (image) => {
+    if (!image || !image.uri) {
+      Alert.alert("Error", "No image selected. Please try again.");
+      return;
+    }
+
+    setIsSignatureLoading(true);
+    setIsCancelled(false);
+    progressAnimation.setValue(0);
+    animateLogo();
+    
+    try {
+      updateLoadingState();
+
+      const s3Url = await uploadSignatureFile(accessToken, image.uri);
+      if (!s3Url) {
+        throw new Error("Failed to upload image to S3");
+      }
+
+      const payload = new URLSearchParams({ url: s3Url }).toString();
+      const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Bearer ${accessToken}`,
+      };
+
+      const response = await axios.post(`${BASEURL}/api/v1/signature/create`, payload, { headers });
+
+      if (response.status === 200 || response.status === 201) {
+        setLoadingText('Creating your signature');
+        setSubLoadingText('Complete!');
+        await animateProgress(1, 1000);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        navigation.navigate('ArtistSignatures');
+      } else {
+        throw new Error('Failed to create signature');
+      }
+    } catch (error) {
+      if (!isCancelled) {
+        console.error('Error creating signature:', error);
+        Alert.alert('Error', 'An error occurred while creating the signature. Please try again.');
+      }
+    } finally {
+      setIsSignatureLoading(false);
+      setLoadingText('');
+      setSubLoadingText('');
+      progressAnimation.setValue(0);
+    }
+  };
+
+  const deleteSignature = async (signatureId) => {
+    try {
+      const response = await axios.delete(`${BASEURL}/api/v1/signature/${signatureId}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.status === 200) {
+        Alert.alert('Success', 'Signature deleted successfully');
+        // Refresh signatures list
+        fetchSignatures();
+      } else {
+        throw new Error('Failed to delete signature');
+      }
+    } catch (error) {
+      console.error('Error deleting signature:', error);
+      Alert.alert('Error', 'Failed to delete signature. Please try again.');
+    }
+  };
+
+  // Add new animation function for user logo
+  const animateUserLogo = () => {
+    Animated.sequence([
+      Animated.spring(userLogoScale, {
+        toValue: 1.1,
+        friction: 3,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.spring(userLogoScale, {
+        toValue: 1,
+        friction: 3,
+        tension: 40,
+        useNativeDriver: true,
+      })
+    ]).start();
+  };
+
+  // Add useEffect for periodic animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      animateUserLogo();
+    }, 5000);
+
+    // Initial animation
+    animateUserLogo();
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Add function to fetch connected artists
+  const fetchConnectedArtists = async () => {
+    try {
+      const response = await axios.get(`${BASEURL}/api/v1/post/?pageNo=1&pageSize=10`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      const postsData = response.data?.data?.posts || [];
+      
+      // Extract unique artists from posts
+      const uniqueArtists = postsData.reduce((acc, post) => {
+        if (post.user && !acc.some(artist => artist.id === post.user.id)) {
+          acc.push({
+            id: post.user.id,
+            name: post.user.full_name,
+            avatarUrl: post.user.avatar_url
+          });
+        }
+        return acc;
+      }, []);
+
+      setConnectedArtists(uniqueArtists);
+    } catch (error) {
+      console.error('Error fetching connected artists:', error);
+    }
+  };
+
+  // Add useEffect to fetch artists when component mounts
+  useEffect(() => {
+    if (profile.data?.role !== 'ARTIST') {
+      fetchConnectedArtists();
+    }
+  }, [profile.data?.role]);
+
   return (
     <>
       <StatusBar backgroundColor="#000" barStyle="light-content" />
@@ -426,56 +770,97 @@ const ProfileScreen = () => {
               </View>
             </View>
 
-            {/* Actions Section */}
-            <View style={styles.actionsSection}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => setPasswordUpdateVisible(!isPasswordUpdateVisible)}>
-                <Text style={styles.actionButtonText}>
-                  {isPasswordUpdateVisible ? 'Cancel Password Update' : 'Update Password'}
-                </Text>
-              </TouchableOpacity>
+            {/* Conditional Sections based on User Role */}
+            {profile.data?.role === 'ARTIST' ? (
+              // Artist Signature Management Section
+              <View style={styles.signatureSection}>
+                <Text style={styles.sectionTitle}>Signature Management</Text>
+                <View style={styles.signatureButtonsContainer}>
+                  <TouchableOpacity 
+                    style={styles.signatureButton}
+                    onPress={() => {
+                      Alert.alert(
+                        'Create Signature',
+                        'Choose an option',
+                        [
+                          { text: 'Take Photo', onPress: takeSignaturePicture },
+                          { text: 'Upload Photo', onPress: uploadSignatureImage },
+                          { text: 'Cancel', style: 'cancel' }
+                        ]
+                      );
+                    }}>
+                    <View style={styles.signatureButtonContent}>
+                      <Icon name="plus-circle" size={32} color="#FFFFFF" />
+                      <Text style={styles.signatureButtonText}>Create{'\n'}Signature</Text>
+                    </View>
+                  </TouchableOpacity>
 
-              {isPasswordUpdateVisible && (
-                <View style={styles.passwordForm}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Current Password"
-                    placeholderTextColor="#8E8E93"
-                    secureTextEntry
-                    value={currentPassword}
-                    onChangeText={setCurrentPassword}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="New Password"
-                    placeholderTextColor="#8E8E93"
-                    secureTextEntry
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirm New Password"
-                    placeholderTextColor="#8E8E93"
-                    secureTextEntry
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                  />
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.submitButton]}
-                    onPress={updatePasswordHandler}>
-                    <Text style={styles.actionButtonText}>Update Password</Text>
+                  <TouchableOpacity 
+                    style={styles.signatureButton}
+                    onPress={() => navigation.navigate('ArtistSignatures')}>
+                    <View style={styles.signatureButtonContent}>
+                      <Icon name="folder" size={32} color="#FFFFFF" />
+                      <Text style={styles.signatureButtonText}>View{'\n'}Signatures</Text>
+                    </View>
                   </TouchableOpacity>
                 </View>
-              )}
 
-              <TouchableOpacity
-                style={[styles.actionButton, styles.logoutButton]}
-                onPress={handleLogout}>
-                <Text style={styles.logoutButtonText}>Logout</Text>
-              </TouchableOpacity>
-            </View>
+                {isSignatureLoading && (
+                  <View style={styles.loadingContainer}>
+                    <View style={styles.loadingContent}>
+                      <Animated.Image 
+                        source={require('../assets/images/1024.png')} 
+                        style={[
+                          styles.loadingIcon,
+                          {
+                            transform: [
+                              { scale: logoScale }
+                            ]
+                          }
+                        ]} 
+                      />
+                      <Text style={styles.loadingMainText}>{loadingText}</Text>
+                      <Text style={styles.loadingSubText}>{subLoadingText}</Text>
+                      <View style={styles.progressBarContainer}>
+                        <Animated.View 
+                          style={[
+                            styles.progressBar, 
+                            { 
+                              width: progressAnimation.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0%', '100%']
+                              })
+                            }
+                          ]} 
+                        />
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={styles.connectedArtistsSection}>
+                <Text style={styles.sectionTitle}>Your DayOnes Artists</Text>
+                {connectedArtists.length > 0 ? (
+                  <View style={styles.artistsGrid}>
+                    {connectedArtists.map((artist, index) => (
+                      <View 
+                        key={artist.id} 
+                        style={styles.artistCard}
+                      >
+                        <Image 
+                          source={{ uri: artist.avatarUrl || 'https://example.com/default-avatar.png' }}
+                          style={styles.artistAvatar}
+                        />
+                        <Text style={styles.artistName}>{artist.name}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.noArtistsText}>No connected artists yet</Text>
+                )}
+              </View>
+            )}
 
             {/* Modals */}
             <Modal
@@ -521,30 +906,7 @@ const ProfileScreen = () => {
               transparent={true}>
               <TouchableWithoutFeedback onPress={() => setOptionsVisible(false)}>
                 <View style={styles.optionsModalContainer}>
-                  <View style={styles.optionsBox}>
-                    <TouchableOpacity
-                      style={styles.optionButton}
-                      onPress={() => {
-                        setOptionsVisible(false);
-                        setMenuVisible(true);
-                        fetchBlockedUsers();
-                      }}>
-                      <Text style={styles.optionText}>Blocked Users</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.optionButton, styles.deleteOptionButton]}
-                      onPress={() => {
-                        setOptionsVisible(false);
-                        setDeleteModalVisible(true);
-                      }}>
-                      <Text style={styles.deleteOptionText}>Delete Account</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.optionButton, styles.lastOptionButton]}
-                      onPress={() => setOptionsVisible(false)}>
-                      <Text style={styles.optionText}>Cancel</Text>
-                    </TouchableOpacity>
-                  </View>
+                  {renderOptions()}
                 </View>
               </TouchableWithoutFeedback>
             </Modal>
@@ -554,6 +916,5 @@ const ProfileScreen = () => {
     </>
   );
 };
-
 
 export default ProfileScreen;
