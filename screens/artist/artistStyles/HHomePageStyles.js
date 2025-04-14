@@ -5,16 +5,16 @@ const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
         backgroundColor: '#000',
-        padding: scale(10),
+        paddingHorizontal: scale(10),
         alignItems: 'center',
-        paddingTop: verticalScale(20), // Add padding to the top
-        paddingBottom: verticalScale(40),
+        paddingTop: verticalScale(15),
+        paddingBottom: verticalScale(20),
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: verticalScale(30), // Increased margin below header
+        marginBottom: verticalScale(20),
         width: '100%',
     },
     headerText: {
@@ -23,8 +23,8 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     logo: {
-        width: scale(50), // Scaled width
-        height: verticalScale(50), // Scaled height
+        width: scale(50),
+        height: verticalScale(50),
         resizeMode: 'contain',
     },
     imageContainer: {
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
         height: verticalScale(150),
         borderRadius: scale(20),
         overflow: 'hidden',
-        marginBottom: verticalScale(25), // Increased margin below image
+        marginBottom: verticalScale(15),
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -53,58 +53,58 @@ const styles = StyleSheet.create({
     },
     clearButton: {
         position: 'absolute',
-        top: verticalScale(10), // Scaled top position
-        right: scale(10), // Scaled right position
+        top: verticalScale(10),
+        right: scale(10),
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        padding: scale(5), // Scaled padding
+        padding: scale(5),
         borderRadius: scale(5),
     },
     pictureContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         width: '100%',
-        marginBottom: verticalScale(30), // Increased margin below picture buttons
+        marginBottom: verticalScale(20),
     },
     pictureButton: {
         width: '45%',
-        height: verticalScale(60), // Adjusted height for scaling
+        height: verticalScale(60),
         backgroundColor: '#000',
         borderColor: '#000',
         borderWidth: 1,
-        borderRadius: scale(10), // Scaled border radius
+        borderRadius: scale(10),
         alignItems: 'center',
         justifyContent: 'center',
     },
     cameraIcon: {
-        marginBottom: verticalScale(1), // Scaled margin
+        marginBottom: verticalScale(1),
     },
     uploadIcon: {
-        marginBottom: verticalScale(1), // Scaled margin
+        marginBottom: verticalScale(1),
     },
     buttonText: {
         color: '#C0C0C0',
-        fontSize: moderateScale(14), // Scaled font size
+        fontSize: moderateScale(14),
         fontWeight: 'bold',
     },
     switchContainer: {
         width: '100%',
         alignItems: 'center',
-        marginBottom: verticalScale(25), // Increased margin below switch
+        marginBottom: verticalScale(45),
     },
     sliderLabel: {
-        fontSize: moderateScale(16), // Scaled font size
+        fontSize: moderateScale(16),
         color: '#C0C0C0',
-        marginBottom: verticalScale(5), // Scaled margin
+        marginBottom: verticalScale(5),
     },
     sendButtonContainer: {
         width: '100%',
         borderRadius: scale(10),
         overflow: 'hidden',
-        marginTop: verticalScale(10), // Added some margin above send button
-        marginBottom: verticalScale(25),
+        marginTop: verticalScale(5),
+        marginBottom: verticalScale(15),
     },
     sendButtonGradient: {
-        paddingVertical: verticalScale(15), // Slightly increased padding
+        paddingVertical: verticalScale(15),
         borderRadius: scale(10),
         width: '100%',
         alignItems: 'center',
@@ -132,33 +132,33 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     radioGroup: {
-        marginBottom: verticalScale(25), // Increased margin below radio group
+        marginBottom: verticalScale(15),
         alignItems: 'center',
         color: '#C0C0C0',
-        width: '100%', // Ensure it takes full width for alignment
+        width: '100%',
     },
     radioGroupLabel: {
         fontSize: moderateScale(14),
         color: '#C0C0C0',
-        marginBottom: verticalScale(10), // Added margin below label
+        marginBottom: verticalScale(8),
     },
     radioButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: verticalScale(5), // Scaled margin
+        marginBottom: verticalScale(5),
     },
     radioLabel: {
         color: '#C0C0C0',
-        marginLeft: scale(10), // Scaled margin
-        fontSize: moderateScale(14), // Scaled font size
+        marginLeft: scale(10),
+        fontSize: moderateScale(14),
     },
     personalMediaText: {
         color: '#C0C0C0',
-        fontSize: moderateScale(16), // Scaled font size
+        fontSize: moderateScale(16),
         fontWeight: 'bold',
         textAlign: 'center',
-        marginTop: verticalScale(-5), // Scaled margin
-        marginBottom: verticalScale(20), // Scaled margin
+        marginTop: verticalScale(-5),
+        marginBottom: verticalScale(20),
     },
     placeholderContainer: {
         width: '100%',
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     overlayText: {
         color: '#C0C0C0',
         top: verticalScale(-37),
-        fontSize: moderateScale(18), // Adjusted font size for scaling
+        fontSize: moderateScale(18),
         fontWeight: 'bold',
         textAlign: 'center',
     },
