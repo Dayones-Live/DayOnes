@@ -364,13 +364,8 @@ const HHomePage = () => {
         <ProfilePictureButton />
 
         <View style={styles.header}>
-          <Image
-            source={require('../../assets/images/1024.png')}
-            style={styles.logo}
-          />
+          <Text style={styles.headerText}>DayOnes Live</Text>
         </View>
-
-        <Text style={styles.personalMediaText}>Personal Media</Text>
 
         <View style={styles.imageContainer}>
           {selectedImage ? (

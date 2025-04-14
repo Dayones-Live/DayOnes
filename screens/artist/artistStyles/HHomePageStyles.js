@@ -5,21 +5,22 @@ const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
         backgroundColor: '#000',
-        padding: scale(10), // Adjusted padding for consistency
+        padding: scale(10),
         alignItems: 'center',
-        paddingBottom: verticalScale(40), // Scaled bottom padding
+        paddingTop: verticalScale(20), // Add padding to the top
+        paddingBottom: verticalScale(40),
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: verticalScale(10), // Scaled margin
+        justifyContent: 'center',
+        marginBottom: verticalScale(30), // Increased margin below header
+        width: '100%',
     },
     headerText: {
-        color: '#C0C0C0',
-        fontSize: moderateScale(18), // Adjusted font size for scaling
+        color: 'white',
+        fontSize: moderateScale(24),
         fontWeight: 'bold',
-        marginHorizontal: scale(5), // Scaled margin
-        marginVertical: verticalScale(10), // Scaled margin
     },
     logo: {
         width: scale(50), // Scaled width
@@ -28,10 +29,10 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         width: '100%',
-        height: verticalScale(150), // Adjusted height for scaling
-        borderRadius: scale(20), // Scaled border radius
+        height: verticalScale(150),
+        borderRadius: scale(20),
         overflow: 'hidden',
-        marginBottom: verticalScale(10), // Scaled margin
+        marginBottom: verticalScale(25), // Increased margin below image
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         width: '100%',
-        marginBottom: verticalScale(20), // Scaled margin
+        marginBottom: verticalScale(30), // Increased margin below picture buttons
     },
     pictureButton: {
         width: '45%',
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
     switchContainer: {
         width: '100%',
         alignItems: 'center',
-        marginBottom: verticalScale(10), // Scaled margin
+        marginBottom: verticalScale(25), // Increased margin below switch
     },
     sliderLabel: {
         fontSize: moderateScale(16), // Scaled font size
@@ -99,10 +100,8 @@ const styles = StyleSheet.create({
         width: '100%',
         borderRadius: scale(10),
         overflow: 'hidden',
-        marginVertical: verticalScale(-5
-
-        ),
-        marginBottom: verticalScale(25), // Increased bottom margin
+        marginTop: verticalScale(10), // Added some margin above send button
+        marginBottom: verticalScale(25),
     },
     sendButtonGradient: {
         paddingVertical: verticalScale(15), // Slightly increased padding
@@ -133,14 +132,15 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     radioGroup: {
-        marginBottom: verticalScale(10), // Scaled margin
+        marginBottom: verticalScale(25), // Increased margin below radio group
         alignItems: 'center',
         color: '#C0C0C0',
+        width: '100%', // Ensure it takes full width for alignment
     },
     radioGroupLabel: {
-        fontSize: moderateScale(14), // Scaled font size
+        fontSize: moderateScale(14),
         color: '#C0C0C0',
-        marginBottom: verticalScale(5), // Scaled margin
+        marginBottom: verticalScale(10), // Added margin below label
     },
     radioButton: {
         flexDirection: 'row',
