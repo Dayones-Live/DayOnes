@@ -154,6 +154,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
+  signupButton: {
+    marginLeft: -13,
+    padding: 13,
+  },
   bottomPlaceholder: {
     height: 50,
   }

@@ -9,7 +9,9 @@ import {
   Dimensions,
   Image,
   Alert,
-  Keyboard
+  Keyboard,
+  Platform,
+  Pressable
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
@@ -17,12 +19,13 @@ import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import useLogin from '../assets/hooks/useLogin';
 import { check, PERMISSIONS, RESULTS } from 'react-native-permissions';
-import { Platform } from 'react-native';
 import styles from './sharedStyles/LoginPageStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { handleGoogleSignIn } from '../assets/services/auth.service';
 import { setAccessToken, setUserProfile } from '../assets/redux/actions';
+import { AppleSignInButton } from '../components/AppleSignInButton';
+import { handleAppleSignIn } from '../assets/services/auth.service';
 
 const { width } = Dimensions.get('window');
 
@@ -202,6 +205,68 @@ const LoginScreen = () => {
     }
   };
 
+  const handleAppleLogin = async () => {
+    console.log('🔑 [LoginPage] Starting Apple login process...');
+    try {
+      setIsGoogleLoading(true);
+      console.log('🔄 [LoginPage] Calling Apple sign-in...');
+      const result = await handleAppleSignIn();
+      console.log('✅ [LoginPage] Apple sign-in result:', JSON.stringify(result, null, 2));
+
+      if (result?.token) {
+        console.log('💾 [LoginPage] Storing Apple auth data in AsyncStorage...');
+        await AsyncStorage.multiSet([
+          ['authToken', result.token],
+          ['refreshToken', result.refreshToken],
+          ['tokenExpiry', (Date.now() + result.expiresIn * 1000).toString()],
+          ['userRole', result.user.role],
+          ['userData', JSON.stringify(result.user)]
+        ]);
+        console.log('✅ [LoginPage] Apple auth data stored successfully');
+
+        console.log('🔄 [LoginPage] Updating Redux store...');
+        dispatch(setAccessToken(result.token));
+        dispatch(setUserProfile({
+          data: result.user,
+          role: result.user.role
+        }));
+        console.log('✅ [LoginPage] Redux store updated successfully');
+
+        // Check permissions and navigate
+        const permissionsGranted = await checkAllPermissions();
+        if (permissionsGranted) {
+          if (result.user.role === 'ARTIST') {
+            console.log('🎨 [LoginPage] Navigating to ArtistStack');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'ArtistStack' }],
+            });
+          } else if (result.user.role === 'USER') {
+            console.log('👤 [LoginPage] Navigating to FanStack');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'FanStack' }],
+            });
+          }
+        } else {
+          console.log('🔒 [LoginPage] Navigating to PermissionsScreen');
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'PermissionsScreen' }],
+          });
+        }
+      } else {
+        console.error('❌ [LoginPage] Token missing in Apple sign-in result');
+        Alert.alert('Error', 'Failed to get authentication token from Apple sign-in.');
+      }
+    } catch (error) {
+      console.error('❌ [LoginPage] Apple sign-in error:', error);
+      Alert.alert('Error', 'Apple sign-in failed. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -269,6 +334,18 @@ const LoginScreen = () => {
             <View style={styles.orDividerLine} />
           </View>
 
+          {Platform.OS === 'ios' && (
+            <AppleSignInButton
+              onSuccess={() => {
+                console.log('Apple sign-in completed successfully');
+              }}
+              onError={(error) => {
+                console.error('Apple sign-in error:', error);
+                Alert.alert('Error', 'Apple sign-in failed. Please try again.');
+              }}
+            />
+          )}
+
           <TouchableOpacity
             onPress={handleGoogleLogin}
             style={styles.googleButton}
@@ -287,9 +364,26 @@ const LoginScreen = () => {
 
           <View style={styles.signupContainer}>
             <Text style={styles.signupText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('RegFanPage')}>
+            <Pressable 
+              onPressIn={() => console.log('Signup button pressed in')}
+              onPressOut={() => console.log('Signup button pressed out')}
+              onPress={() => {
+                console.log('Signup button pressed - attempting navigation');
+                try {
+                  navigation.navigate('RegFanPage');
+                  console.log('Navigation successful');
+                } catch (error) {
+                  console.error('Navigation error:', error);
+                }
+              }}
+              style={({ pressed }) => [
+                styles.signupButton,
+                { opacity: pressed ? 0.7 : 1 }
+              ]}
+              hitSlop={20}
+            >
               <Text style={[styles.signupText, styles.signupLink]}>Sign Up</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
         </View>

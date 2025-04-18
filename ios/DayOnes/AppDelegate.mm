@@ -2,6 +2,7 @@
 #import <React/RCTBundleURLProvider.h>
 #import <Firebase.h>
 #import <GoogleSignIn/GoogleSignIn.h>
+#import <AuthenticationServices/AuthenticationServices.h>
 
 @implementation AppDelegate
 
@@ -10,6 +11,26 @@
   [FIRApp configure];
   NSLog(@"[GoogleSignIn] App Launch - Bundle ID: %@", [[NSBundle mainBundle] bundleIdentifier]);
   NSLog(@"[GoogleSignIn] App Launch - URL Types: %@", [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleURLTypes"]);
+  
+  // Configure Apple Sign-in
+  if (@available(iOS 13.0, *)) {
+    ASAuthorizationAppleIDProvider *provider = [[ASAuthorizationAppleIDProvider alloc] init];
+    [provider getCredentialStateForUserID:[[NSUserDefaults standardUserDefaults] stringForKey:@"userIdentifier"] completion:^(ASAuthorizationAppleIDProviderCredentialState credentialState, NSError * _Nullable error) {
+      switch (credentialState) {
+        case ASAuthorizationAppleIDProviderCredentialAuthorized:
+          NSLog(@"Apple ID Credential is valid");
+          break;
+        case ASAuthorizationAppleIDProviderCredentialRevoked:
+          NSLog(@"Apple ID Credential revoked");
+          break;
+        case ASAuthorizationAppleIDProviderCredentialNotFound:
+          NSLog(@"Apple ID Credential not found");
+          break;
+        default:
+          break;
+      }
+    }];
+  }
   
   self.moduleName = @"DayOnes";
   // You can add your custom initial props in the dictionary below.

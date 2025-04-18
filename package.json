@@ -12,6 +12,7 @@
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.637.0",
     "@expo/vector-icons": "^14.0.2",
+    "@invertase/react-native-apple-authentication": "^2.4.1",
     "@ptomasroos/react-native-multi-slider": "^2.2.2",
     "@react-native-async-storage/async-storage": "^1.24.0",
     "@react-native-community/geolocation": "^3.4.0",
@@ -27,6 +28,7 @@
     "@tanstack/react-query": "^4.36.1",
     "aws-amplify": "^6.5.0",
     "axios": "^1.7.7",
+    "base-64": "^1.0.0",
     "expo": "^51.0.32",
     "expo-font": "^12.0.10",
     "ngeohash": "^0.6.3",
