@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, Image, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { SafeAreaView, View, Text, Image, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, Linking, Keyboard } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import EvilIcons from 'react-native-vector-icons/EvilIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -717,6 +717,12 @@ const DMDetailPage = ({ route }) => {
             value={commentText}
             onChangeText={(text) => setCommentText(text.slice(0, MAX_COMMENT_LENGTH))}
             multiline
+            returnKeyType="done"
+            blurOnSubmit={true}
+            onSubmitEditing={(e) => {
+              e.preventDefault();
+              Keyboard.dismiss();
+            }}
           />
 
           <TouchableOpacity onPress={handleSelectMedia} style={styles.icon}>
