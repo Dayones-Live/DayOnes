@@ -691,26 +691,32 @@ const ProfileScreen = () => {
   return (
     <>
       <StatusBar backgroundColor="#000" barStyle="light-content" />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView style={styles.container}>
-            {/* Header Section */}
-            <View style={styles.header}>
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={handleNavigateHome}>
-                <Icon name="home" size={24} color="#fff" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Profile</Text>
-              <TouchableOpacity
-                style={styles.menuIcon}
-                onPress={() => setOptionsVisible(true)}>
-                <Icon name="ellipsis-v" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
+      <View style={styles.container}>
+        {/* Fixed Header */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={handleNavigateHome}>
+            <Icon name="home" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity
+            style={styles.menuIcon}
+            onPress={() => setOptionsVisible(true)}>
+            <Icon name="ellipsis-v" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
+        {/* Scrollable Content */}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}>
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            contentContainerStyle={{ paddingBottom: 20 }}>
+            
             {/* Profile Image Section */}
             <View style={styles.profileImageContainer}>
               <View style={styles.imageWrapper}>
@@ -733,7 +739,7 @@ const ProfileScreen = () => {
                       { text: 'Cancel', style: 'cancel' },
                     ])
                   }>
-                  <Icon name="camera" size={20} color="#fff" />
+                  <Icon name="camera" size={14} color="#fff" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -770,9 +776,8 @@ const ProfileScreen = () => {
               </View>
             </View>
 
-            {/* Conditional Sections based on User Role */}
+            {/* Role-specific Sections */}
             {profile.data?.role === 'ARTIST' ? (
-              // Artist Signature Management Section
               <View style={styles.signatureSection}>
                 <Text style={styles.sectionTitle}>Signature Management</Text>
                 <View style={styles.signatureButtonsContainer}>
@@ -790,7 +795,7 @@ const ProfileScreen = () => {
                       );
                     }}>
                     <View style={styles.signatureButtonContent}>
-                      <Icon name="plus-circle" size={32} color="#FFFFFF" />
+                      <Icon name="plus-circle" size={20} color="#FFFFFF" />
                       <Text style={styles.signatureButtonText}>Create{'\n'}Signature</Text>
                     </View>
                   </TouchableOpacity>
@@ -799,51 +804,18 @@ const ProfileScreen = () => {
                     style={styles.signatureButton}
                     onPress={() => navigation.navigate('ArtistSignatures')}>
                     <View style={styles.signatureButtonContent}>
-                      <Icon name="folder" size={32} color="#FFFFFF" />
+                      <Icon name="folder" size={20} color="#FFFFFF" />
                       <Text style={styles.signatureButtonText}>View{'\n'}Signatures</Text>
                     </View>
                   </TouchableOpacity>
                 </View>
-
-                {isSignatureLoading && (
-                  <View style={styles.loadingContainer}>
-                    <View style={styles.loadingContent}>
-                      <Animated.Image 
-                        source={require('../assets/images/1024.png')} 
-                        style={[
-                          styles.loadingIcon,
-                          {
-                            transform: [
-                              { scale: logoScale }
-                            ]
-                          }
-                        ]} 
-                      />
-                      <Text style={styles.loadingMainText}>{loadingText}</Text>
-                      <Text style={styles.loadingSubText}>{subLoadingText}</Text>
-                      <View style={styles.progressBarContainer}>
-                        <Animated.View 
-                          style={[
-                            styles.progressBar, 
-                            { 
-                              width: progressAnimation.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: ['0%', '100%']
-                              })
-                            }
-                          ]} 
-                        />
-                      </View>
-                    </View>
-                  </View>
-                )}
               </View>
             ) : (
               <View style={styles.connectedArtistsSection}>
                 <Text style={styles.sectionTitle}>Your DayOnes Artists</Text>
                 {connectedArtists.length > 0 ? (
                   <View style={styles.artistsGrid}>
-                    {connectedArtists.map((artist, index) => (
+                    {connectedArtists.map((artist) => (
                       <View 
                         key={artist.id} 
                         style={styles.artistCard}
@@ -861,58 +833,91 @@ const ProfileScreen = () => {
                 )}
               </View>
             )}
-
-            {/* Modals */}
-            <Modal
-              visible={isDeleteModalVisible}
-              transparent={true}
-              animationType="slide">
-              <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Delete Account</Text>
-                  <Text style={styles.modalMessage}>
-                    This action cannot be undone. Please type "delete" to confirm.
-                  </Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    placeholder="Type 'delete' to confirm"
-                    placeholderTextColor="#8E8E93"
-                    value={deleteInput}
-                    onChangeText={setDeleteInput}
-                  />
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setDeleteModalVisible(false);
-                        setDeleteInput('');
-                      }}>
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.deleteButton]}
-                      onPress={deleteUser}>
-                      <Text style={styles.deleteButtonText}>Delete Account</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
-
-            {/* Options Modal */}
-            <Modal
-              visible={optionsVisible}
-              animationType="fade"
-              transparent={true}>
-              <TouchableWithoutFeedback onPress={() => setOptionsVisible(false)}>
-                <View style={styles.optionsModalContainer}>
-                  {renderOptions()}
-                </View>
-              </TouchableWithoutFeedback>
-            </Modal>
           </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+
+        {/* Loading Overlay */}
+        {isSignatureLoading && (
+          <View style={styles.loadingContainer}>
+            <View style={styles.loadingContent}>
+              <Animated.Image 
+                source={require('../assets/images/1024.png')} 
+                style={[
+                  styles.loadingIcon,
+                  {
+                    transform: [
+                      { scale: logoScale }
+                    ]
+                  }
+                ]} 
+              />
+              <Text style={styles.loadingMainText}>{loadingText}</Text>
+              <Text style={styles.loadingSubText}>{subLoadingText}</Text>
+              <View style={styles.progressBarContainer}>
+                <Animated.View 
+                  style={[
+                    styles.progressBar, 
+                    { 
+                      width: progressAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%']
+                      })
+                    }
+                  ]} 
+                />
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Modals */}
+        <Modal
+          visible={isDeleteModalVisible}
+          transparent={true}
+          animationType="slide">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Delete Account</Text>
+              <Text style={styles.modalMessage}>
+                This action cannot be undone. Please type "delete" to confirm.
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Type 'delete' to confirm"
+                placeholderTextColor="#8E8E93"
+                value={deleteInput}
+                onChangeText={setDeleteInput}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    setDeleteModalVisible(false);
+                    setDeleteInput('');
+                  }}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.deleteButton]}
+                  onPress={deleteUser}>
+                  <Text style={styles.deleteButtonText}>Delete Account</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={optionsVisible}
+          animationType="fade"
+          transparent={true}>
+          <TouchableWithoutFeedback onPress={() => setOptionsVisible(false)}>
+            <View style={styles.optionsModalContainer}>
+              {renderOptions()}
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      </View>
     </>
   );
 };
