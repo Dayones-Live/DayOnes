@@ -361,31 +361,30 @@ const LoginScreen = () => {
               </Text>
             </View>
           </TouchableOpacity>
+        </View>
 
-          <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>Don't have an account? </Text>
-            <Pressable 
-              onPressIn={() => console.log('Signup button pressed in')}
-              onPressOut={() => console.log('Signup button pressed out')}
-              onPress={() => {
-                console.log('Signup button pressed - attempting navigation');
-                try {
-                  navigation.navigate('RegFanPage');
-                  console.log('Navigation successful');
-                } catch (error) {
-                  console.error('Navigation error:', error);
-                }
-              }}
-              style={({ pressed }) => [
-                styles.signupButton,
-                { opacity: pressed ? 0.7 : 1 }
-              ]}
-              hitSlop={20}
-            >
-              <Text style={[styles.signupText, styles.signupLink]}>Sign Up</Text>
-            </Pressable>
-          </View>
-
+        <View style={styles.signupContainer}>
+          <Text style={styles.signupText}>Don't have an account? </Text>
+          <Pressable 
+            onPressIn={() => console.log('Signup button pressed in')}
+            onPressOut={() => console.log('Signup button pressed out')}
+            onPress={() => {
+              console.log('Signup button pressed - attempting navigation');
+              try {
+                navigation.navigate('RegFanPage');
+                console.log('Navigation successful');
+              } catch (error) {
+                console.error('Navigation error:', error);
+              }
+            }}
+            style={({ pressed }) => [
+              styles.signupButton,
+              { opacity: pressed ? 0.7 : 1 }
+            ]}
+            hitSlop={20}
+          >
+            <Text style={[styles.signupText, styles.signupLink]}>Sign Up</Text>
+          </Pressable>
         </View>
 
         <View style={styles.bottomPlaceholder} />

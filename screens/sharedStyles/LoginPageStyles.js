@@ -9,11 +9,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 25,
-    paddingVertical: 40,
+    paddingVertical: 20,
   },
   topSection: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   logo: {
     width: 150,
@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 40,
+    marginBottom: 30,
     textAlign: 'center',
   },
   inputLabel: {
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     width: '100%',
-    marginBottom: 25,
+    marginBottom: 20,
   },
   input: {
     height: 50,
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 8,
     paddingHorizontal: 15,
-    marginBottom: 35,
+    marginBottom: 25,
     borderWidth: 1,
     borderColor: '#550055',
   },
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 8,
     overflow: 'hidden',
-    marginBottom: 25,
+    marginBottom: 20,
   },
   loginButton: {
     paddingVertical: 15,
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '90%',
     alignSelf: 'center',
-    marginVertical: 25,
+    marginVertical: 20,
   },
   orDividerLine: {
     flex: 1,
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    marginBottom: 20,
+    marginBottom: 15,
   },
   buttonContent: {
     flexDirection: 'row',
@@ -143,7 +143,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 15,
+    marginBottom: 10,
     width: '100%',
   },
   signupText: {
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
     padding: 13,
   },
   bottomPlaceholder: {
-    height: 50,
+    height: 20,
   }
 });
 
