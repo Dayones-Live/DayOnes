@@ -300,7 +300,12 @@ const NotificationsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.text}>Notifications</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <FontAwesome name="arrow-left" size={24} color="#fff" />
+        </TouchableOpacity>
         {(hasUnreadNotifications || markingAsRead) && (
           <TouchableOpacity 
             style={styles.markReadButton}

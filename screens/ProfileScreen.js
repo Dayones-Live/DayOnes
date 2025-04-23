@@ -475,27 +475,9 @@ const ProfileScreen = () => {
               }
             }
           });
-        } else {
-          Alert.alert(
-            'Permission Required',
-            'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
-          );
         }
       } else if (result === RESULTS.BLOCKED) {
-        Alert.alert(
-          'Permission Required',
-          'Camera access has been blocked. Please enable it in your device settings.',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: 'Open Settings',
-              onPress: () => Linking.openSettings(),
-            },
-          ],
-        );
+        Linking.openSettings();
       }
     } catch (error) {
       console.error('Error checking camera permission:', error);

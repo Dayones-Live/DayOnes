@@ -6,7 +6,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   contentContainer: {
-    flex: 1,
+    paddingHorizontal: 25,
+    paddingVertical: 20,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 25,
     paddingVertical: 20,
@@ -161,6 +165,27 @@ const styles = StyleSheet.create({
   },
   bottomPlaceholder: {
     height: 20,
+  },
+  socialButtonsContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  registerText: {
+    color: 'white',
+    fontSize: 14,
+  },
+  registerLink: {
+    color: 'white',
+    fontSize: 14,
+    marginLeft: 5,
+    fontWeight: '600',
   }
 });
 

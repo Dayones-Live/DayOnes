@@ -10,7 +10,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Modal
+  Modal,
+  Linking
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -171,15 +172,15 @@ const ConversationThread = ({ route }) => {
       // Check if permission is granted
       const result = await check(permission);
   
-      if (result === RESULTS.GRANTED) {
-        // Permission is already granted; define camera options
-        const options = {
-          mediaType: 'photo', // You can set 'photo', 'video', or 'mixed'
-          saveToPhotos: true, // Save the photo to the user's gallery
-          includeBase64: false, // Exclude base64 string for the file
-        };
+      // Define camera options
+      const options = {
+        mediaType: 'photo',
+        saveToPhotos: true,
+        includeBase64: false,
+      };
   
-        // Launch the camera
+      if (result === RESULTS.GRANTED) {
+        // Permission is already granted; launch the camera
         launchCamera(options, (response) => {
           if (response.didCancel) {
             console.log('User cancelled image picker');
@@ -196,28 +197,10 @@ const ConversationThread = ({ route }) => {
         const requestResult = await request(permission);
         if (requestResult === RESULTS.GRANTED) {
           handleTakeMedia(); // Retry camera after permission is granted
-        } else {
-          Alert.alert(
-            'Permission Required',
-            'Camera access is required to take a picture. Please enable camera permissions in your device settings.'
-          );
         }
       } else if (result === RESULTS.BLOCKED) {
-        // Permission is blocked; show an alert to guide the user to settings
-        Alert.alert(
-          'Permission Required',
-          'Camera access has been blocked. Please enable it in your device settings.',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: 'Open Settings',
-              onPress: () => Linking.openSettings(),
-            },
-          ]
-        );
+        // Permission is blocked; open settings
+        Linking.openSettings();
       }
     } catch (error) {
       console.error('Error checking camera permission:', error);

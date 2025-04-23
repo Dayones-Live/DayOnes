@@ -12,6 +12,9 @@ const styles = StyleSheet.create({
         marginVertical: 16,
         textAlign: 'center',
     },
+    backButton: {
+        padding: 8,
+    },
     listContent: {
         paddingBottom: 20,
     },

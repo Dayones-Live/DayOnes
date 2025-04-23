@@ -252,9 +252,9 @@ const ArtistPostsPage = () => {
   
       // Define options for launchCamera
       const options = {
-        mediaType: 'photo', // Capture photos only
-        includeBase64: false, // Don't include base64 string
-        saveToPhotos: true, // Save the photo to the user's gallery
+        mediaType: 'photo',
+        includeBase64: false,
+        saveToPhotos: true,
       };
   
       if (result === RESULTS.GRANTED) {
@@ -286,29 +286,10 @@ const ArtistPostsPage = () => {
               setMediaType('PHOTO');
             }
           });
-        } else {
-          // Permission denied
-          Alert.alert(
-            'Permission Required',
-            'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
-          );
         }
       } else if (result === RESULTS.BLOCKED) {
-        // Permission is blocked; show an alert to guide the user to settings
-        Alert.alert(
-          'Permission Required',
-          'Camera access has been blocked. Please enable it in your device settings.',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: 'Open Settings',
-              onPress: () => Linking.openSettings(),
-            },
-          ],
-        );
+        // Permission is blocked; open settings
+        Linking.openSettings();
       }
     } catch (error) {
       console.error('Error checking camera permission:', error);

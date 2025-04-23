@@ -11,7 +11,10 @@ import {
   Alert,
   Keyboard,
   Platform,
-  Pressable
+  Pressable,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
@@ -270,125 +273,121 @@ const LoginScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.contentContainer}>
-        <View style={styles.topSection}>
-          <Image
-            source={require('../assets/images/1024.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
-
-        <View style={styles.middleSection}>
-          <Text style={styles.pageTitle}>Log into DayOnes</Text>
-
-          <Text style={styles.inputLabel}>EMAIL</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[styles.input, { color: '#000' }]}
-              placeholder="Email"
-              placeholderTextColor="#888"
-              value={username}
-              onChangeText={setUsername}
-              editable={!isLoading}
-              textContentType="emailAddress"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <Text style={styles.inputLabel}>PASSWORD</Text>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={[styles.passwordInput, { color: '#000' }]}
-              placeholder="Password"
-              placeholderTextColor="#888"
-              value={password}
-              onChangeText={setPassword}
-              editable={!isLoading}
-              secureTextEntry={!isPasswordVisible}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIcon}>
-              <Feather
-                name={isPasswordVisible ? 'eye' : 'eye-off'}
-                size={20}
-                color="#888"
-              />
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            onPress={handleLogin}
-            style={styles.fullButtonContainer}
-            disabled={isLoading}
-          >
-            <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.loginButton}>
-              <Text style={[styles.buttonText, styles.loginButtonText]}>{isLoading ? 'Logging in...' : 'LOG IN'}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.orDividerContainer}>
-            <View style={styles.orDividerLine} />
-            <Text style={styles.orDividerText}>OR</Text>
-            <View style={styles.orDividerLine} />
-          </View>
-
-          {Platform.OS === 'ios' && (
-            <AppleSignInButton
-              onSuccess={() => {
-                console.log('Apple sign-in completed successfully');
-              }}
-              onError={(error) => {
-                console.error('Apple sign-in error:', error);
-                Alert.alert('Error', 'Apple sign-in failed. Please try again.');
-              }}
-            />
-          )}
-
-          <TouchableOpacity
-            onPress={handleGoogleLogin}
-            style={styles.googleButton}
-            disabled={isGoogleLoading}
-          >
-            <View style={styles.buttonContent}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContentContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.contentContainer}>
+            <View style={styles.topSection}>
               <Image
-                source={require('../assets/images/7123025_logo_google_g_icon-2.png')}
-                style={styles.googleLogo}
+                source={require('../assets/images/1024.png')}
+                style={styles.logo}
+                resizeMode="contain"
               />
-              <Text style={[styles.buttonText, styles.googleButtonText]}>
-                {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
-              </Text>
             </View>
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>Don't have an account? </Text>
-          <Pressable 
-            onPressIn={() => console.log('Signup button pressed in')}
-            onPressOut={() => console.log('Signup button pressed out')}
-            onPress={() => {
-              console.log('Signup button pressed - attempting navigation');
-              try {
-                navigation.navigate('RegFanPage');
-                console.log('Navigation successful');
-              } catch (error) {
-                console.error('Navigation error:', error);
-              }
-            }}
-            style={({ pressed }) => [
-              styles.signupButton,
-              { opacity: pressed ? 0.7 : 1 }
-            ]}
-            hitSlop={20}
-          >
-            <Text style={[styles.signupText, styles.signupLink]}>Sign Up</Text>
-          </Pressable>
-        </View>
+            <View style={styles.middleSection}>
+              <Text style={styles.pageTitle}>Log into DayOnes</Text>
 
-        <View style={styles.bottomPlaceholder} />
-      </View>
+              <Text style={styles.inputLabel}>EMAIL</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[styles.input, { color: '#000' }]}
+                  placeholder="Email"
+                  placeholderTextColor="#888"
+                  value={username}
+                  onChangeText={setUsername}
+                  editable={!isLoading}
+                  textContentType="emailAddress"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <Text style={styles.inputLabel}>PASSWORD</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.passwordInput, { color: '#000' }]}
+                  placeholder="Password"
+                  placeholderTextColor="#888"
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!isLoading}
+                  secureTextEntry={!isPasswordVisible}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIcon}>
+                  <Feather
+                    name={isPasswordVisible ? 'eye' : 'eye-off'}
+                    size={20}
+                    color="#888"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleLogin}
+                style={styles.fullButtonContainer}
+                disabled={isLoading}
+              >
+                <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.loginButton}>
+                  <Text style={[styles.buttonText, styles.loginButtonText]}>{isLoading ? 'Logging in...' : 'LOG IN'}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <View style={styles.orDividerContainer}>
+                <View style={styles.orDividerLine} />
+                <Text style={styles.orDividerText}>OR</Text>
+                <View style={styles.orDividerLine} />
+              </View>
+
+              {Platform.OS === 'ios' && (
+                <View style={styles.socialButtonsContainer}>
+                  <AppleSignInButton
+                    onSuccess={() => {
+                      console.log('Apple sign-in completed successfully');
+                    }}
+                    onError={(error) => {
+                      console.error('Apple sign-in error:', error);
+                      Alert.alert('Error', 'Apple sign-in failed. Please try again.');
+                    }}
+                  />
+                </View>
+              )}
+
+              <TouchableOpacity
+                onPress={handleGoogleLogin}
+                style={styles.googleButton}
+                disabled={isGoogleLoading}
+              >
+                <View style={styles.buttonContent}>
+                  <Image
+                    source={require('../assets/images/7123025_logo_google_g_icon-2.png')}
+                    style={styles.googleLogo}
+                  />
+                  <Text style={[styles.buttonText, styles.googleButtonText]}>
+                    {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.registerContainer}>
+                <Text style={styles.registerText}>Don't have an account?</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('RegFanPage')}>
+                  <Text style={styles.registerLink}>Sign Up </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.bottomPlaceholder} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

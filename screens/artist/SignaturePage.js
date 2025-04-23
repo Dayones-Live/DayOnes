@@ -35,9 +35,9 @@ const SignaturePage = () => {
       const result = await check(permission);
   
       const options = {
-        mediaType: 'photo', // Only allow photos
+        mediaType: 'photo',
         includeBase64: false,
-        saveToPhotos: true, // Save to user's gallery
+        saveToPhotos: true,
       };
   
       if (result === RESULTS.GRANTED) {
@@ -67,29 +67,10 @@ const SignaturePage = () => {
               console.log('Selected image:', response.assets[0]);
             }
           });
-        } else {
-          // Permission denied
-          Alert.alert(
-            'Permission Required',
-            'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
-          );
         }
       } else if (result === RESULTS.BLOCKED) {
-        // Permission is blocked; show an alert to guide the user to settings
-        Alert.alert(
-          'Permission Required',
-          'Camera access has been blocked. Please enable it in your device settings.',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: 'Open Settings',
-              onPress: () => Linking.openSettings(),
-            },
-          ],
-        );
+        // Permission is blocked; open settings
+        Linking.openSettings();
       }
     } catch (error) {
       console.error('Error checking camera permission:', error);

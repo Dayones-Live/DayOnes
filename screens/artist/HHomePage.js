@@ -10,6 +10,7 @@ import {
   ScrollView,
   Animated,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
@@ -108,10 +109,17 @@ const HHomePage = () => {
         Platform.OS === 'android'
           ? PERMISSIONS.ANDROID.CAMERA
           : PERMISSIONS.IOS.CAMERA;
-
+  
       // Check if permission is granted
       const result = await check(permission);
-
+  
+      // Define camera options
+      const options = {
+        mediaType: 'photo',
+        saveToPhotos: true,
+        includeBase64: false,
+      };
+  
       if (result === RESULTS.GRANTED) {
         // Permission is already granted; launch the camera
         launchCamera(options, response => {
@@ -141,29 +149,10 @@ const HHomePage = () => {
               navigation.navigate('EditScreen', { selectedImage: capturedImage });
             }
           });
-        } else {
-          // Permission denied
-          Alert.alert(
-            'Permission Required',
-            'Camera access is required to take a picture. Please enable camera permissions in your device settings.',
-          );
         }
       } else if (result === RESULTS.BLOCKED) {
-        // Permission is blocked; show an alert to guide the user to settings
-        Alert.alert(
-          'Permission Required',
-          'Camera access has been blocked. Please enable it in your device settings.',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-            {
-              text: 'Open Settings',
-              onPress: () => Linking.openSettings(),
-            },
-          ],
-        );
+        // Permission is blocked; open settings
+        Linking.openSettings();
       }
     } catch (error) {
       console.error('Error checking camera permission:', error);

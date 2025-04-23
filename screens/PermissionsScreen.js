@@ -70,8 +70,8 @@ const PermissionsScreen = () => {
         Platform.OS === 'ios'
           ? PERMISSIONS.IOS.PHOTO_LIBRARY
           : Platform.Version >= 33
-            ? PERMISSIONS.ANDROID.READ_MEDIA_IMAGES // Scoped permissions for Android 13+
-            : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE // Fallback for older versions
+            ? PERMISSIONS.ANDROID.READ_MEDIA_IMAGES
+            : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE
       );
 
       const notifications = (await checkNotifications()).status;
@@ -101,27 +101,98 @@ const PermissionsScreen = () => {
 
   const requestPermission = async (permission, setPermissionState) => {
     try {
-      const result = await request(permission);
-      if (result === RESULTS.BLOCKED) {
-        openAppSettings();
-      } else {
-        setPermissionState(result === RESULTS.GRANTED);
-        checkAllPermissions();
+      // First check if the permission is blocked
+      const currentStatus = await check(permission);
+      
+      if (currentStatus === RESULTS.BLOCKED) {
+        Alert.alert(
+          'Permission Required',
+          'This permission has been blocked in your device settings. Please enable it in Settings to continue.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel'
+            },
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings()
+            }
+          ]
+        );
+        return;
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to request permission');
-    }
-  };
 
-  const openAppSettings = () => {
-    Alert.alert(
-      'Permission Required',
-      'The app needs this permission to function correctly. Please enable it in the app settings.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Open Settings', onPress: () => Linking.openSettings() },
-      ],
-    );
+      // Show our warning before requesting the permission
+      let warningMessage = '';
+      switch (permission) {
+        case PERMISSIONS.IOS.CAMERA:
+        case PERMISSIONS.ANDROID.CAMERA:
+          warningMessage = 'Camera access is needed to upload photos and videos. Without it, you won\'t be able to share media content.';
+          break;
+        case PERMISSIONS.IOS.PHOTO_LIBRARY:
+        case PERMISSIONS.ANDROID.READ_MEDIA_IMAGES:
+        case PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE:
+          warningMessage = 'Photo Library access is needed to select images for your profile and posts. Without it, you won\'t be able to customize your profile or share photos.';
+          break;
+        case PERMISSIONS.IOS.LOCATION_WHEN_IN_USE:
+        case PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION:
+          warningMessage = 'Location access is required to receive invites from artists and experience personalized, location-specific content. Without it, you may miss out on nearby events and opportunities.';
+          break;
+        case 'notifications':
+          warningMessage = 'Notifications are important to keep you updated on app activities, new invites, and events. Without them, you might miss important updates.';
+          break;
+        default:
+          warningMessage = 'This permission is important for the app\'s functionality. Please consider enabling it.';
+      }
+
+      Alert.alert(
+        'Permission Required',
+        warningMessage,
+        [
+          {
+            text: 'Not Now',
+            style: 'cancel'
+          },
+          {
+            text: 'Continue',
+            onPress: async () => {
+              // Only request the permission if they choose to continue
+              let result;
+              if (permission === 'notifications') {
+                const notificationResult = await requestNotifications(['alert', 'sound', 'badge']);
+                result = notificationResult.status;
+              } else {
+                result = await request(permission);
+              }
+              
+              if (result === RESULTS.DENIED) {
+                // If denied, show settings prompt
+                Alert.alert(
+                  'Permission Required',
+                  'You\'ll need to enable this permission in Settings to use this feature.',
+                  [
+                    {
+                      text: 'Cancel',
+                      style: 'cancel'
+                    },
+                    {
+                      text: 'Open Settings',
+                      onPress: () => Linking.openSettings()
+                    }
+                  ]
+                );
+              }
+              
+              setPermissionState(result === RESULTS.GRANTED);
+              checkAllPermissions();
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error requesting permission:', error);
+      Alert.alert('Error', 'Failed to request permission. Please try again.');
+    }
   };
 
   const storePermissionsStatus = async () => {
@@ -133,52 +204,28 @@ const PermissionsScreen = () => {
     }
   };
 
-  const handlePermissionsGranted = async () => {
-    try {
-      console.log('Saving permissions status...');
-      await AsyncStorage.multiSet([
-        ['permissionsAccepted', 'true'],
-        ['locationPermission', 'true'],
-        ['notificationPermission', 'true']
-      ]);
-      console.log('Permissions status saved successfully');
-      navigation.navigate('LoginPage');
-    } catch (error) {
-      console.error('Error saving permissions:', error);
-      Alert.alert('Error', 'Failed to save permissions. Please try again.');
-    }
-  };
-
   const handleContinue = async () => {
-    if (!locationPermission) {
-      Alert.alert(
-        'Location Required',
-        'Location access is mandatory to enable geofenced content and ensure the app functions as intended. It is used to let you access invites from artists and experience personalized, location-specific content.',
-        [{ text: 'OK' }],
+    try {
+      const location = await check(
+        Platform.OS === 'ios'
+          ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
+          : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
       );
-    } else {
-      try {
-        const location = await check(
+      
+      if (location === RESULTS.GRANTED) {
+        await AsyncStorage.setItem('permissionsAccepted', 'true');
+        console.log('Permissions granted, navigating to LoginPage');
+        navigation.navigate('LoginPage');
+      } else {
+        await requestPermission(
           Platform.OS === 'ios'
             ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
             : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+          setLocationPermission
         );
-        
-        if (location === RESULTS.GRANTED) {
-          await AsyncStorage.setItem('permissionsAccepted', 'true');
-          console.log('Permissions granted, navigating to LoginPage');
-          navigation.navigate('LoginPage');
-        } else {
-          Alert.alert(
-            'Location Required',
-            'Please grant location permission to continue.',
-            [{ text: 'OK' }],
-          );
-        }
-      } catch (error) {
-        console.error('Error checking location permission:', error);
-        Alert.alert('Error', 'Failed to verify permissions. Please try again.');
       }
+    } catch (error) {
+      console.error('Error checking location permission:', error);
     }
   };
 
@@ -200,7 +247,7 @@ const PermissionsScreen = () => {
               <PermissionItem
                 icon="camera"
                 title="Camera"
-                description={permissionsInfo.camera}
+                description="Camera access is used for uploading photos and videos."
                 enabled={cameraPermission}
                 mandatory={false}
                 onPress={() =>
@@ -215,7 +262,7 @@ const PermissionsScreen = () => {
               <PermissionItem
                 icon="folder"
                 title="Library"
-                description={permissionsInfo.library}
+                description="Photo Library access is used to select images for your profile."
                 enabled={libraryPermission}
                 mandatory={false}
                 onPress={() =>
@@ -227,31 +274,20 @@ const PermissionsScreen = () => {
                         : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
                     setLibraryPermission,
                   )
-
                 }
               />
               <PermissionItem
                 icon="bell"
                 title="Push Notifications"
-                description={permissionsInfo.notifications}
+                description="Notifications are used to keep you updated on app activities."
                 enabled={notificationsPermission}
                 mandatory={false}
-                onPress={async () => {
-                  const notificationResult = await requestNotifications([
-                    'alert',
-                    'sound',
-                    'badge',
-                  ]);
-                  setNotificationsPermission(
-                    notificationResult.status === RESULTS.GRANTED,
-                  );
-                  checkAllPermissions();
-                }}
+                onPress={() => requestPermission('notifications', setNotificationsPermission)}
               />
               <PermissionItem
                 icon="map-marker"
                 title="Location"
-                description={permissionsInfo.location}
+                description="Location access is used to let you access invites from artists and experience personalized, location-specific content."
                 enabled={locationPermission}
                 mandatory={true}
                 onPress={() =>
@@ -268,7 +304,7 @@ const PermissionsScreen = () => {
                 colors={['#00E5FF', '#D500F9']}
                 style={styles.continueButton}>
                 <TouchableOpacity
-                  onPress={handlePermissionsGranted}
+                  onPress={handleContinue}
                   style={styles.fullWidth}>
                   <Text style={styles.buttonText}>Continue</Text>
                 </TouchableOpacity>
@@ -282,54 +318,43 @@ const PermissionsScreen = () => {
 };
 
 const PermissionItem = ({ icon, title, description, enabled, onPress, mandatory }) => {
-  const [animation] = useState(new Animated.Value(enabled ? 1 : 0));
-
-  useEffect(() => {
-    Animated.timing(animation, {
-      toValue: enabled ? 1 : 0,
-      duration: 200,
-      useNativeDriver: false,
-    }).start();
-  }, [enabled]);
-
-  const translateX = animation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 20]
-  });
-
-  const backgroundColor = animation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['rgba(255,255,255,0.1)', '#00E5FF']
-  });
-
   return (
     <TouchableOpacity 
       style={[
         styles.permissionItem,
-        { backgroundColor: enabled ? 'rgba(0, 229, 255, 0.1)' : 'rgba(0,0,0,0.6)' }
+        { 
+          borderColor: enabled ? '#00FF00' : 'rgba(255,255,255,0.1)',
+          backgroundColor: 'rgba(0,0,0,0.6)'
+        }
       ]} 
       onPress={onPress}
       activeOpacity={0.8}
     >
       <View style={styles.permissionIconContainer}>
-        <Icon name={icon} size={24} color={enabled ? "#00E5FF" : "#fff"} />
+        <Icon name={icon} size={24} color="#fff" />
       </View>
       <View style={styles.permissionContent}>
-        <Text style={[styles.permissionText, enabled && { color: '#00E5FF' }]}>
+        <Text style={styles.permissionText}>
           {title} <Text style={styles.mandatoryText}>{mandatory ? "(Mandatory)" : "(Optional)"}</Text>
         </Text>
         <Text style={styles.permissionDescription}>{description}</Text>
       </View>
       <View style={styles.toggleContainer}>
-        <Animated.View style={[
-          styles.toggleButton,
-          { backgroundColor }
-        ]}>
-          <Animated.View style={[
+        <TouchableOpacity 
+          style={[
+            styles.toggleButton,
+            { backgroundColor: enabled ? '#00FF00' : 'rgba(255,255,255,0.2)' }
+          ]}
+          onPress={onPress}
+        >
+          <View style={[
             styles.toggleCircle,
-            { transform: [{ translateX }] }
+            { 
+              backgroundColor: '#fff',
+              transform: [{ translateX: enabled ? 20 : 0 }]
+            }
           ]} />
-        </Animated.View>
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );

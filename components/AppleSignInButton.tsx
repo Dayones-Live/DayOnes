@@ -46,6 +46,11 @@ export const AppleSignInButton: React.FC<{
       
       // Check permissions and navigate
       const permissionsGranted = await checkAllPermissions();
+      
+      // Call onSuccess callback first
+      onSuccess?.(result.user);
+      
+      // Then handle navigation
       if (permissionsGranted) {
         if (result.user.role === 'ARTIST') {
           navigation.reset({
@@ -64,9 +69,8 @@ export const AppleSignInButton: React.FC<{
           routes: [{ name: 'PermissionsScreen' }],
         });
       }
-      
-      onSuccess?.(result.user);
     } catch (error) {
+      console.error('Apple sign-in error:', error);
       onError?.(error);
     }
   };
