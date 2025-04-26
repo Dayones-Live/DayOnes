@@ -105,9 +105,10 @@ const PermissionsScreen = () => {
       const currentStatus = await check(permission);
       
       if (currentStatus === RESULTS.BLOCKED) {
+        // Only show settings prompt if permission is blocked
         Alert.alert(
-          'Permission Required',
-          'This permission has been blocked in your device settings. Please enable it in Settings to continue.',
+          'Location Permission Required',
+          'Location access is required to use this app. Please enable location services in Settings to continue.',
           [
             {
               text: 'Cancel',
@@ -122,73 +123,17 @@ const PermissionsScreen = () => {
         return;
       }
 
-      // Show our warning before requesting the permission
-      let warningMessage = '';
-      switch (permission) {
-        case PERMISSIONS.IOS.CAMERA:
-        case PERMISSIONS.ANDROID.CAMERA:
-          warningMessage = 'Camera access is needed to upload photos and videos. Without it, you won\'t be able to share media content.';
-          break;
-        case PERMISSIONS.IOS.PHOTO_LIBRARY:
-        case PERMISSIONS.ANDROID.READ_MEDIA_IMAGES:
-        case PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE:
-          warningMessage = 'Photo Library access is needed to select images for your profile and posts. Without it, you won\'t be able to customize your profile or share photos.';
-          break;
-        case PERMISSIONS.IOS.LOCATION_WHEN_IN_USE:
-        case PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION:
-          warningMessage = 'Location access is required to receive invites from artists and experience personalized, location-specific content. Without it, you may miss out on nearby events and opportunities.';
-          break;
-        case 'notifications':
-          warningMessage = 'Notifications are important to keep you updated on app activities, new invites, and events. Without them, you might miss important updates.';
-          break;
-        default:
-          warningMessage = 'This permission is important for the app\'s functionality. Please consider enabling it.';
+      // Request the permission directly without showing a custom message first
+      let result;
+      if (permission === 'notifications') {
+        const notificationResult = await requestNotifications(['alert', 'sound', 'badge']);
+        result = notificationResult.status;
+      } else {
+        result = await request(permission);
       }
-
-      Alert.alert(
-        'Permission Required',
-        warningMessage,
-        [
-          {
-            text: 'Not Now',
-            style: 'cancel'
-          },
-          {
-            text: 'Continue',
-            onPress: async () => {
-              // Only request the permission if they choose to continue
-              let result;
-              if (permission === 'notifications') {
-                const notificationResult = await requestNotifications(['alert', 'sound', 'badge']);
-                result = notificationResult.status;
-              } else {
-                result = await request(permission);
-              }
-              
-              if (result === RESULTS.DENIED) {
-                // If denied, show settings prompt
-                Alert.alert(
-                  'Permission Required',
-                  'You\'ll need to enable this permission in Settings to use this feature.',
-                  [
-                    {
-                      text: 'Cancel',
-                      style: 'cancel'
-                    },
-                    {
-                      text: 'Open Settings',
-                      onPress: () => Linking.openSettings()
-                    }
-                  ]
-                );
-              }
-              
-              setPermissionState(result === RESULTS.GRANTED);
-              checkAllPermissions();
-            }
-          }
-        ]
-      );
+      
+      setPermissionState(result === RESULTS.GRANTED);
+      checkAllPermissions();
     } catch (error) {
       console.error('Error requesting permission:', error);
       Alert.alert('Error', 'Failed to request permission. Please try again.');
