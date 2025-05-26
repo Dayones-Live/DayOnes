@@ -263,10 +263,13 @@ const App = () => {
       }
       
       const fcmToken = await messaging().getToken();
-      console.log('FCM Token:', fcmToken);
+      console.log('🔔 [App] FCM Token:', fcmToken);
+      console.log('📱 [App] Device Platform:', Platform.OS);
+      console.log('🔄 [App] FCM Token Length:', fcmToken.length);
       await AsyncStorage.setItem('fcmToken', fcmToken);
+      console.log('✅ [App] FCM Token stored in AsyncStorage');
     } catch (error) {
-      console.error('Error fetching FCM token:', error);
+      console.error('❌ [App] Error fetching FCM token:', error);
     }
   };
 

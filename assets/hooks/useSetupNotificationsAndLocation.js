@@ -9,6 +9,7 @@ import {BASEURL} from '../constants'; // Replace with your actual BASEURL
 import {Alert} from 'react-native';
 import {PERMISSIONS} from 'react-native-permissions';
 import axiosInstance from '../../utils/axiosConfig';
+import {Platform} from 'react-native';
 
 const useSetupNotificationsAndLocation = () => {
   const dispatch = useDispatch();
@@ -36,13 +37,15 @@ const useSetupNotificationsAndLocation = () => {
         // Set FCM Token and send to backend
         await messaging().registerDeviceForRemoteMessages();
         const fcmToken = await messaging().getToken();
-        // Alert.alert(`${fcmToken}`);
-        // console.log('🚀 ~ setupNotificationsAndLocation ~ fcmToken:', fcmToken);
+        console.log('🔔 FCM Token:', fcmToken);
+        console.log('📱 Device Platform:', Platform.OS);
+        console.log('🔄 FCM Token Length:', fcmToken.length);
         dispatch(setFcmToken(fcmToken)); // Store in Redux
-        // console.log('FCM Token set:', fcmToken);
+        console.log('✅ FCM Token stored in Redux');
 
         // Send FCM Token to your backend
         await updateNotificationToken(fcmToken);
+        console.log('✅ FCM Token sent to backend');
 
         // Set Location and send to backend
         Geolocation.getCurrentPosition(

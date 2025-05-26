@@ -105,25 +105,11 @@ const PermissionsScreen = () => {
       const currentStatus = await check(permission);
       
       if (currentStatus === RESULTS.BLOCKED) {
-        // Only show settings prompt if permission is blocked
-        Alert.alert(
-          'Location Permission Required',
-          'Location access is required to use this app. Please enable location services in Settings to continue.',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel'
-            },
-            {
-              text: 'Open Settings',
-              onPress: () => Linking.openSettings()
-            }
-          ]
-        );
+        // If blocked, just return without showing any custom message
         return;
       }
 
-      // Request the permission directly without showing a custom message first
+      // Request the permission directly
       let result;
       if (permission === 'notifications') {
         const notificationResult = await requestNotifications(['alert', 'sound', 'badge']);
@@ -136,7 +122,6 @@ const PermissionsScreen = () => {
       checkAllPermissions();
     } catch (error) {
       console.error('Error requesting permission:', error);
-      Alert.alert('Error', 'Failed to request permission. Please try again.');
     }
   };
 
@@ -159,9 +144,9 @@ const PermissionsScreen = () => {
       
       if (location === RESULTS.GRANTED) {
         await AsyncStorage.setItem('permissionsAccepted', 'true');
-        console.log('Permissions granted, navigating to LoginPage');
         navigation.navigate('LoginPage');
       } else {
+        // For mandatory location, request it again
         await requestPermission(
           Platform.OS === 'ios'
             ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
@@ -232,7 +217,7 @@ const PermissionsScreen = () => {
               <PermissionItem
                 icon="map-marker"
                 title="Location"
-                description="Location access is used to let you access invites from artists and experience personalized, location-specific content."
+                description="Location access is mandatory. It is used to let you access invites from artists and experience personalized, location-specific content."
                 enabled={locationPermission}
                 mandatory={true}
                 onPress={() =>
@@ -247,11 +232,17 @@ const PermissionsScreen = () => {
 
               <LinearGradient
                 colors={['#00E5FF', '#D500F9']}
-                style={styles.continueButton}>
+                style={[
+                  styles.continueButton,
+                  !locationPermission && { opacity: 0.5 }
+                ]}>
                 <TouchableOpacity
                   onPress={handleContinue}
-                  style={styles.fullWidth}>
-                  <Text style={styles.buttonText}>Continue</Text>
+                  style={styles.fullWidth}
+                  disabled={!locationPermission}>
+                  <Text style={styles.buttonText}>
+                    {locationPermission ? 'Continue' : 'Location Required'}
+                  </Text>
                 </TouchableOpacity>
               </LinearGradient>
             </>

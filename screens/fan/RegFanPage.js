@@ -59,7 +59,7 @@ const RegFanPage = () => {
       const payload = {
         email,
         password,
-        role: 'USER',
+        role: 'ARTIST',
         name,
       };
 
