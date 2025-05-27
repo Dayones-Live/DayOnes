@@ -123,7 +123,7 @@
 
 // Helper method to convert device token to string
 - (NSString *)stringFromDeviceToken:(NSData *)deviceToken {
-  const char *data = [deviceToken bytes];
+  const unsigned char *data = (const unsigned char *)[deviceToken bytes];
   NSMutableString *token = [NSMutableString string];
   
   for (NSUInteger i = 0; i < [deviceToken length]; i++) {
