@@ -123,10 +123,11 @@
 
 // Helper method to convert device token to string
 - (NSString *)stringFromDeviceToken:(NSData *)deviceToken {
-  const unsigned char *data = (const unsigned char *)[deviceToken bytes];
-  NSMutableString *token = [NSMutableString string];
+  NSUInteger length = deviceToken.length;
+  const unsigned char *data = (const unsigned char *)deviceToken.bytes;
+  NSMutableString *token = [NSMutableString stringWithCapacity:length * 2];
   
-  for (NSUInteger i = 0; i < [deviceToken length]; i++) {
+  for (NSUInteger i = 0; i < length; i++) {
     [token appendFormat:@"%02.2hhX", data[i]];
   }
   

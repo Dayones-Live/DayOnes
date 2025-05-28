@@ -32,6 +32,8 @@ import { Alert, Platform } from 'react-native';
 import NotificationsScreen from './screens/NotificationsScreen';
 import { setAccessToken, setUserProfile, setUserID } from './assets/redux/actions';
 import axios from 'axios';
+import useSetupNotificationsAndLocation from './assets/hooks/useSetupNotificationsAndLocation';
+import useRefreshFCMToken from './assets/hooks/useRefreshFCMToken';
 
 const Stack = createStackNavigator();
 const queryClient = new QueryClient();
@@ -62,16 +64,62 @@ declare global {
 // Add this after the imports
 const PERSISTENCE_KEY = 'NAVIGATION_STATE';
 
-const App = () => {
+// Create a separate component for the app content
+const AppContent = () => {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [initialState, setInitialState] = useState();
   const navigationRef = useRef<NavigationContainerRef<RootParamList>>(null);
+  const { refreshFCMToken } = useRefreshFCMToken();
+  const messageHandlerRef = useRef<(() => void) | null>(null);
+
+  // Add the notification setup hook
+  useSetupNotificationsAndLocation();
 
   useEffect(() => {
     // Store navigation reference globally
     global.navigationRef = navigationRef;
   }, []);
+
+  // Add FCM token refresh handler
+  useEffect(() => {
+    const handleTokenRefresh = async () => {
+      try {
+        await refreshFCMToken();
+        console.log('✅ FCM token refreshed successfully');
+      } catch (error) {
+        console.error('❌ Error refreshing FCM token:', error);
+      }
+    };
+
+    // Listen for FCM token refresh events
+    const unsubscribe = messaging().onTokenRefresh(async () => {
+      console.log('🔄 FCM token refresh event received');
+      await handleTokenRefresh();
+    });
+
+    // Listen for FCM message errors
+    if (!messageHandlerRef.current) {
+      messageHandlerRef.current = messaging().onMessage(async remoteMessage => {
+        console.log('📱 FCM message received:', remoteMessage);
+        
+        // Check for SenderId mismatch error
+        if (remoteMessage.data?.error === 'messaging/mismatched-credential' || 
+            remoteMessage.data?.error === 'SenderId mismatch') {
+          console.log('⚠️ SenderId mismatch detected, refreshing token...');
+          await handleTokenRefresh();
+        }
+      });
+    }
+
+    return () => {
+      unsubscribe();
+      if (messageHandlerRef.current) {
+        messageHandlerRef.current();
+        messageHandlerRef.current = null;
+      }
+    };
+  }, [refreshFCMToken]);
 
   useEffect(() => {
     const checkAppSetupStatus = async () => {
@@ -288,124 +336,130 @@ const App = () => {
   }
 
   return (
+    <QueryClientProvider client={queryClient}>
+      <NavigationContainer
+        ref={navigationRef}
+        initialState={initialState}
+        onStateChange={(state) => {
+          AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state));
+        }}
+        onReady={() => {
+          global.navigationRef = navigationRef;
+          console.log('Navigation is ready, ref set');
+        }}
+      >
+        <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+          <Stack.Screen
+            name="TermsAndPrivacyScreen"
+            component={TermsAndPrivacyScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PermissionsScreen"
+            component={PermissionsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="LoginPage"
+            component={LoginPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="RegArtistPage"
+            component={RegArtistPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="RegFanPage"
+            component={RegFanPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ArtistStack"
+            component={ArtistStack}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="FanStack"
+            component={FanStack}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ProfileScreen"
+            component={ProfileScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Notifications"
+            component={NotificationsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ArtistPostsPage"
+            component={ArtistPostsPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SignaturePage"
+            component={SignaturePage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ArtistSignatures"
+            component={ArtistSignatures}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="EditScreen"
+            component={EditScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="DMsScreen"
+            component={DMsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ConversationThread"
+            component={ConversationThread}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PostDetailPage"
+            component={PostDetailPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="VerifyAccount"
+            component={VerifyAccount}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="DayOnesScreen"
+            component={DayOnesScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="DMDetailPage"
+            component={DMDetailPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SuperAdminDashboard"
+            component={SuperAdminDashboard}
+            options={{ headerShown: false }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </QueryClientProvider>
+  );
+};
+
+// Main App component that wraps everything with Provider
+const App = () => {
+  return (
     <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <NavigationContainer
-          ref={navigationRef}
-          initialState={initialState}
-          onStateChange={(state) => {
-            AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state));
-          }}
-          onReady={() => {
-            // Ensure navigation ref is set when NavigationContainer is ready
-            global.navigationRef = navigationRef;
-            console.log('Navigation is ready, ref set');
-          }}
-        >
-          <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
-            <Stack.Screen
-              name="TermsAndPrivacyScreen"
-              component={TermsAndPrivacyScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="PermissionsScreen"
-              component={PermissionsScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="LoginPage"
-              component={LoginPage}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="RegArtistPage"
-              component={RegArtistPage}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="RegFanPage"
-              component={RegFanPage}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ArtistStack"
-              component={ArtistStack}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="FanStack"
-              component={FanStack}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ProfileScreen"
-              component={ProfileScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Notifications"
-              component={NotificationsScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ArtistPostsPage"
-              component={ArtistPostsPage}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="SignaturePage"
-              component={SignaturePage}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ArtistSignatures"
-              component={ArtistSignatures}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="EditScreen"
-              component={EditScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="DMsScreen"
-              component={DMsScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ConversationThread"
-              component={ConversationThread}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="PostDetailPage"
-              component={PostDetailPage}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="VerifyAccount"
-              component={VerifyAccount}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="DayOnesScreen"
-              component={DayOnesScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="DMDetailPage"
-              component={DMDetailPage}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="SuperAdminDashboard"
-              component={SuperAdminDashboard}
-              options={{ headerShown: false }}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </QueryClientProvider>
+      <AppContent />
     </Provider>
   );
 };

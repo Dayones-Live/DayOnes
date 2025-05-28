@@ -7,85 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:308003099454:android:bb41abcbcf4e567e6f926f",
-        "android_client_info": {
-          "package_name": "com.dayones"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCLmLhlQLIJHVlfHCGBwHfZoykk1-cLfYM"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:308003099454:android:599778db004916d56f926f",
-        "android_client_info": {
-          "package_name": "com.dayoneslive"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCLmLhlQLIJHVlfHCGBwHfZoykk1-cLfYM"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:308003099454:android:cd18fbc072d84ef86f926f",
-        "android_client_info": {
-          "package_name": "com.dayoneslive1"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCLmLhlQLIJHVlfHCGBwHfZoykk1-cLfYM"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:308003099454:android:a276d468b10a79b26f926f",
         "android_client_info": {
           "package_name": "com.dayoneslive2"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCLmLhlQLIJHVlfHCGBwHfZoykk1-cLfYM"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:308003099454:android:68204f85fb34c9a26f926f",
-        "android_client_info": {
-          "package_name": "com.ericdayones.Dayones"
         }
       },
       "oauth_client": [],

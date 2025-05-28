@@ -10,65 +10,74 @@ import {Alert} from 'react-native';
 import {PERMISSIONS} from 'react-native-permissions';
 import axiosInstance from '../../utils/axiosConfig';
 import {Platform} from 'react-native';
+import useRefreshFCMToken from './useRefreshFCMToken';
 
 const useSetupNotificationsAndLocation = () => {
   const dispatch = useDispatch();
   const accessTokenFromRedux = useSelector(state => state.accessToken); // Try to get accessToken from Redux
+  const { refreshFCMToken } = useRefreshFCMToken();
 
   useEffect(() => {
     const setupNotificationsAndLocation = async () => {
       try {
+        console.log('🚀 Starting notification setup...');
+        
         // Fetch access token from Redux or AsyncStorage
         let accessToken = accessTokenFromRedux;
 
-        console.log(accessToken);
         if (!accessToken) {
           accessToken = await AsyncStorage.getItem('authToken');
-          console.log(
-            '🚀 ~ setupNotificationsAndLocation ~ accessToken:',
-            accessToken,
-          );
+          console.log('🔑 Access token from storage:', accessToken ? 'Found' : 'Not found');
           if (!accessToken) {
-            console.error('Access token not found in Redux or AsyncStorage.');
-            return; // Stop execution if no token is found
+            console.error('❌ Access token not found in Redux or AsyncStorage.');
+            return;
           }
         }
 
-        // Set FCM Token and send to backend
-        await messaging().registerDeviceForRemoteMessages();
-        const fcmToken = await messaging().getToken();
-        console.log('🔔 FCM Token:', fcmToken);
-        console.log('📱 Device Platform:', Platform.OS);
-        console.log('🔄 FCM Token Length:', fcmToken.length);
-        dispatch(setFcmToken(fcmToken)); // Store in Redux
-        console.log('✅ FCM Token stored in Redux');
+        // Check if we have permission
+        const authStatus = await messaging().requestPermission();
+        console.log('📱 Notification permission status:', authStatus);
+        
+        if (authStatus === messaging.AuthorizationStatus.AUTHORIZED) {
+          console.log('✅ Notification permission granted');
+          
+          // Use the refreshFCMToken function to handle token refresh
+          try {
+            await refreshFCMToken();
+            console.log('✅ FCM token refresh completed');
+          } catch (error) {
+            console.error('❌ Error refreshing FCM token:', error);
+          }
+        } else {
+          console.log('❌ Notification permission not granted:', authStatus);
+        }
 
-        // Send FCM Token to your backend
-        await updateNotificationToken(fcmToken);
-        console.log('✅ FCM Token sent to backend');
-
-        // Set Location and send to backend
-        Geolocation.getCurrentPosition(
-          async position => {
-            const {latitude, longitude} = position.coords;
-            dispatch(setLocation({latitude, longitude})); // Store in Redux
-            console.log('Location set:', {latitude, longitude});
-
-            // Send location to your backend
-            await updateLocation(accessToken, latitude, longitude);
-          },
-          error => {
-            console.error('Error fetching location:', error);
-          },
-          {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
-        );
+        // Setup location
+        try {
+          const locationPermission = await PERMISSIONS.REQUEST_LOCATION_PERMISSION();
+          if (locationPermission === 'granted') {
+            Geolocation.getCurrentPosition(
+              position => {
+                const {latitude, longitude} = position.coords;
+                dispatch(setLocation({latitude, longitude}));
+                console.log('📍 Location updated:', {latitude, longitude});
+              },
+              error => console.error('❌ Location error:', error),
+              {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000}
+            );
+          }
+        } catch (error) {
+          console.error('❌ Location permission error:', error);
+        }
       } catch (error) {
-        console.error('Error setting up notifications and location:', error);
+        console.error('❌ Setup error:', error);
       }
     };
 
     setupNotificationsAndLocation();
-  }, [dispatch, accessTokenFromRedux]);
+  }, [accessTokenFromRedux, dispatch, refreshFCMToken]);
+
+  return null;
 };
 
 // The functions for sending FCM Token and Location to the backend
