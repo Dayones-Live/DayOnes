@@ -17,10 +17,7 @@ buildscript {
         classpath("com.android.tools.build:gradle:8.0.2")
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-
-        // Firebase required classpath for services like Firestore, Analytics, etc.
-        classpath 'com.google.gms:google-services:4.3.15' // <-- Added this line to integrate Firebase
     }
 }
 
-apply plugin: "com.facebook.react.rootproject" // No changes here
+apply plugin: "com.facebook.react.rootproject"

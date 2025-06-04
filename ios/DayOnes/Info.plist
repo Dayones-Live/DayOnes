@@ -81,6 +81,8 @@
 	<string>We need your location to show you location-based posts and enhance your experience with geofenced content.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to let you upload images for your profile,or other interactive features.</string>
+	<key>OneSignal_app_groups_key</key>
+	<string>group.com.ericdayones.DayOnes.onesignal</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>AntDesign.ttf</string>

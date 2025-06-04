@@ -18,7 +18,7 @@ const useSendMessage = (accessToken) => {
       const payload = {
         conversationId: conversationId,
         message: message,
-        ...(url && { url, mediaType }), // Only include url and mediaType if url is provided
+        ...(url && { url, mediaType }) // Only include url and mediaType if url is provided
       };
 
       // Log the payload for verification

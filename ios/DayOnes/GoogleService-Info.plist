@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyDRYWieBqSZN5Xy-Fjw5PhR9l3jDByQIbQ</string>
+	<string>AlzaSyDRYWieBqSZN5Xy-Fjw5PhR9l3jDByQIbQ</string>
 	<key>GCM_SENDER_ID</key>
 	<string>308003099454</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>org.reactjs.native.example.DayOnes</string>
+	<string>com.ericdayones.Dayones</string>
 	<key>PROJECT_ID</key>
 	<string>dayones-8d64e</string>
 	<key>STORAGE_BUCKET</key>
-	<string>dayones-8d64e.appspot.com</string>
+	<string>dayones-8d64e.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,7 +25,7 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:308003099454:ios:c623d97bbd48ea816f926f</string>
+	<string>1:308003099454:ios:12a4264810431e126f926f</string>
 	<key>CLIENT_ID</key>
 	<string>918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>

@@ -1,27 +1,34 @@
 import {useEffect} from 'react';
-import messaging from '@react-native-firebase/messaging';
 import Geolocation from '@react-native-community/geolocation';
 import {useDispatch, useSelector} from 'react-redux';
-import {setFcmToken, setLocation} from '../redux/actions'; // Replace with your actual import paths
-import axios from 'axios'; // For sending the data to your backend
+import {setLocation} from '../redux/actions';
+import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {BASEURL} from '../constants'; // Replace with your actual BASEURL
+import {BASEURL} from '../constants';
 import {Alert} from 'react-native';
 import {PERMISSIONS} from 'react-native-permissions';
 import axiosInstance from '../../utils/axiosConfig';
 import {Platform} from 'react-native';
-import useRefreshFCMToken from './useRefreshFCMToken';
+import {request, RESULTS} from 'react-native-permissions';
+import { OneSignal } from 'react-native-onesignal';
+import notificationService from '../services/notificationService';
 
 const useSetupNotificationsAndLocation = () => {
   const dispatch = useDispatch();
-  const accessTokenFromRedux = useSelector(state => state.accessToken); // Try to get accessToken from Redux
-  const { refreshFCMToken } = useRefreshFCMToken();
+  const accessTokenFromRedux = useSelector(state => state.accessToken);
+  const userProfile = useSelector(state => state.userProfile);
 
   useEffect(() => {
     const setupNotificationsAndLocation = async () => {
       try {
         console.log('🚀 Starting notification setup...');
         
+        // Check if user is authenticated
+        if (!userProfile?.data?.id) {
+          console.log('⚠️ User not authenticated, skipping notification setup');
+          return;
+        }
+
         // Fetch access token from Redux or AsyncStorage
         let accessToken = accessTokenFromRedux;
 
@@ -34,62 +41,60 @@ const useSetupNotificationsAndLocation = () => {
           }
         }
 
-        // Check if we have permission
-        const authStatus = await messaging().requestPermission();
-        console.log('📱 Notification permission status:', authStatus);
-        
-        if (authStatus === messaging.AuthorizationStatus.AUTHORIZED) {
-          console.log('✅ Notification permission granted');
-          
-          // Use the refreshFCMToken function to handle token refresh
+        // Initialize notification service
+        await notificationService.initialize();
+
+        // Get the OneSignal push subscription ID
+        const pushSubscription = OneSignal.User.pushSubscription;
+        if (pushSubscription?.id) {
           try {
-            await refreshFCMToken();
-            console.log('✅ FCM token refresh completed');
+            await axiosInstance.post('/api/v1/user-notification/token', 
+              new URLSearchParams({
+                notificationToken: pushSubscription.id,
+                platform: Platform.OS
+              }).toString(),
+              {
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                }
+              }
+            );
+            console.log('✅ OneSignal push subscription ID registered successfully');
           } catch (error) {
-            console.error('❌ Error refreshing FCM token:', error);
+            console.error('❌ Error registering OneSignal push subscription ID:', error);
           }
-        } else {
-          console.log('❌ Notification permission not granted:', authStatus);
         }
 
-        // Setup location
-        try {
-          const locationPermission = await PERMISSIONS.REQUEST_LOCATION_PERMISSION();
-          if (locationPermission === 'granted') {
+        // Request location permission
+        const locationPermission = Platform.select({
+          ios: PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
+          android: PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+        });
+
+        if (locationPermission) {
+          const result = await request(locationPermission);
+          if (result === RESULTS.GRANTED) {
             Geolocation.getCurrentPosition(
               position => {
-                const {latitude, longitude} = position.coords;
-                dispatch(setLocation({latitude, longitude}));
-                console.log('📍 Location updated:', {latitude, longitude});
+                dispatch(setLocation({
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude
+                }));
               },
-              error => console.error('❌ Location error:', error),
-              {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000}
+              error => console.error('Location error:', error),
+              { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
             );
           }
-        } catch (error) {
-          console.error('❌ Location permission error:', error);
         }
       } catch (error) {
-        console.error('❌ Setup error:', error);
+        console.error('Error in setupNotificationsAndLocation:', error);
       }
     };
 
     setupNotificationsAndLocation();
-  }, [accessTokenFromRedux, dispatch, refreshFCMToken]);
+  }, [dispatch, accessTokenFromRedux, userProfile]);
 
   return null;
-};
-
-// The functions for sending FCM Token and Location to the backend
-const updateNotificationToken = async (fcmToken) => {
-  return await axiosInstance.post('/api/v1/user-notification/token', 
-    new URLSearchParams({notificationToken: fcmToken}).toString(),
-    {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      }
-    }
-  );
 };
 
 const updateLocation = async (token, latitude, longitude) => {

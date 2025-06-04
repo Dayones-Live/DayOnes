@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.dayoneslive2">  <!-- Ensure this matches your actual package name -->
 
@@ -14,6 +15,8 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
 
 
@@ -26,6 +29,10 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
 
+        <!-- OneSignal Configuration -->
+        <meta-data android:name="com.onesignal.NotificationServiceExtension" android:value="com.onesignal.example.NotificationServiceExtension" />
+        <meta-data android:name="com.onesignal.NotificationOpenedActivity" android:value="com.onesignal.example.NotificationOpenedActivity" />
+        <meta-data android:name="com.onesignal.NotificationServiceExtension" android:value="com.onesignal.example.NotificationServiceExtension" />
 
         <activity
             android:name=".MainActivity"

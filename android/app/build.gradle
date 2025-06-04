@@ -1,7 +1,6 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-apply plugin: 'com.google.gms.google-services' // Firebase Google services plugin
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -17,43 +16,41 @@ android {
         versionName "1.0"
     }
     signingConfigs {
-    debug {
-        storeFile file('debug.keystore')
-        storePassword 'android'
-        keyAlias 'androiddebugkey'
-        keyPassword 'android'
-    }
-    release {
-        if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
-            storeFile file(MYAPP_UPLOAD_STORE_FILE)
-            storePassword MYAPP_UPLOAD_STORE_PASSWORD
-            keyAlias MYAPP_UPLOAD_KEY_ALIAS
-            keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+        release {
+            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+                storeFile file(MYAPP_UPLOAD_STORE_FILE)
+                storePassword MYAPP_UPLOAD_STORE_PASSWORD
+                keyAlias MYAPP_UPLOAD_KEY_ALIAS
+                keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+            }
         }
     }
-}
 
-buildTypes {
-    debug {
-        signingConfig signingConfigs.debug
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
     }
-    release {
-        signingConfig signingConfigs.release
-        minifyEnabled true
-        proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            universalApk false
+        }
     }
-}
-
-splits {
-    abi {
-        enable true
-        reset()
-        include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-        universalApk false
-    }
-}
-
-
 }
 
 dependencies {
@@ -61,22 +58,16 @@ dependencies {
     implementation("com.facebook.react:react-android")
     implementation "com.google.android.gms:play-services-location:$googlePlayServicesVersion"
 
-    // Firebase BoM to manage Firebase versions
-    implementation platform('com.google.firebase:firebase-bom:33.4.0')
-
-    // Firebase dependencies
-    implementation 'com.google.firebase:firebase-auth'        // Firebase Authentication
-    implementation 'com.google.firebase:firebase-firestore'   // Firestore for database
-
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
     }
+
+    implementation 'com.onesignal:OneSignal:[5.0.0, 5.99.99]'
 }
 
 // Add this line to include the react-native-vector-icons fonts
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
 
 apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
-apply plugin: 'com.google.gms.google-services'

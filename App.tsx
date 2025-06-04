@@ -27,13 +27,13 @@ import VerifyAccount from './screens/VerifyAccount';
 import DayOnesScreen from './screens/fan/DayOnesScreen';
 import DMDetailPage from './screens/fan/DMDetailPage';
 import SuperAdminDashboard from './screens/superadmin/SuperAdminDashboard';
-import messaging from '@react-native-firebase/messaging';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, AppState } from 'react-native';
 import NotificationsScreen from './screens/NotificationsScreen';
 import { setAccessToken, setUserProfile, setUserID } from './assets/redux/actions';
 import axios from 'axios';
 import useSetupNotificationsAndLocation from './assets/hooks/useSetupNotificationsAndLocation';
-import useRefreshFCMToken from './assets/hooks/useRefreshFCMToken';
+import { useSelector } from 'react-redux';
+import { OneSignal, LogLevel, NotificationClickEvent, NotificationWillDisplayEvent } from 'react-native-onesignal';
 
 const Stack = createStackNavigator();
 const queryClient = new QueryClient();
@@ -46,13 +46,17 @@ type RootParamList = {
   RegFanPage: undefined;
   ArtistStack: undefined;
   FanStack: undefined;
+  PostDetail: { postId: string };
+  Profile: { userId: string };
+  Chat: { chatId: string };
+  EventDetail: { eventId: string };
   // ... other screen types ...
 };
 
 // Configure Google Sign-In
 GoogleSignin.configure({
   iosClientId: '918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com',
-  webClientId: '918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com', // Use the same client ID
+  webClientId: '918802616844-2rkeh1hqa9jga6r90g0tpphqoocs0rm3.apps.googleusercontent.com',
   offlineAccess: true,
 });
 
@@ -64,193 +68,145 @@ declare global {
 // Add this after the imports
 const PERSISTENCE_KEY = 'NAVIGATION_STATE';
 
+// Add type for Redux state
+interface RootState {
+  auth: {
+    user: {
+      id: string;
+      [key: string]: any;
+    } | null;
+  };
+  [key: string]: any;
+}
+
 // Create a separate component for the app content
 const AppContent = () => {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [initialState, setInitialState] = useState();
   const navigationRef = useRef<NavigationContainerRef<RootParamList>>(null);
-  const { refreshFCMToken } = useRefreshFCMToken();
-  const messageHandlerRef = useRef<(() => void) | null>(null);
-
-  // Add the notification setup hook
-  useSetupNotificationsAndLocation();
+  const user = useSelector((state: RootState) => state?.auth?.user || null);
+  const appState = useRef('active');
 
   useEffect(() => {
     // Store navigation reference globally
     global.navigationRef = navigationRef;
   }, []);
 
-  // Add FCM token refresh handler
+  // Initialize OneSignal
   useEffect(() => {
-    const handleTokenRefresh = async () => {
-      try {
-        await refreshFCMToken();
-        console.log('✅ FCM token refreshed successfully');
-      } catch (error) {
-        console.error('❌ Error refreshing FCM token:', error);
-      }
-    };
-
-    // Listen for FCM token refresh events
-    const unsubscribe = messaging().onTokenRefresh(async () => {
-      console.log('🔄 FCM token refresh event received');
-      await handleTokenRefresh();
-    });
-
-    // Listen for FCM message errors
-    if (!messageHandlerRef.current) {
-      messageHandlerRef.current = messaging().onMessage(async remoteMessage => {
-        console.log('📱 FCM message received:', remoteMessage);
-        
-        // Check for SenderId mismatch error
-        if (remoteMessage.data?.error === 'messaging/mismatched-credential' || 
-            remoteMessage.data?.error === 'SenderId mismatch') {
-          console.log('⚠️ SenderId mismatch detected, refreshing token...');
-          await handleTokenRefresh();
+    // Store event handlers in refs for cleanup
+    const clickHandler = (event: NotificationClickEvent) => {
+      console.log('OneSignal notification opened:', event);
+      
+      // Handle notification opened event
+      if (event.notification.additionalData) {
+        try {
+          const parsedData = typeof event.notification.additionalData === 'string' 
+            ? JSON.parse(event.notification.additionalData) 
+            : event.notification.additionalData;
+          console.log('Parsed notification data:', parsedData);
+          
+          // Handle navigation based on notification type
+          if (navigationRef.current) {
+            const { type, screen, params } = parsedData;
+            
+            switch (type) {
+              case 'post':
+                navigationRef.current.navigate('PostDetail', { postId: params?.postId });
+                break;
+              case 'profile':
+                navigationRef.current.navigate('Profile', { userId: params?.userId });
+                break;
+              case 'message':
+                navigationRef.current.navigate('Chat', { chatId: params?.chatId });
+                break;
+              case 'event':
+                navigationRef.current.navigate('EventDetail', { eventId: params?.eventId });
+                break;
+              default:
+                // If no specific type, try to navigate to the specified screen
+                if (screen) {
+                  navigationRef.current.navigate(screen, params);
+                }
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing notification data:', error);
         }
-      });
-    }
-
-    return () => {
-      unsubscribe();
-      if (messageHandlerRef.current) {
-        messageHandlerRef.current();
-        messageHandlerRef.current = null;
       }
     };
-  }, [refreshFCMToken]);
+
+    const foregroundHandler = (event: NotificationWillDisplayEvent) => {
+      console.log('OneSignal notification received:', event);
+      
+      // Handle notification received event
+      if (event.notification.additionalData) {
+        try {
+          const parsedData = typeof event.notification.additionalData === 'string' 
+            ? JSON.parse(event.notification.additionalData) 
+            : event.notification.additionalData;
+          console.log('Parsed notification data:', parsedData);
+          
+          // You can add custom handling for foreground notifications here
+          // For example, showing a custom in-app notification
+          if (parsedData.showInApp) {
+            // Show custom in-app notification
+            // You can implement this based on your UI requirements
+          }
+        } catch (error) {
+          console.error('Error parsing notification data:', error);
+        }
+      }
+    };
+
+    // Add event listeners
+    OneSignal.Notifications.addEventListener('click', clickHandler);
+    OneSignal.Notifications.addEventListener('foregroundWillDisplay', foregroundHandler);
+
+    // Cleanup listeners on unmount
+    return () => {
+      OneSignal.Notifications.removeEventListener('click', clickHandler);
+      OneSignal.Notifications.removeEventListener('foregroundWillDisplay', foregroundHandler);
+    };
+  }, []);
 
   useEffect(() => {
     const checkAppSetupStatus = async () => {
       try {
-        // Check if TOS and permissions are already accepted
-        const [tosAccepted, permissionsAccepted, authToken, userRole, tokenExpiry, refreshToken] = await Promise.all([
+        setIsLoading(true);
+        
+        // Check TOS and permissions status
+        const [tosAccepted, permissionsAccepted] = await Promise.all([
           AsyncStorage.getItem('tosAccepted'),
-          AsyncStorage.getItem('permissionsAccepted'),
-          AsyncStorage.getItem('authToken'),
-          AsyncStorage.getItem('userRole'),
-          AsyncStorage.getItem('tokenExpiry'),
-          AsyncStorage.getItem('refreshToken')
+          AsyncStorage.getItem('permissionsAccepted')
         ]);
 
-        console.log('App initialization status:', {
-          tosAccepted,
-          permissionsAccepted,
-          hasAuthToken: !!authToken,
-          userRole,
-          hasTokenExpiry: !!tokenExpiry,
-          hasRefreshToken: !!refreshToken
-        });
+        // Check if user is logged in
+        const authToken = await AsyncStorage.getItem('authToken');
+        const userData = await AsyncStorage.getItem('userData');
 
-        // If user is authenticated, skip TOS and permissions screens
-        if (authToken && userRole) {
-          try {
-            // Check if token is expired
-            const isExpired = tokenExpiry && Date.now() > parseInt(tokenExpiry);
-            
-            if (isExpired && refreshToken) {
-              // Attempt to refresh the token
-              const response = await axios.post(`${BASEURL}/api/v1/auth/refresh`, {
-                refresh_token: refreshToken
-              });
-
-              if (response.data?.data?.access_token) {
-                // Store new tokens
-                await AsyncStorage.multiSet([
-                  ['authToken', response.data.data.access_token],
-                  ['tokenExpiry', (Date.now() + response.data.data.expires_in * 1000).toString()]
-                ]);
-
-                // Update Redux store
-                store.dispatch(setAccessToken(response.data.data.access_token));
-                
-                // Navigate to appropriate stack
-                setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
-                setIsLoading(false);
-                return;
-              }
-            }
-
-            // Validate token by fetching user data
-            console.log('Attempting to validate token with endpoint:', `${BASEURL}/api/v1/auth/me`);
-            const response = await axios.post(`${BASEURL}/api/v1/auth/me`, {}, {
-              headers: {
-                Authorization: `Bearer ${authToken}`
-              }
-            });
-
-            if (response.data?.data) {
-              console.log('Token validation successful:', response.data);
-              // Token is valid, update Redux store
-              store.dispatch(setAccessToken(authToken));
-              store.dispatch(setUserProfile(response.data.data));
-              
-              // Navigate to appropriate stack based on role
-              setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
-              setIsLoading(false);
-              return;
-            }
-          } catch (error: any) {
-            console.error('Error validating token:', error);
-            // If validation fails, try to refresh the token
-            if (refreshToken) {
-              console.log('Attempting token refresh after validation failure');
-              try {
-                const refreshResponse = await axios.post(`${BASEURL}/api/v1/auth/refresh`, {
-                  refresh_token: refreshToken
-                });
-
-                if (refreshResponse.data?.data?.access_token) {
-                  // Store new tokens
-                  await AsyncStorage.multiSet([
-                    ['authToken', refreshResponse.data.data.access_token],
-                    ['tokenExpiry', (Date.now() + refreshResponse.data.data.expires_in * 1000).toString()]
-                  ]);
-
-                  // Update Redux store
-                  store.dispatch(setAccessToken(refreshResponse.data.data.access_token));
-                  setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
-                  setIsLoading(false);
-                  return;
-                }
-              } catch (refreshError) {
-                console.error('Token refresh failed:', refreshError);
-              }
-            }
-            // If all auth attempts fail, clear storage but keep TOS and permissions status
-            await clearAuthData();
-          }
-        }
-
-        // Check TOS and permissions status
-        if (tosAccepted === 'true' && permissionsAccepted === 'true') {
-          console.log('TOS and permissions already accepted, going to login');
-          setInitialRoute('LoginPage');
-        } else if (tosAccepted === 'true') {
-          // If TOS is accepted but permissions aren't, check if we actually need to show permissions
-          const [locationPermission, notificationPermission] = await Promise.all([
-            AsyncStorage.getItem('locationPermission'),
-            AsyncStorage.getItem('notificationPermission')
-          ]);
-          
-          console.log('Permission status:', {
-            locationPermission,
-            notificationPermission
-          });
-
-          if (locationPermission === 'true' && notificationPermission === 'true') {
-            console.log('All permissions granted, marking as accepted');
-            await AsyncStorage.setItem('permissionsAccepted', 'true');
-            setInitialRoute('LoginPage');
+        if (authToken && userData) {
+          // User is logged in, check permissions
+          if (permissionsAccepted === 'true') {
+            console.log('User logged in and permissions granted, proceeding to main app');
+            setInitialRoute('ArtistStack');
           } else {
-            console.log('Permissions not fully granted, showing permissions screen');
+            console.log('User logged in but permissions not granted, showing permissions screen');
             setInitialRoute('PermissionsScreen');
           }
         } else {
-          // If TOS is not accepted or is null, show TOS screen
-          console.log('TOS not accepted or null, showing TOS screen');
-          setInitialRoute('TermsAndPrivacyScreen');
+          // User is not logged in
+          if (tosAccepted === 'true' && permissionsAccepted === 'true') {
+            console.log('TOS and permissions accepted, going to login');
+            setInitialRoute('LoginPage');
+          } else if (tosAccepted === 'true') {
+            console.log('TOS accepted but permissions not granted, showing permissions screen');
+            setInitialRoute('PermissionsScreen');
+          } else {
+            console.log('TOS not accepted, showing TOS screen');
+            setInitialRoute('TermsAndPrivacyScreen');
+          }
         }
       } catch (error) {
         console.error('Error checking app setup status:', error);
@@ -293,31 +249,15 @@ const AppContent = () => {
       store.dispatch(setUserProfile(null));
       store.dispatch(setUserID(null));
 
+      // Clear OneSignal external user ID
+      // OneSignal.removeExternalUserId(); // Uncomment when ready to use
+
       console.log('Auth data cleared, TOS and permissions status preserved:', {
         tosAccepted,
         permissionsAccepted
       });
     } catch (error) {
       console.error('Error clearing auth data:', error);
-    }
-  };
-
-  // Function to get FCM token
-  const getFCMToken = async () => {
-    try {
-      // Only register for remote messages on Android
-      if (Platform.OS === 'android') {
-        await messaging().registerDeviceForRemoteMessages();
-      }
-      
-      const fcmToken = await messaging().getToken();
-      console.log('🔔 [App] FCM Token:', fcmToken);
-      console.log('📱 [App] Device Platform:', Platform.OS);
-      console.log('🔄 [App] FCM Token Length:', fcmToken.length);
-      await AsyncStorage.setItem('fcmToken', fcmToken);
-      console.log('✅ [App] FCM Token stored in AsyncStorage');
-    } catch (error) {
-      console.error('❌ [App] Error fetching FCM token:', error);
     }
   };
 
