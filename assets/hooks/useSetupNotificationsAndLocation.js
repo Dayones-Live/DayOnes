@@ -46,24 +46,21 @@ const useSetupNotificationsAndLocation = () => {
 
         // Get the OneSignal push subscription ID
         const pushSubscription = OneSignal.User.pushSubscription;
-        if (pushSubscription?.id) {
-          try {
-            await axiosInstance.post('/api/v1/user-notification/token', 
-              new URLSearchParams({
-                notificationToken: pushSubscription.id,
-                platform: Platform.OS
-              }).toString(),
-              {
-                headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded',
-                }
-              }
-            );
-            console.log('✅ OneSignal push subscription ID registered successfully');
-          } catch (error) {
-            console.error('❌ Error registering OneSignal push subscription ID:', error);
-          }
+        const [id, token] = await Promise.all([
+          pushSubscription.getIdAsync(),
+          pushSubscription.getTokenAsync()
+        ]);
+
+        if (!id || !token) {
+          console.log('⚠️ No push subscription details available');
+          return;
         }
+
+        console.log('✅ OneSignal push subscription verified:', {
+          id,
+          token,
+          platform: Platform.OS
+        });
 
         // Request location permission
         const locationPermission = Platform.select({

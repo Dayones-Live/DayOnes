@@ -97,7 +97,7 @@ const AppContent = () => {
   useEffect(() => {
     // Store event handlers in refs for cleanup
     const clickHandler = (event: NotificationClickEvent) => {
-      console.log('OneSignal notification opened:', event);
+      console.log('🔔 OneSignal notification opened:', event);
       
       // Handle notification opened event
       if (event.notification.additionalData) {
@@ -107,28 +107,13 @@ const AppContent = () => {
             : event.notification.additionalData;
           console.log('Parsed notification data:', parsedData);
           
-          // Handle navigation based on notification type
-          if (navigationRef.current) {
-            const { type, screen, params } = parsedData;
-            
-            switch (type) {
-              case 'post':
-                navigationRef.current.navigate('PostDetail', { postId: params?.postId });
-                break;
-              case 'profile':
-                navigationRef.current.navigate('Profile', { userId: params?.userId });
-                break;
-              case 'message':
-                navigationRef.current.navigate('Chat', { chatId: params?.chatId });
-                break;
-              case 'event':
-                navigationRef.current.navigate('EventDetail', { eventId: params?.eventId });
-                break;
-              default:
-                // If no specific type, try to navigate to the specified screen
-                if (screen) {
-                  navigationRef.current.navigate(screen, params);
-                }
+          // Handle navigation based on notification data
+          if (parsedData.type === 'message' && parsedData.conversation_id) {
+            // Navigate to conversation
+            if (navigationRef.current) {
+              navigationRef.current.navigate('Chat', {
+                chatId: parsedData.conversation_id
+              });
             }
           }
         } catch (error) {
@@ -138,22 +123,17 @@ const AppContent = () => {
     };
 
     const foregroundHandler = (event: NotificationWillDisplayEvent) => {
-      console.log('OneSignal notification received:', event);
+      console.log('📨 OneSignal notification received:', event);
       
-      // Handle notification received event
+      // Let the system handle the notification display
+      // We don't need to do anything here as OneSignal will handle the push notification
+      // Just log the event for debugging
       if (event.notification.additionalData) {
         try {
           const parsedData = typeof event.notification.additionalData === 'string' 
             ? JSON.parse(event.notification.additionalData) 
             : event.notification.additionalData;
           console.log('Parsed notification data:', parsedData);
-          
-          // You can add custom handling for foreground notifications here
-          // For example, showing a custom in-app notification
-          if (parsedData.showInApp) {
-            // Show custom in-app notification
-            // You can implement this based on your UI requirements
-          }
         } catch (error) {
           console.error('Error parsing notification data:', error);
         }

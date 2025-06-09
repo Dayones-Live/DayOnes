@@ -75,16 +75,21 @@ class NotificationService {
           return;
         }
 
+        // Get the stored device ID
+        const storedDeviceId = await AsyncStorage.getItem('currentDeviceId');
+        
         console.log('📱 Registering device with backend...', {
           oneSignalPlayerId,
           deviceType: Platform.OS,
-          deviceToken
+          deviceToken,
+          storedDeviceId
         });
 
         const payload = {
           oneSignalPlayerId,
           deviceType: Platform.OS,
-          deviceToken
+          deviceToken,
+          deviceId: storedDeviceId // Include the stored device ID if it exists
         };
 
         console.log('📤 Sending registration payload:', payload);
@@ -110,6 +115,14 @@ class NotificationService {
             deviceType: Platform.OS,
             message: response.data.message
           });
+          
+          // Store the device ID in AsyncStorage for persistence
+          if (this.currentDeviceId) {
+            await AsyncStorage.setItem('currentDeviceId', this.currentDeviceId);
+            // Also store the OneSignal player ID
+            await AsyncStorage.setItem('oneSignalPlayerId', oneSignalPlayerId);
+          }
+          
           return;
         }
 
@@ -120,12 +133,7 @@ class NotificationService {
           response: error.response?.data,
           status: error.response?.status,
           oneSignalPlayerId,
-          deviceType: Platform.OS,
-          payload: {
-            oneSignalPlayerId,
-            deviceType: Platform.OS,
-            deviceToken
-          }
+          deviceType: Platform.OS
         });
 
         // Handle specific error cases
@@ -246,77 +254,58 @@ class NotificationService {
     try {
       console.log('🔄 Starting notification service initialization...');
 
-      // First check if we have an auth token
-      const authToken = await this.getAuthToken();
-      if (!authToken) {
-        console.log('⚠️ No auth token available, will retry initialization later');
-        this.isInitialized = false;
-        return;
-      }
-
+      // Wait for OneSignal to be ready
       await this.waitForOneSignalInitialization();
 
-      const permission = await OneSignal.Notifications.requestPermission(true);
-      console.log('📱 Notification permission status:', permission);
-
-      if (!permission) {
-        console.log('⚠️ Notification permission not granted, will retry later');
-        this.isInitialized = false;
-        return;
-      }
-
+      // Get the push subscription details
       const pushSubscription = OneSignal.User.pushSubscription;
-      const [id, token, optIn, hasPermission] = await Promise.all([
+      const [id, token, optedIn] = await Promise.all([
         pushSubscription.getIdAsync(),
         pushSubscription.getTokenAsync(),
-        pushSubscription.getOptedInAsync(),
-        OneSignal.Notifications.getPermissionAsync()
+        pushSubscription.getOptedInAsync()
       ]);
 
       if (!id || !token) {
-        console.log('⚠️ No push subscription details available, will retry later');
-        this.isInitialized = false;
-        return;
+        throw new Error('Failed to get OneSignal push subscription details');
       }
 
+      console.log('📱 Notification permission status:', optedIn);
       console.log('📲 Push Subscription State:', {
+        deviceType: Platform.OS,
         id,
-        token,
-        optIn,
-        deviceType: Platform.OS
+        optedIn,
+        token
       });
 
-      // Register device with backend
-      try {
-        console.log('📱 Attempting device registration with backend...');
-        await this.registerDeviceWithBackend(id, token);
-        
-        // Only set initialized after successful registration
-        if (this.currentDeviceId) {
-          this.isInitialized = true;
-          console.log('✅ Notification service initialized successfully with device ID:', this.currentDeviceId);
-          
-          // Log OneSignal configuration
-          console.log('🔧 OneSignal Configuration:', {
-            isPushSupported: await OneSignal.User.pushSubscription.getOptedInAsync(),
-            isSubscribed: await OneSignal.User.pushSubscription.getOptedInAsync()
-          });
-
-          // Set up event listeners only after successful initialization
-          this.setupEventListeners();
-        } else {
-          console.log('⚠️ Device registration did not return a device ID');
-          this.isInitialized = false;
-        }
-      } catch (error) {
-        console.error('❌ Failed to register device with backend:', error);
-        this.isInitialized = false;
+      // Get the current user ID
+      const userData = await AsyncStorage.getItem('userData');
+      if (!userData) {
+        console.log('⚠️ No user data found, skipping device registration');
         return;
       }
+
+      const parsedData = JSON.parse(userData);
+      if (!parsedData?.data?.id) {
+        console.log('⚠️ No user ID found in user data, skipping device registration');
+        return;
+      }
+
+      // Set the external user ID in OneSignal
+      await OneSignal.login(parsedData.data.id);
+      console.log('✅ Set OneSignal external user ID:', parsedData.data.id);
+
+      // Register the device with the backend
+      console.log('📱 Attempting device registration with backend...');
+      await this.registerDeviceWithBackend(id, token);
+
+      // Set up event listeners
+      this.setupEventListeners();
+
+      this.isInitialized = true;
+      console.log('✅ Notification service initialized successfully with device ID:', this.currentDeviceId);
     } catch (error) {
-      console.error('❌ Error initializing notifications:', error);
-      this.isInitialized = false;
-      return;
+      console.error('❌ Error initializing notification service:', error);
+      throw error;
     }
   }
 
@@ -324,19 +313,34 @@ class NotificationService {
     console.log('🎯 Setting up notification event listeners...');
 
     // Handle notification opened
-    OneSignal.Notifications.addEventListener('click', (event: NotificationClickEvent) => {
-      console.log('🔔 Notification opened:', {
-        notification: event.notification,
-        additionalData: event.notification.additionalData
-      });
+    OneSignal.Notifications.addEventListener('click', (event) => {
+      console.log('🔔 Notification opened:', event);
+      if (event.notification.additionalData) {
+        try {
+          const parsedData = typeof event.notification.additionalData === 'string' 
+            ? JSON.parse(event.notification.additionalData) 
+            : event.notification.additionalData;
+          console.log('Parsed notification data:', parsedData);
+        } catch (error) {
+          console.error('Error parsing notification data:', error);
+        }
+      }
     });
 
     // Handle notification received
-    OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event: NotificationWillDisplayEvent) => {
-      console.log('📨 Notification received:', {
-        notification: event.notification,
-        additionalData: event.notification.additionalData
-      });
+    OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
+      console.log('📨 Notification received:', event);
+      // Let OneSignal handle the notification display
+      if (event.notification.additionalData) {
+        try {
+          const parsedData = typeof event.notification.additionalData === 'string' 
+            ? JSON.parse(event.notification.additionalData) 
+            : event.notification.additionalData;
+          console.log('Parsed notification data:', parsedData);
+        } catch (error) {
+          console.error('Error parsing notification data:', error);
+        }
+      }
     });
 
     // Handle permission changes
@@ -383,28 +387,7 @@ class NotificationService {
         try {
           await this.registerDeviceWithBackend(id, token);
         } catch (error) {
-          console.error('❌ Failed to re-register device after subscription change:', error);
-        }
-      }
-    });
-
-    // Handle app state changes
-    AppState.addEventListener('change', async (nextAppState) => {
-      if (nextAppState === 'active') {
-        console.log('📱 App became active, checking device registration...');
-        
-        const pushSubscription = OneSignal.User.pushSubscription;
-        const [id, token] = await Promise.all([
-          pushSubscription.getIdAsync(),
-          pushSubscription.getTokenAsync()
-        ]);
-
-        if (id && token) {
-          try {
-            await this.registerDeviceWithBackend(id, token);
-          } catch (error) {
-            console.error('❌ Failed to register device after app state change:', error);
-          }
+          console.error('❌ Failed to register device after subscription change:', error);
         }
       }
     });
