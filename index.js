@@ -14,43 +14,57 @@ AppRegistry.registerComponent(appName, () => App);
 // Enable verbose logging for debugging
 OneSignal.Debug.setLogLevel(LogLevel.Verbose);
 
-// Initialize OneSignal
+// Initialize OneSignal with proper configuration
 console.log('🔄 Starting OneSignal initialization...');
-OneSignal.initialize('0a492844-225d-4244-bec5-4cd0e7d5b986');
+OneSignal.initialize('0a492844-225d-4244-bec5-4cd0e7d5b986', {
+  kOSSettingsKeyAutoPrompt: true,
+  kOSSettingsKeyInAppLaunchURL: false,
+  kOSSSettingsKeyPromptBeforeOpeningPushURL: true
+});
 
-// Request notification permission
-OneSignal.Notifications.requestPermission();
+// Request notification permission with proper handling
+const requestNotificationPermission = async () => {
+  try {
+    const permission = await OneSignal.Notifications.requestPermission();
+    console.log('📱 Notification permission status:', permission);
+    
+    if (permission) {
+      // Get push subscription state
+      const pushSubscription = OneSignal.User.pushSubscription;
+      const [id, token, optedIn] = await Promise.all([
+        pushSubscription.getIdAsync(),
+        pushSubscription.getTokenAsync(),
+        pushSubscription.getOptedInAsync()
+      ]);
 
-// Get push subscription state
-const pushSubscription = OneSignal.User.pushSubscription;
-Promise.all([
-  pushSubscription.getIdAsync(),
-  pushSubscription.getTokenAsync(),
-  pushSubscription.getOptedInAsync()
-]).then(([id, token, optedIn]) => {
-  console.log('📱 Notification permission status:', optedIn);
-  console.log('📲 Push Subscription State:', {
-    deviceType: Platform.OS,
-    id,
-    optedIn,
-    token
-  });
+      console.log('📲 Push Subscription State:', {
+        deviceType: Platform.OS,
+        id,
+        optedIn,
+        token
+      });
 
-  // Get user data and set external user ID
-  AsyncStorage.getItem('userData').then(userData => {
-    if (userData) {
-      try {
-        const parsedData = JSON.parse(userData);
-        if (parsedData?.data?.id) {
-          OneSignal.login(parsedData.data.id);
-          console.log('✅ Set OneSignal external user ID:', parsedData.data.id);
+      // Get user data and set external user ID
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        try {
+          const parsedData = JSON.parse(userData);
+          if (parsedData?.data?.id) {
+            await OneSignal.login(parsedData.data.id);
+            console.log('✅ Set OneSignal external user ID:', parsedData.data.id);
+          }
+        } catch (error) {
+          console.error('Error parsing user data:', error);
         }
-      } catch (error) {
-        console.error('Error parsing user data:', error);
       }
     }
-  });
-});
+  } catch (error) {
+    console.error('Error requesting notification permission:', error);
+  }
+};
+
+// Call the permission request function
+requestNotificationPermission();
 
 // Set up notification handlers
 OneSignal.Notifications.addEventListener('click', (event) => {

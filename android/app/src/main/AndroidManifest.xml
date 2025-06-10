@@ -30,9 +30,8 @@
         android:usesCleartextTraffic="true">
 
         <!-- OneSignal Configuration -->
-        <meta-data android:name="com.onesignal.NotificationServiceExtension" android:value="com.onesignal.example.NotificationServiceExtension" />
-        <meta-data android:name="com.onesignal.NotificationOpenedActivity" android:value="com.onesignal.example.NotificationOpenedActivity" />
-        <meta-data android:name="com.onesignal.NotificationServiceExtension" android:value="com.onesignal.example.NotificationServiceExtension" />
+        <meta-data android:name="com.onesignal.NotificationServiceExtension" android:value="com.dayones.NotificationServiceExtension" />
+        <meta-data android:name="com.onesignal.NotificationOpenedActivity" android:value="com.dayones.MainActivity" />
 
         <activity
             android:name=".MainActivity"

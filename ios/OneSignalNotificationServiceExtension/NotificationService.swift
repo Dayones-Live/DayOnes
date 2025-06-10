@@ -23,6 +23,9 @@ class NotificationService: UNNotificationServiceExtension {
                 if let customBody = userInfo["body"] as? String {
                     bestAttemptContent.body = customBody
                 }
+                
+                // Log the notification data for debugging
+                print("Notification data:", userInfo)
             }
 
             // DEBUGGING: Uncomment the 2 lines below to check this extension is executing
@@ -35,9 +38,8 @@ class NotificationService: UNNotificationServiceExtension {
     }
 
     override func serviceExtensionTimeWillExpire() {
-        // Use this as an opportunity to deliver your "best attempt" at modified content, otherwise the original push payload will be used.
-        if let contentHandler = contentHandler, let bestAttemptContent =  bestAttemptContent {
-            OneSignalExtension.serviceExtensionTimeWillExpireRequest(self.receivedRequest, with: self.bestAttemptContent)
+        // Called just before the extension will be terminated by the system.
+        if let contentHandler = contentHandler, let bestAttemptContent = bestAttemptContent {
             contentHandler(bestAttemptContent)
         }
     }

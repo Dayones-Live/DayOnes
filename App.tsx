@@ -205,15 +205,18 @@ const AppContent = () => {
             notification.body = parsedData.body;
           }
           
-          // Display the modified notification
+          // Set the notification content
+          event.preventDefault();
           notification.display();
         } catch (error) {
           console.error('Error handling notification:', error);
           // Display the original notification if there's an error
+          event.preventDefault();
           notification.display();
         }
       } else {
         // Display the original notification if no additional data
+        event.preventDefault();
         notification.display();
       }
     };
