@@ -143,7 +143,14 @@ const NotificationsScreen = () => {
 
         // Navigate based on notification type
         if (item.type === 'message' && item.conversationId) {
-          navigation.navigate('Chat', { conversationId: item.conversationId });
+          navigation.navigate('ConversationThread', { 
+            conversationId: item.conversationId,
+            userId: item.from_user_profile?.id,
+            username: item.from_user_profile?.username || item.from_user_profile?.full_name,
+            profilePicture: item.from_user_profile?.avatar_url || item.from_user_profile?.img_profile,
+            isNewConversation: false
+          });
+          return;
         }
       }
     } catch (error) {
@@ -174,10 +181,6 @@ const NotificationsScreen = () => {
     let action, id;
     switch (item.type) {
       case 'reaction':
-        action = 'post';
-        id = parsedData.post_id || item.post_id;
-        console.log('Reaction notification - Using post_id:', id);
-        break;
       case 'comments':
         action = 'post';
         id = parsedData?.post_id || item.post_id;
@@ -203,7 +206,7 @@ const NotificationsScreen = () => {
     switch (action) {
       case 'post':
         if (id) {
-          // Check if user is a fan and navigate to DMDetailPage
+          // Check if user is a fan and navigate accordingly
           const isFan = userProfile?.data?.role === 'USER';
           console.log('=== Navigation Decision ===');
           console.log('Is Fan?', isFan);

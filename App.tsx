@@ -50,6 +50,15 @@ type RootParamList = {
   Profile: { userId: string };
   Chat: { chatId: string };
   EventDetail: { eventId: string };
+  ConversationThread: {
+    conversationId: string;
+    userId: string;
+    username: string;
+    profilePicture: string;
+    isNewConversation: boolean;
+  };
+  DMDetailPage: { postId: string };
+  PostDetailPage: { postId: string };
   // ... other screen types ...
 };
 
@@ -96,7 +105,7 @@ const AppContent = () => {
   // Initialize OneSignal
   useEffect(() => {
     // Store event handlers in refs for cleanup
-    const clickHandler = (event: NotificationClickEvent) => {
+    const clickHandler = async (event: NotificationClickEvent) => {
       console.log('🔔 OneSignal notification opened:', event);
       
       // Handle notification opened event
@@ -107,13 +116,64 @@ const AppContent = () => {
             : event.notification.additionalData;
           console.log('Parsed notification data:', parsedData);
           
-          // Handle navigation based on notification data
+          // Get user data to determine navigation
+          const loggedInUser = await AsyncStorage.getItem('userData');
+          if (!loggedInUser) {
+            console.error('No user data found');
+            return;
+          }
+          const parsedUser = JSON.parse(loggedInUser);
+          const isFan = parsedUser.data.role === 'USER';
+
+          // Handle different notification types
           if (parsedData.type === 'message' && parsedData.conversation_id) {
-            // Navigate to conversation
-            if (navigationRef.current) {
-              navigationRef.current.navigate('Chat', {
-                chatId: parsedData.conversation_id
+            // Handle message notification
+            try {
+              const authToken = await AsyncStorage.getItem('authToken');
+              if (!authToken) {
+                console.error('No auth token found');
+                return;
+              }
+
+              const response = await fetch(`${BASEURL}/api/v1/conversation/${parsedData.conversation_id}`, {
+                headers: {
+                  Authorization: `Bearer ${authToken}`,
+                },
               });
+              
+              if (response.ok) {
+                const data = await response.json();
+                const conversation = data.data;
+                
+                const otherUser = conversation.sender.email === parsedUser.data.email 
+                  ? conversation.reciever 
+                  : conversation.sender;
+
+                if (navigationRef.current) {
+                  navigationRef.current.navigate('ConversationThread', {
+                    conversationId: parsedData.conversation_id,
+                    userId: otherUser.id,
+                    username: otherUser.full_name,
+                    profilePicture: otherUser.avatar_url || 'https://example.com/default-avatar.png',
+                    isNewConversation: false
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching conversation details:', error);
+            }
+          } else if (parsedData.type === 'comment' && parsedData.post_id) {
+            // Handle post comment notification
+            if (navigationRef.current) {
+              if (isFan) {
+                navigationRef.current.navigate('DMDetailPage', { 
+                  postId: parsedData.post_id 
+                });
+              } else {
+                navigationRef.current.navigate('PostDetailPage', { 
+                  postId: parsedData.post_id 
+                });
+              }
             }
           }
         } catch (error) {
