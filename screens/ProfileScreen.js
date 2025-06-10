@@ -35,6 +35,7 @@ import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { Linking } from 'react-native';
 import styles from './sharedStyles/ProfileScreenStyles';
+import { notificationService } from '../assets/services/notificationService';
 
 
 const ProfileScreen = () => {
@@ -283,6 +284,9 @@ const ProfileScreen = () => {
   const handleLogout = async () => {
     const url = `${BASEURL}/api/v1/auth/signout`;
     try {
+      // First unregister the device
+      await notificationService.unregister();
+
       const response = await axios.post(
         url,
         {},

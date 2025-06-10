@@ -78,6 +78,9 @@ class NotificationService {
     try {
       console.log('🔄 Starting notification service initialization...');
 
+      // Reset initialization state
+      this.isInitialized = false;
+
       // Initialize OneSignal
       await this.initializeOneSignal();
 
@@ -290,19 +293,29 @@ class NotificationService {
 
   async unregister(): Promise<void> {
     try {
-      if (!this.currentDeviceId) return;
+      const pushSubscription = OneSignal.User.pushSubscription;
+      const oneSignalPlayerId = await pushSubscription.getIdAsync();
+      
+      if (!oneSignalPlayerId) {
+        console.log('⚠️ No OneSignal player ID available');
+        return;
+      }
 
       const authToken = await this.getAuthToken();
-      if (!authToken) return;
+      if (!authToken) {
+        console.log('⚠️ No auth token available');
+        return;
+      }
 
       await axiosInstance.post(
-        '/api/v1/user-notification/token/remove',
-        new URLSearchParams({
-          deviceId: this.currentDeviceId
-        }).toString(),
+        '/api/v1/devices/unregister',
+        {
+          oneSignalPlayerId
+        },
         {
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
           }
         }
       );
@@ -345,6 +358,8 @@ class NotificationService {
   }
 
   cleanup(): void {
+    console.log('🧹 Cleaning up notification service...');
+    
     // Remove all event listeners
     this.eventListeners.forEach((callback, event) => {
       switch (event) {
@@ -363,6 +378,12 @@ class NotificationService {
       }
     });
     this.eventListeners.clear();
+    
+    // Reset initialization state
+    this.isInitialized = false;
+    this.initializationPromise = null;
+    
+    console.log('✅ Notification service cleanup completed');
   }
 }
 

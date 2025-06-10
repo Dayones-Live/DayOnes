@@ -41,6 +41,9 @@ const useSetupNotificationsAndLocation = () => {
           }
         }
 
+        // Reset notification service state
+        notificationService.cleanup();
+        
         // Initialize notification service
         await notificationService.initialize();
 
@@ -89,7 +92,12 @@ const useSetupNotificationsAndLocation = () => {
     };
 
     setupNotificationsAndLocation();
-  }, [dispatch, accessTokenFromRedux, userProfile]);
+
+    // Cleanup function
+    return () => {
+      notificationService.cleanup();
+    };
+  }, [dispatch, accessTokenFromRedux, userProfile?.data?.id]);
 
   return null;
 };
