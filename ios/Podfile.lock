@@ -1557,10 +1557,8 @@ DEPENDENCIES:
 
 SPEC REPOS:
   https://github.com/CocoaPods/Specs.git:
-    - AppAuth
     - GoogleSignIn
     - GTMAppAuth
-    - OneSignalXCFramework
     - SocketRocket
   trunk:
     - AppAuth
