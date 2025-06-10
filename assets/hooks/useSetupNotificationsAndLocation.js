@@ -11,7 +11,7 @@ import axiosInstance from '../../utils/axiosConfig';
 import {Platform} from 'react-native';
 import {request, RESULTS} from 'react-native-permissions';
 import { OneSignal } from 'react-native-onesignal';
-import { NotificationService } from '../services/notificationService';
+import { notificationService } from '../services/notificationService';
 
 const useSetupNotificationsAndLocation = () => {
   const dispatch = useDispatch();
@@ -42,8 +42,7 @@ const useSetupNotificationsAndLocation = () => {
         }
 
         // Initialize notification service
-        const notificationServiceInstance = NotificationService.getInstance();
-        await notificationServiceInstance.initialize();
+        await notificationService.initialize();
 
         // Get the OneSignal push subscription ID
         const pushSubscription = OneSignal.User.pushSubscription;

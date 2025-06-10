@@ -14,18 +14,43 @@ class NotificationService: UNNotificationServiceExtension {
         self.bestAttemptContent = (request.content.mutableCopy() as? UNMutableNotificationContent)
 
         if let bestAttemptContent = bestAttemptContent {
-            // DEBUGGING: Uncomment the 2 lines below to check this extension is executing
-//            print("Running NotificationServiceExtension")
-//            bestAttemptContent.body = "[Modified] " + bestAttemptContent.body
-
-            OneSignalExtension.didReceiveNotificationExtensionRequest(self.receivedRequest, with: bestAttemptContent, withContentHandler: self.contentHandler)
+            // Get the notification data
+            if let customData = request.content.userInfo["custom"] as? [String: Any] {
+                // Log the notification data for debugging
+                print("📱 Notification data:", customData)
+                
+                // Set custom title and body if available
+                if let title = customData["title"] as? String {
+                    bestAttemptContent.title = title
+                }
+                
+                if let body = customData["body"] as? String {
+                    bestAttemptContent.body = body
+                }
+                
+                // Set category identifier for custom actions
+                if let type = customData["type"] as? String {
+                    bestAttemptContent.categoryIdentifier = type
+                }
+            }
+            
+            // Process the notification with OneSignal
+            OneSignalExtension.didReceiveNotificationExtensionRequest(
+                self.receivedRequest,
+                with: self.bestAttemptContent,
+                withContentHandler: self.contentHandler
+            )
         }
     }
 
     override func serviceExtensionTimeWillExpire() {
+        // Called just before the extension will be terminated by the system.
         // Use this as an opportunity to deliver your "best attempt" at modified content, otherwise the original push payload will be used.
-        if let contentHandler = contentHandler, let bestAttemptContent =  bestAttemptContent {
-            OneSignalExtension.serviceExtensionTimeWillExpireRequest(self.receivedRequest, with: self.bestAttemptContent)
+        if let contentHandler = contentHandler, let bestAttemptContent = bestAttemptContent {
+            OneSignalExtension.serviceExtensionTimeWillExpireRequest(
+                self.receivedRequest,
+                with: self.bestAttemptContent
+            )
             contentHandler(bestAttemptContent)
         }
     }

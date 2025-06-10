@@ -59,9 +59,27 @@ OneSignal.Notifications.addEventListener('click', (event) => {
 
 OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
   console.log('📨 OneSignal notification received:', event);
+  const notification = event.notification;
+  
+  // Log the raw payload for debugging
+  console.log('Raw payload:', JSON.stringify(notification.rawPayload, null, 2));
+  
+  // Extract custom content from the raw payload
+  const rawPayload = notification.rawPayload;
+  if (rawPayload?.custom) {
+    console.log('Custom payload:', JSON.stringify(rawPayload.custom, null, 2));
+    // Update notification content with custom values
+    if (rawPayload.custom.title) {
+      notification.title = rawPayload.custom.title;
+    }
+    if (rawPayload.custom.body) {
+      notification.body = rawPayload.custom.body;
+    }
+  }
+  
   // Prevent the notification from displaying automatically
   event.preventDefault();
-  // Display the notification manually
+  // Display the notification manually with updated content
   event.getNotification().display();
 });
 
