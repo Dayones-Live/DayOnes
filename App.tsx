@@ -34,6 +34,7 @@ import axios from 'axios';
 import useSetupNotificationsAndLocation from './assets/hooks/useSetupNotificationsAndLocation';
 import { useSelector } from 'react-redux';
 import { OneSignal, LogLevel, NotificationClickEvent, NotificationWillDisplayEvent } from 'react-native-onesignal';
+import useNotifications from './assets/hooks/useNotifications';
 
 const Stack = createStackNavigator();
 const queryClient = new QueryClient();
@@ -88,6 +89,14 @@ interface RootState {
   [key: string]: any;
 }
 
+// Add interface for notification data
+interface NotificationData {
+  type: string;
+  conversation_id?: string;
+  post_id?: string;
+  [key: string]: any;
+}
+
 // Create a separate component for the app content
 const AppContent = () => {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
@@ -102,114 +111,81 @@ const AppContent = () => {
     global.navigationRef = navigationRef;
   }, []);
 
-  // Initialize OneSignal
-  useEffect(() => {
-    // Store event handlers in refs for cleanup
-    const clickHandler = async (event: NotificationClickEvent) => {
-      console.log('🔔 OneSignal notification opened:', event);
+  // Use our new notification hook with proper typing
+  useNotifications({
+    onNotificationClick: async (data: NotificationData) => {
+      console.log('🔔 Notification clicked:', data);
       
-      // Handle notification opened event
-      if (event.notification.additionalData) {
-        try {
-          const parsedData = typeof event.notification.additionalData === 'string' 
-            ? JSON.parse(event.notification.additionalData) 
-            : event.notification.additionalData;
-          console.log('Parsed notification data:', parsedData);
-          
-          // Get user data to determine navigation
-          const loggedInUser = await AsyncStorage.getItem('userData');
-          if (!loggedInUser) {
-            console.error('No user data found');
-            return;
-          }
-          const parsedUser = JSON.parse(loggedInUser);
-          const isFan = parsedUser.data.role === 'USER';
+      try {
+        // Get user data to determine navigation
+        const loggedInUser = await AsyncStorage.getItem('userData');
+        if (!loggedInUser) {
+          console.error('No user data found');
+          return;
+        }
+        const parsedUser = JSON.parse(loggedInUser);
+        const isFan = parsedUser.data.role === 'USER';
 
-          // Handle different notification types
-          if (parsedData.type === 'message' && parsedData.conversation_id) {
-            // Handle message notification
-            try {
-              const authToken = await AsyncStorage.getItem('authToken');
-              if (!authToken) {
-                console.error('No auth token found');
-                return;
-              }
+        // Handle different notification types
+        if (data.type === 'message' && data.conversation_id) {
+          // Handle message notification
+          try {
+            const authToken = await AsyncStorage.getItem('authToken');
+            if (!authToken) {
+              console.error('No auth token found');
+              return;
+            }
 
-              const response = await fetch(`${BASEURL}/api/v1/conversation/${parsedData.conversation_id}`, {
-                headers: {
-                  Authorization: `Bearer ${authToken}`,
-                },
-              });
+            const response = await fetch(`${BASEURL}/api/v1/conversation/${data.conversation_id}`, {
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+            });
+            
+            if (response.ok) {
+              const responseData = await response.json();
+              const conversation = responseData.data;
               
-              if (response.ok) {
-                const data = await response.json();
-                const conversation = data.data;
-                
-                const otherUser = conversation.sender.email === parsedUser.data.email 
-                  ? conversation.reciever 
-                  : conversation.sender;
+              const otherUser = conversation.sender.email === parsedUser.data.email 
+                ? conversation.reciever 
+                : conversation.sender;
 
-                if (navigationRef.current) {
-                  navigationRef.current.navigate('ConversationThread', {
-                    conversationId: parsedData.conversation_id,
-                    userId: otherUser.id,
-                    username: otherUser.full_name,
-                    profilePicture: otherUser.avatar_url || 'https://example.com/default-avatar.png',
-                    isNewConversation: false
-                  });
-                }
+              if (navigationRef.current) {
+                navigationRef.current.navigate('ConversationThread', {
+                  conversationId: data.conversation_id,
+                  userId: otherUser.id,
+                  username: otherUser.full_name,
+                  profilePicture: otherUser.avatar_url || 'https://example.com/default-avatar.png',
+                  isNewConversation: false
+                });
               }
-            } catch (error) {
-              console.error('Error fetching conversation details:', error);
             }
-          } else if (parsedData.type === 'comment' && parsedData.post_id) {
-            // Handle post comment notification
-            if (navigationRef.current) {
-              if (isFan) {
-                navigationRef.current.navigate('DMDetailPage', { 
-                  postId: parsedData.post_id 
-                });
-              } else {
-                navigationRef.current.navigate('PostDetailPage', { 
-                  postId: parsedData.post_id 
-                });
-              }
+          } catch (error) {
+            console.error('Error fetching conversation details:', error);
+          }
+        } else if (data.type === 'comment' && data.post_id) {
+          // Handle post comment notification
+          if (navigationRef.current) {
+            if (isFan) {
+              navigationRef.current.navigate('DMDetailPage', { 
+                postId: data.post_id 
+              });
+            } else {
+              navigationRef.current.navigate('PostDetailPage', { 
+                postId: data.post_id 
+              });
             }
           }
-        } catch (error) {
-          console.error('Error parsing notification data:', error);
         }
+      } catch (error) {
+        console.error('Error handling notification click:', error);
       }
-    };
-
-    const foregroundHandler = (event: NotificationWillDisplayEvent) => {
-      console.log('📨 OneSignal notification received:', event);
-      
-      // Let the system handle the notification display
-      // We don't need to do anything here as OneSignal will handle the push notification
-      // Just log the event for debugging
-      if (event.notification.additionalData) {
-        try {
-          const parsedData = typeof event.notification.additionalData === 'string' 
-            ? JSON.parse(event.notification.additionalData) 
-            : event.notification.additionalData;
-          console.log('Parsed notification data:', parsedData);
-        } catch (error) {
-          console.error('Error parsing notification data:', error);
-        }
-      }
-    };
-
-    // Add event listeners
-    OneSignal.Notifications.addEventListener('click', clickHandler);
-    OneSignal.Notifications.addEventListener('foregroundWillDisplay', foregroundHandler);
-
-    // Cleanup listeners on unmount
-    return () => {
-      OneSignal.Notifications.removeEventListener('click', clickHandler);
-      OneSignal.Notifications.removeEventListener('foregroundWillDisplay', foregroundHandler);
-    };
-  }, []);
+    },
+    onNotificationReceived: (data: NotificationData) => {
+      console.log('📨 Notification received:', data);
+      // Handle notification received event if needed
+    }
+  });
 
   useEffect(() => {
     const checkAppSetupStatus = async () => {
@@ -316,131 +292,131 @@ const AppContent = () => {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <NavigationContainer
-        ref={navigationRef}
-        initialState={initialState}
-        onStateChange={(state) => {
-          AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state));
-        }}
-        onReady={() => {
-          global.navigationRef = navigationRef;
-          console.log('Navigation is ready, ref set');
-        }}
-      >
-        <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
-          <Stack.Screen
-            name="TermsAndPrivacyScreen"
-            component={TermsAndPrivacyScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="PermissionsScreen"
-            component={PermissionsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="LoginPage"
-            component={LoginPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="RegArtistPage"
-            component={RegArtistPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="RegFanPage"
-            component={RegFanPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ArtistStack"
-            component={ArtistStack}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="FanStack"
-            component={FanStack}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ProfileScreen"
-            component={ProfileScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Notifications"
-            component={NotificationsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ArtistPostsPage"
-            component={ArtistPostsPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="SignaturePage"
-            component={SignaturePage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ArtistSignatures"
-            component={ArtistSignatures}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="EditScreen"
-            component={EditScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="DMsScreen"
-            component={DMsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ConversationThread"
-            component={ConversationThread}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="PostDetailPage"
-            component={PostDetailPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="VerifyAccount"
-            component={VerifyAccount}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="DayOnesScreen"
-            component={DayOnesScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="DMDetailPage"
-            component={DMDetailPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="SuperAdminDashboard"
-            component={SuperAdminDashboard}
-            options={{ headerShown: false }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </QueryClientProvider>
+    <NavigationContainer
+      ref={navigationRef}
+      initialState={initialState}
+      onStateChange={(state) => {
+        AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state));
+      }}
+      onReady={() => {
+        global.navigationRef = navigationRef;
+        console.log('Navigation is ready, ref set');
+      }}
+    >
+      <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+        <Stack.Screen
+          name="TermsAndPrivacyScreen"
+          component={TermsAndPrivacyScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PermissionsScreen"
+          component={PermissionsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="LoginPage"
+          component={LoginPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="RegArtistPage"
+          component={RegArtistPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="RegFanPage"
+          component={RegFanPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ArtistStack"
+          component={ArtistStack}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="FanStack"
+          component={FanStack}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ProfileScreen"
+          component={ProfileScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ArtistPostsPage"
+          component={ArtistPostsPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SignaturePage"
+          component={SignaturePage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ArtistSignatures"
+          component={ArtistSignatures}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="EditScreen"
+          component={EditScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DMsScreen"
+          component={DMsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ConversationThread"
+          component={ConversationThread}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PostDetailPage"
+          component={PostDetailPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="VerifyAccount"
+          component={VerifyAccount}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DayOnesScreen"
+          component={DayOnesScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DMDetailPage"
+          component={DMDetailPage}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SuperAdminDashboard"
+          component={SuperAdminDashboard}
+          options={{ headerShown: false }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 
 // Main App component that wraps everything with Provider
 const App = () => {
   return (
-    <Provider store={store}>
-      <AppContent />
-    </Provider>
+    <QueryClientProvider client={queryClient}>
+      <Provider store={store}>
+        <AppContent />
+      </Provider>
+    </QueryClientProvider>
   );
 };
 
