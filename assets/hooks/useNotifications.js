@@ -11,20 +11,20 @@ const fetchNotifications = async accessToken => {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
     
-    
-
     // Ensure we have the correct data structure
-    const notifications = response.data?.data || response.data || [];
+    const notifications = response.data?.data || [];
+    const unreadCount = response.data?.unreadCount || 0;
     
     // Transform the data to match expected structure
     return {
       data: {
-        data: Array.isArray(notifications) ? notifications : []
+        data: Array.isArray(notifications) ? notifications : [],
+        unreadCount
       }
     };
   } catch (error) {
     console.error('Error fetching notifications:', error);
-    return { data: { data: [] } };
+    return { data: { data: [], unreadCount: 0 } };
   }
 };
 
@@ -57,7 +57,7 @@ const useNotifications = () => {
       onSuccess: (data) => {
         console.log('Notifications fetched successfully:', {
           count: data?.data?.data?.length || 0,
-          unreadCount: data?.data?.data?.filter(n => !n.is_read).length || 0
+          unreadCount: data?.data?.unreadCount || 0
         });
       }
     }

@@ -36,6 +36,25 @@ interface NotificationData {
   [key: string]: any;
 }
 
+interface MarkNotificationReadResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    id: string;
+    is_read: boolean;
+    updatedAt: string;
+  };
+}
+
+interface MarkAllNotificationsReadResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    count: number;
+    updatedAt: string;
+  };
+}
+
 class NotificationService {
   private static instance: NotificationService;
   private isInitialized = false;
@@ -424,6 +443,58 @@ class NotificationService {
       throw error;
     }
   }
+
+  async markNotificationAsRead(notificationId: string): Promise<MarkNotificationReadResponse> {
+    try {
+      console.log('📝 Marking notification as read:', notificationId);
+      
+      const response = await axiosInstance.patch<MarkNotificationReadResponse>(
+        `/api/v1/notifications/${notificationId}`,
+        { is_read: true },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('✅ Notification marked as read:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error marking notification as read:', error);
+      throw error;
+    }
+  }
+
+  async markAllNotificationsAsRead(): Promise<MarkAllNotificationsReadResponse> {
+    try {
+      console.log('📝 Marking all notifications as read');
+      
+      const response = await axiosInstance.patch<MarkAllNotificationsReadResponse>(
+        '/api/v1/notifications/mark-all-read',
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('✅ All notifications marked as read:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error marking all notifications as read:', error);
+      throw error;
+    }
+  }
+
+  async clearAllNotifications() {
+    const authToken = await this.getAuthToken();
+    await axiosInstance.delete('/api/v1/notifications', {
+      headers: { Authorization: `Bearer ${authToken}` }
+    });
+  }
 }
 
-export default NotificationService.getInstance(); 
+// Export the singleton instance
+export const notificationService = NotificationService.getInstance(); 
