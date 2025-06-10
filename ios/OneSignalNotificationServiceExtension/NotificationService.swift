@@ -14,10 +14,22 @@ class NotificationService: UNNotificationServiceExtension {
         self.bestAttemptContent = (request.content.mutableCopy() as? UNMutableNotificationContent)
 
         if let bestAttemptContent = bestAttemptContent {
+            // Get the notification data
+            if let userInfo = request.content.userInfo as? [String: Any] {
+                // Check for custom title and body in the notification data
+                if let customTitle = userInfo["title"] as? String {
+                    bestAttemptContent.title = customTitle
+                }
+                if let customBody = userInfo["body"] as? String {
+                    bestAttemptContent.body = customBody
+                }
+            }
+
             // DEBUGGING: Uncomment the 2 lines below to check this extension is executing
 //            print("Running NotificationServiceExtension")
 //            bestAttemptContent.body = "[Modified] " + bestAttemptContent.body
 
+            // Process the notification with OneSignal
             OneSignalExtension.didReceiveNotificationExtensionRequest(self.receivedRequest, with: bestAttemptContent, withContentHandler: self.contentHandler)
         }
     }

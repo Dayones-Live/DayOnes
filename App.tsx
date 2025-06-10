@@ -185,18 +185,36 @@ const AppContent = () => {
     const foregroundHandler = (event: NotificationWillDisplayEvent) => {
       console.log('📨 OneSignal notification received:', event);
       
-      // Let the system handle the notification display
-      // We don't need to do anything here as OneSignal will handle the push notification
-      // Just log the event for debugging
-      if (event.notification.additionalData) {
+      // Get the notification content
+      const notification = event.getNotification();
+      
+      // Ensure we have the notification data
+      if (notification.additionalData) {
         try {
-          const parsedData = typeof event.notification.additionalData === 'string' 
-            ? JSON.parse(event.notification.additionalData) 
-            : event.notification.additionalData;
+          const parsedData = typeof notification.additionalData === 'string' 
+            ? JSON.parse(notification.additionalData) 
+            : notification.additionalData;
+          
           console.log('Parsed notification data:', parsedData);
+          
+          // Set custom title and body if available in the data
+          if (parsedData.title) {
+            notification.title = parsedData.title;
+          }
+          if (parsedData.body) {
+            notification.body = parsedData.body;
+          }
+          
+          // Display the modified notification
+          notification.display();
         } catch (error) {
-          console.error('Error parsing notification data:', error);
+          console.error('Error handling notification:', error);
+          // Display the original notification if there's an error
+          notification.display();
         }
+      } else {
+        // Display the original notification if no additional data
+        notification.display();
       }
     };
 
@@ -223,14 +241,21 @@ const AppContent = () => {
         ]);
 
         // Check if user is logged in
-        const authToken = await AsyncStorage.getItem('authToken');
-        const userData = await AsyncStorage.getItem('userData');
+        const [authToken, userData] = await Promise.all([
+          AsyncStorage.getItem('authToken'),
+          AsyncStorage.getItem('userData')
+        ]);
 
         if (authToken && userData) {
+          // Parse user data to get role
+          const parsedUserData = JSON.parse(userData);
+          const userRole = parsedUserData.role;
+
           // User is logged in, check permissions
           if (permissionsAccepted === 'true') {
             console.log('User logged in and permissions granted, proceeding to main app');
-            setInitialRoute('ArtistStack');
+            // Set initial route based on user role
+            setInitialRoute(userRole === 'ARTIST' ? 'ArtistStack' : 'FanStack');
           } else {
             console.log('User logged in but permissions not granted, showing permissions screen');
             setInitialRoute('PermissionsScreen');
