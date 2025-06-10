@@ -285,6 +285,7 @@ class NotificationService {
       ]);
 
       if (!id || !token) {
+        console.error('❌ Failed to get OneSignal push subscription details');
         throw new Error('Failed to get OneSignal push subscription details');
       }
 
@@ -322,6 +323,14 @@ class NotificationService {
 
       this.isInitialized = true;
       console.log('✅ Notification service initialized successfully with device ID:', this.currentDeviceId);
+
+      // Verify the push subscription after initialization
+      const subscription = await OneSignal.User.pushSubscription.getOptedInAsync();
+      if (!subscription) {
+        console.warn('⚠️ Push subscription not opted in after initialization');
+        // Try to request permission again
+        await OneSignal.Notifications.requestPermission();
+      }
     } catch (error) {
       console.error('❌ Error initializing notification service:', error);
       throw error;

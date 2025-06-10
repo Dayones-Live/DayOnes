@@ -33,13 +33,22 @@ class NotificationService: UNNotificationServiceExtension {
 //            bestAttemptContent.body = "[Modified] " + bestAttemptContent.body
 
             // Process the notification with OneSignal
-            OneSignalExtension.didReceiveNotificationExtensionRequest(self.receivedRequest, with: bestAttemptContent, withContentHandler: self.contentHandler)
+            OneSignalExtension.didReceiveNotificationExtensionRequest(
+                self.receivedRequest,
+                with: bestAttemptContent,
+                withContentHandler: self.contentHandler
+            )
         }
     }
 
     override func serviceExtensionTimeWillExpire() {
         // Called just before the extension will be terminated by the system.
         if let contentHandler = contentHandler, let bestAttemptContent = bestAttemptContent {
+            // Process the notification with OneSignal before time expires
+            OneSignalExtension.serviceExtensionTimeWillExpireRequest(
+                self.receivedRequest,
+                with: bestAttemptContent
+            )
             contentHandler(bestAttemptContent)
         }
     }

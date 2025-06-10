@@ -22,6 +22,19 @@ OneSignal.initialize('0a492844-225d-4244-bec5-4cd0e7d5b986', {
   kOSSSettingsKeyPromptBeforeOpeningPushURL: true
 });
 
+// Set up notification handlers first
+OneSignal.Notifications.addEventListener('click', (event) => {
+  console.log('🔔 OneSignal notification opened:', event);
+});
+
+OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
+  console.log('📨 OneSignal notification received:', event);
+  // Prevent the notification from displaying automatically
+  event.preventDefault();
+  // Display the notification manually
+  event.getNotification().display();
+});
+
 // Request notification permission with proper handling
 const requestNotificationPermission = async () => {
   try {
@@ -65,18 +78,5 @@ const requestNotificationPermission = async () => {
 
 // Call the permission request function
 requestNotificationPermission();
-
-// Set up notification handlers
-OneSignal.Notifications.addEventListener('click', (event) => {
-  console.log('🔔 OneSignal notification opened:', event);
-});
-
-OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
-  console.log('📨 OneSignal notification received:', event);
-  // Prevent the notification from displaying automatically
-  event.preventDefault();
-  // Display the notification manually
-  event.getNotification().display();
-});
 
 console.log('✅ OneSignal initialization completed successfully');

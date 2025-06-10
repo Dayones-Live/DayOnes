@@ -42,7 +42,20 @@ const useSetupNotificationsAndLocation = () => {
         }
 
         // Initialize notification service
-        await notificationService.initialize();
+        try {
+          await notificationService.initialize();
+        } catch (error) {
+          console.error('❌ Failed to initialize notification service:', error);
+          // Try to reinitialize after a short delay
+          setTimeout(async () => {
+            try {
+              await notificationService.initialize();
+            } catch (retryError) {
+              console.error('❌ Failed to reinitialize notification service:', retryError);
+            }
+          }, 2000);
+          return;
+        }
 
         // Get the OneSignal push subscription ID
         const pushSubscription = OneSignal.User.pushSubscription;
