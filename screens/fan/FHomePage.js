@@ -22,6 +22,7 @@ import styles from './fanStyles/FHomePageStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import useNotifications from '../../assets/hooks/useNotifications';
+import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotificationsAndLocation';
 
 const FHomePage = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -33,6 +34,9 @@ const FHomePage = ({ navigation }) => {
     !n.is_read && 
     n.from_user_profile?.id !== userProfile?.data?.id
   )?.length || 0;
+
+  // Initialize notifications and location
+  useSetupNotificationsAndLocation();
 
   const [isInviteEnabled, setIsInviteEnabled] = useState(invitesFromRedux);
   const [invites, setInvites] = useState([]);
