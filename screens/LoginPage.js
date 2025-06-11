@@ -94,8 +94,12 @@ const LoginScreen = () => {
   }, [userProfile]);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      setRole(null);
+    const unsubscribe = navigation.addListener('focus', async () => {
+      // Only reset role if user is not logged in
+      const authToken = await AsyncStorage.getItem('authToken');
+      if (!authToken) {
+        setRole(null);
+      }
     });
     return unsubscribe;
   }, [navigation]);

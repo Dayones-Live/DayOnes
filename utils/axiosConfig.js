@@ -110,7 +110,15 @@ axiosInstance.interceptors.response.use(
               ['tokenExpiry', (Date.now() + response.data.data.expires_in * 1000).toString()]
             ]);
 
-            // Update Redux store
+            // Get existing user data to maintain role
+            const userData = await AsyncStorage.getItem('userData');
+            if (userData) {
+              const parsedUserData = JSON.parse(userData);
+              // Update Redux store with existing user data
+              store.dispatch(setUserProfile(parsedUserData));
+            }
+
+            // Update Redux store with new token
             store.dispatch(setAccessToken(response.data.data.access_token));
 
             // Retry the original request with new token

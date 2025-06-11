@@ -199,17 +199,29 @@ const AppContent = () => {
         ]);
 
         // Check if user is logged in
-        const authToken = await AsyncStorage.getItem('authToken');
-        const userData = await AsyncStorage.getItem('userData');
+        const [authToken, userData] = await Promise.all([
+          AsyncStorage.getItem('authToken'),
+          AsyncStorage.getItem('userData')
+        ]);
 
         if (authToken && userData) {
-          // User is logged in, check permissions
-          if (permissionsAccepted === 'true') {
-            console.log('User logged in and permissions granted, proceeding to main app');
-            setInitialRoute('ArtistStack');
-          } else {
-            console.log('User logged in but permissions not granted, showing permissions screen');
-            setInitialRoute('PermissionsScreen');
+          try {
+            const parsedUserData = JSON.parse(userData);
+            // Update Redux store with user data
+            store.dispatch(setUserProfile(parsedUserData));
+            
+            // User is logged in, check permissions
+            if (permissionsAccepted === 'true') {
+              console.log('User logged in and permissions granted, proceeding to main app');
+              // Navigate to appropriate stack based on role
+              setInitialRoute(parsedUserData.data.role === 'ARTIST' ? 'ArtistStack' : 'FanStack');
+            } else {
+              console.log('User logged in but permissions not granted, showing permissions screen');
+              setInitialRoute('PermissionsScreen');
+            }
+          } catch (error) {
+            console.error('Error parsing user data:', error);
+            setInitialRoute('LoginPage');
           }
         } else {
           // User is not logged in
@@ -227,9 +239,8 @@ const AppContent = () => {
       } catch (error) {
         console.error('Error checking app setup status:', error);
         setInitialRoute('TermsAndPrivacyScreen');
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
 
     checkAppSetupStatus();
