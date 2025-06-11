@@ -26,6 +26,8 @@ import {
   requestNotifications,
 } from 'react-native-permissions';
 import { useSelector } from 'react-redux';
+import { OneSignal, LogLevel } from 'react-native-onesignal';
+import { BASEURL } from '../assets/constants';
 import styles from './sharedStyles/PermissionScreenStyles';
 
 const PermissionsScreen = () => {
@@ -99,6 +101,191 @@ const PermissionsScreen = () => {
     }
   };
 
+  const initializeOneSignal = async () => {
+    try {
+      // Enable verbose logging for debugging
+      OneSignal.Debug.setLogLevel(LogLevel.Verbose);
+
+      // Initialize OneSignal
+      console.log('🔄 Starting OneSignal initialization...');
+      OneSignal.initialize('0a492844-225d-4244-bec5-4cd0e7d5b986');
+
+      // Get push subscription state
+      const pushSubscription = OneSignal.User.pushSubscription;
+      const [id, token, optedIn] = await Promise.all([
+        pushSubscription.getIdAsync(),
+        pushSubscription.getTokenAsync(),
+        pushSubscription.getOptedInAsync()
+      ]);
+
+      console.log('📱 Notification permission status:', optedIn);
+      console.log('📲 Push Subscription State:', {
+        deviceType: Platform.OS,
+        id,
+        optedIn,
+        token
+      });
+
+      // Get user data and set external user ID
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        try {
+          const parsedData = JSON.parse(userData);
+          if (parsedData?.data?.id) {
+            OneSignal.login(parsedData.data.id);
+            console.log('✅ Set OneSignal external user ID:', parsedData.data.id);
+          }
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+        }
+      }
+
+      // Set up notification handlers
+      OneSignal.Notifications.addEventListener('click', async (event) => {
+        console.log('🔔 OneSignal notification opened:', event);
+        
+        try {
+          // Get user data to determine navigation
+          const userData = await AsyncStorage.getItem('userData');
+          if (!userData) {
+            console.error('No user data found');
+            return;
+          }
+          
+          const parsedUser = JSON.parse(userData);
+          const isFan = parsedUser.data.role === 'USER';
+          
+          // Get the additional data from the notification
+          const additionalData = event.notification.additionalData;
+          if (!additionalData) {
+            console.error('No additional data in notification');
+            return;
+          }
+
+          // Wait for navigation to be ready
+          const waitForNavigation = () => {
+            return new Promise((resolve) => {
+              const checkNavigation = () => {
+                if (global.navigationRef?.current) {
+                  resolve(global.navigationRef.current);
+                } else {
+                  setTimeout(checkNavigation, 100);
+                }
+              };
+              checkNavigation();
+            });
+          };
+
+          const navigation = await waitForNavigation();
+
+          // Handle different notification types
+          if (additionalData.type === 'message' && additionalData.conversation_id) {
+            // Handle message notification
+            try {
+              const authToken = await AsyncStorage.getItem('authToken');
+              if (!authToken) {
+                console.error('No auth token found');
+                return;
+              }
+
+              // Fetch conversation details
+              const response = await fetch(`${BASEURL}/api/v1/conversation/${additionalData.conversation_id}`, {
+                headers: {
+                  Authorization: `Bearer ${authToken}`,
+                },
+              });
+              
+              if (response.ok) {
+                const responseData = await response.json();
+                const conversation = responseData.data;
+                
+                // Determine the other user in the conversation
+                const otherUser = conversation.sender.email === parsedUser.data.email 
+                  ? conversation.reciever 
+                  : conversation.sender;
+
+                console.log('Navigating to conversation with:', {
+                  conversationId: additionalData.conversation_id,
+                  userId: otherUser.id,
+                  username: otherUser.full_name,
+                  profilePicture: otherUser.avatar_url || 'https://example.com/default-avatar.png',
+                  isNewConversation: false
+                });
+
+                // Navigate to conversation thread with all required parameters
+                navigation.navigate('ConversationThread', {
+                  conversationId: additionalData.conversation_id,
+                  userId: otherUser.id,
+                  username: otherUser.full_name,
+                  profilePicture: otherUser.avatar_url || 'https://example.com/default-avatar.png',
+                  isNewConversation: false
+                });
+              } else {
+                console.error('Failed to fetch conversation details:', await response.text());
+              }
+            } catch (error) {
+              console.error('Error handling message notification:', error);
+            }
+          } else if (additionalData.type === 'comment' && additionalData.post_id) {
+            // Handle post comment notification
+            if (isFan) {
+              navigation.navigate('DMDetailPage', { 
+                postId: additionalData.post_id 
+              });
+            } else {
+              navigation.navigate('PostDetailPage', { 
+                postId: additionalData.post_id 
+              });
+            }
+          } else if (additionalData.type === 'reaction' && additionalData.post_id) {
+            // Handle reaction notification
+            if (isFan) {
+              navigation.navigate('DMDetailPage', { 
+                postId: additionalData.post_id 
+              });
+            } else {
+              navigation.navigate('PostDetailPage', { 
+                postId: additionalData.post_id 
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error handling notification click:', error);
+        }
+      });
+
+      OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
+        console.log('📨 OneSignal notification received:', event);
+        const notification = event.notification;
+        
+        // Log the raw payload for debugging
+        console.log('Raw payload:', JSON.stringify(notification.rawPayload, null, 2));
+        
+        // Extract custom content from the raw payload
+        const rawPayload = notification.rawPayload;
+        if (rawPayload?.custom) {
+          console.log('Custom payload:', JSON.stringify(rawPayload.custom, null, 2));
+          // Update notification content with custom values
+          if (rawPayload.custom.title) {
+            notification.title = rawPayload.custom.title;
+          }
+          if (rawPayload.custom.body) {
+            notification.body = rawPayload.custom.body;
+          }
+        }
+        
+        // Prevent the notification from displaying automatically
+        event.preventDefault();
+        // Display the notification manually with updated content
+        event.getNotification().display();
+      });
+
+      console.log('✅ OneSignal initialization completed successfully');
+    } catch (error) {
+      console.error('Error initializing OneSignal:', error);
+    }
+  };
+
   const requestPermission = async (permission, setPermissionState) => {
     try {
       // First check if the permission is blocked
@@ -114,6 +301,11 @@ const PermissionsScreen = () => {
       if (permission === 'notifications') {
         const notificationResult = await requestNotifications(['alert', 'sound', 'badge']);
         result = notificationResult.status;
+        
+        // Initialize OneSignal if notifications were granted
+        if (result === RESULTS.GRANTED) {
+          await initializeOneSignal();
+        }
       } else {
         result = await request(permission);
       }
