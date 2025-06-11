@@ -335,8 +335,15 @@ const ArtistPostsPage = () => {
   
   const handleSendPost = async () => {
     console.log('Starting handleSendPost with genericPostId:', genericPostId);
+    console.log('Current post data:', {
+      postText: postText,
+      hasSelectedImage: !!selectedImage,
+      mediaType: mediaType,
+      isSendingPost: isSendingPost
+    });
 
     if (selectedImage && !postText.trim()) {
+      console.log('Validation failed: Image present but no message');
       Alert.alert(
         'Message Required',
         'A message is required when sending an image. Please include a message.'
@@ -345,6 +352,7 @@ const ArtistPostsPage = () => {
     }
 
     if (!postText.trim() && !selectedImage) {
+      console.log('Validation failed: No content provided');
       Alert.alert('Error', 'Post content or image is required.');
       return;
     }
@@ -354,7 +362,9 @@ const ArtistPostsPage = () => {
 
     try {
       if (selectedImage && !selectedImage.startsWith('https://')) {
+        console.log('Uploading media to S3...');
         s3Url = await handleMediaUpload(selectedImage);
+        console.log('Media upload result:', { s3Url });
         if (!s3Url) {
           throw new Error('Media upload failed');
         }
@@ -362,17 +372,32 @@ const ArtistPostsPage = () => {
 
       // Check if we need to create a new generic post
       const shouldCreateGenericPost = !genericPostId || !(await checkPostExists(genericPostId));
+      console.log('Post creation check:', {
+        shouldCreateGenericPost,
+        existingGenericPostId: genericPostId
+      });
 
       if (shouldCreateGenericPost) {
-        console.log('Creating new generic post');
+        console.log('Creating new generic post with data:', {
+          message: postText.trim(),
+          type: 'GENERIC',
+          imageUrl: s3Url
+        });
+
         const postData = {
           message: postText.trim(),
           type: 'GENERIC',
-          imageUrl: s3Url,
-          mediaType: mediaType,
+          imageUrl: s3Url
         };
+
+        console.log('Sending POST request to:', `${BASEURL}/api/v1/post/generic`);
         const response = await axios.post(`${BASEURL}/api/v1/post/generic`, postData, {
           headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        console.log('Generic post creation response:', {
+          status: response.status,
+          data: response.data
         });
 
         if (response.status === 200 || response.status === 201) {
@@ -381,19 +406,23 @@ const ArtistPostsPage = () => {
         }
       } else {
         // Add comment to existing generic post
-        console.log('Adding comment to existing generic post');
+        console.log('Adding comment to existing generic post:', genericPostId);
         const commentData = {
           message: postText.trim(),
           ...(s3Url && { url: s3Url, mediaType: mediaType })
         };
 
+        console.log('Comment data:', commentData);
         const response = await axios.post(
           `${BASEURL}/api/v1/post/${genericPostId}/comment`,
           commentData,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
 
-        console.log('Comment response:', response.data);
+        console.log('Comment response:', {
+          status: response.status,
+          data: response.data
+        });
 
         if (response.status === 200 || response.status === 201) {
           Alert.alert('Success', 'Your comment has been posted.');
@@ -406,7 +435,11 @@ const ArtistPostsPage = () => {
       setModalVisible(false);
       await forceRefresh();
     } catch (error) {
-      console.error("Failed to send post or comment:", error);
+      console.error("Failed to send post or comment:", {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       Alert.alert('Error', 'Failed to send. Please try again.');
     } finally {
       setIsSendingPost(false);
