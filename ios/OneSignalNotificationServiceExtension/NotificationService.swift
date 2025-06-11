@@ -15,27 +15,29 @@ class NotificationService: UNNotificationServiceExtension {
 
         if let bestAttemptContent = bestAttemptContent {
             // Get the notification data
-            if let userInfo = request.content.userInfo as? [String: Any] {
-                // Check for custom title and body in the notification data
-                if let customTitle = userInfo["title"] as? String {
-                    bestAttemptContent.title = customTitle
-                }
-                if let customBody = userInfo["body"] as? String {
-                    bestAttemptContent.body = customBody
+            if let customData = request.content.userInfo["custom"] as? [String: Any] {
+                // Log the notification data for debugging
+                print("📱 Notification data:", customData)
+                
+                // Set custom title and body if available
+                if let title = customData["title"] as? String {
+                    bestAttemptContent.title = title
                 }
                 
-                // Log the notification data for debugging
-                print("Notification data:", userInfo)
+                if let body = customData["body"] as? String {
+                    bestAttemptContent.body = body
+                }
+                
+                // Set category identifier for custom actions
+                if let type = customData["type"] as? String {
+                    bestAttemptContent.categoryIdentifier = type
+                }
             }
-
-            // DEBUGGING: Uncomment the 2 lines below to check this extension is executing
-//            print("Running NotificationServiceExtension")
-//            bestAttemptContent.body = "[Modified] " + bestAttemptContent.body
-
+            
             // Process the notification with OneSignal
             OneSignalExtension.didReceiveNotificationExtensionRequest(
                 self.receivedRequest,
-                with: bestAttemptContent,
+                with: self.bestAttemptContent,
                 withContentHandler: self.contentHandler
             )
         }
@@ -43,11 +45,11 @@ class NotificationService: UNNotificationServiceExtension {
 
     override func serviceExtensionTimeWillExpire() {
         // Called just before the extension will be terminated by the system.
+        // Use this as an opportunity to deliver your "best attempt" at modified content, otherwise the original push payload will be used.
         if let contentHandler = contentHandler, let bestAttemptContent = bestAttemptContent {
-            // Process the notification with OneSignal before time expires
             OneSignalExtension.serviceExtensionTimeWillExpireRequest(
                 self.receivedRequest,
-                with: bestAttemptContent
+                with: self.bestAttemptContent
             )
             contentHandler(bestAttemptContent)
         }

@@ -41,21 +41,11 @@ const useSetupNotificationsAndLocation = () => {
           }
         }
 
+        // Reset notification service state
+        notificationService.cleanup();
+        
         // Initialize notification service
-        try {
-          await notificationService.initialize();
-        } catch (error) {
-          console.error('❌ Failed to initialize notification service:', error);
-          // Try to reinitialize after a short delay
-          setTimeout(async () => {
-            try {
-              await notificationService.initialize();
-            } catch (retryError) {
-              console.error('❌ Failed to reinitialize notification service:', retryError);
-            }
-          }, 2000);
-          return;
-        }
+        await notificationService.initialize();
 
         // Get the OneSignal push subscription ID
         const pushSubscription = OneSignal.User.pushSubscription;
@@ -102,7 +92,12 @@ const useSetupNotificationsAndLocation = () => {
     };
 
     setupNotificationsAndLocation();
-  }, [dispatch, accessTokenFromRedux, userProfile]);
+
+    // Cleanup function
+    return () => {
+      notificationService.cleanup();
+    };
+  }, [dispatch, accessTokenFromRedux, userProfile?.data?.id]);
 
   return null;
 };
