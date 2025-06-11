@@ -344,6 +344,35 @@ class NotificationService {
     }
   }
 
+  // Add clearAllNotifications method
+  async clearAllNotifications(): Promise<{ success: boolean; message: string }> {
+    try {
+      const authToken = await this.getAuthToken();
+      if (!authToken) {
+        throw new Error('No auth token available');
+      }
+
+      const response = await axiosInstance.delete('/api/v1/notifications', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (response.data?.success) {
+        // Reset badge count for all devices
+        if (typeof OneSignal !== 'undefined') {
+          OneSignal.User.addTag('badge_count', '0');
+        }
+        return { success: true, message: 'All notifications cleared successfully' };
+      }
+      
+      return { success: false, message: 'Failed to clear notifications' };
+    } catch (error) {
+      console.error('❌ Error clearing notifications:', error);
+      throw error;
+    }
+  }
+
   cleanup(): void {
     console.log('🧹 Cleaning up notification service...');
     
