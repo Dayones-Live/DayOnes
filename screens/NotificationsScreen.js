@@ -21,6 +21,7 @@ import axios from 'axios';
 import { BASEURL } from '../assets/constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { notificationService } from '../assets/services/notificationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NotificationsScreen = () => {
   const queryClient = useQueryClient();
@@ -126,13 +127,16 @@ const NotificationsScreen = () => {
   };
 
   const handleNotificationPress = async (item) => {
-    if (item.isRead) return;
-
+    console.log('🔔 Notification clicked:', item);
+    
     try {
+      console.log('📝 Attempting to mark notification as read...');
       const response = await notificationService.markNotificationAsRead(item.id);
+      console.log('📝 Mark as read response:', response);
       
+      // Update local state if mark as read was successful
       if (response.success) {
-        // Update local state
+        console.log('✅ Notification marked as read successfully');
         setUnreadCount(prev => Math.max(0, prev - 1));
         navigation.setOptions({
           tabBarBadge: unreadCount > 1 ? unreadCount - 1 : null
@@ -140,122 +144,106 @@ const NotificationsScreen = () => {
         
         // Invalidate cache to trigger a refetch
         queryClient.invalidateQueries(['notifications']);
+      } else {
+        console.log('⚠️ Failed to mark notification as read, but continuing with navigation');
+      }
 
-        // Navigate based on notification type
-        if (item.type === 'message' && item.conversationId) {
-          navigation.navigate('ConversationThread', { 
-            conversationId: item.conversationId,
-            userId: item.from_user_profile?.id,
-            username: item.from_user_profile?.username || item.from_user_profile?.full_name,
-            profilePicture: item.from_user_profile?.avatar_url || item.from_user_profile?.img_profile,
-            isNewConversation: false
-          });
-          return;
+      // Parse the data field if it's a string, or use it directly if it's an object
+      let parsedData = null;
+      if (item.data) {
+        if (typeof item.data === 'string') {
+          try {
+            // Handle double-encoded JSON
+            const firstParse = JSON.parse(item.data);
+            parsedData = typeof firstParse === 'string' ? JSON.parse(firstParse) : firstParse;
+            console.log('📦 Parsed notification data:', parsedData);
+          } catch (error) {
+            console.log('❌ Error parsing data:', error);
+            console.log('Raw data:', item.data);
+          }
+        } else if (typeof item.data === 'object') {
+          parsedData = item.data;
+          console.log('📦 Notification data is already an object:', parsedData);
         }
+      }
+
+      // Determine if user is a fan
+      const isFan = userProfile?.data?.role === 'USER';
+      console.log('👤 User role:', userProfile?.data?.role, 'Is Fan:', isFan);
+
+      // Get post ID from any possible location
+      const postId = parsedData?.post_id || item.post_id || item.postId;
+      console.log('📝 Post ID from various sources:', {
+        fromParsedData: parsedData?.post_id,
+        fromItemPostId: item.post_id,
+        fromItemPostIdDirect: item.postId,
+        finalPostId: postId
+      });
+
+      // Handle navigation based on notification type
+      if (item.type === 'message' && (parsedData?.conversation_id || item.conversation_id)) {
+        const conversationId = parsedData?.conversation_id || item.conversation_id;
+        console.log('💬 Navigating to conversation:', conversationId);
+        
+        try {
+          const authToken = await AsyncStorage.getItem('authToken');
+          if (!authToken) {
+            console.error('No auth token found');
+            return;
+          }
+
+          // Fetch conversation details
+          const response = await fetch(`${BASEURL}/api/v1/conversation/${conversationId}`, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
+          
+          if (response.ok) {
+            const responseData = await response.json();
+            const conversation = responseData.data;
+            console.log('💬 Conversation details:', conversation);
+            
+            // Determine the other user in the conversation
+            const otherUser = conversation.sender.email === userProfile?.data?.email 
+              ? conversation.reciever 
+              : conversation.sender;
+
+            console.log('👤 Other user details:', otherUser);
+
+            navigation.navigate('ConversationThread', {
+              conversationId: conversationId,
+              userId: otherUser.id,
+              username: otherUser.full_name,
+              profilePicture: otherUser.avatar_url || 'https://example.com/default-avatar.png',
+              isNewConversation: false
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching conversation details:', error);
+        }
+      } else if ((item.type === 'comment' || item.type === 'reaction') && postId) {
+        console.log('📝 Navigating to post:', postId);
+        
+        if (isFan) {
+          console.log('👤 Fan navigating to DMDetailPage');
+          navigation.navigate('DMDetailPage', { postId });
+        } else {
+          console.log('👤 Artist navigating to PostDetailPage');
+          navigation.navigate('PostDetailPage', { postId });
+        }
+      } else {
+        console.log('❌ Unknown notification type or missing data:', {
+          type: item.type,
+          parsedData,
+          post_id: item.post_id,
+          postId: item.postId,
+          conversation_id: item.conversation_id
+        });
       }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('❌ Error in handleNotificationPress:', error);
     }
-
-    // Log the notification data for debugging
-    console.log('=== Notification Navigation Debug ===');
-    console.log('Raw notification:', JSON.stringify(item, null, 2));
-
-    // Parse the data field if it's a string, or use it directly if it's an object
-    let parsedData = null;
-    if (item.data) {
-      if (typeof item.data === 'string') {
-        try {
-          parsedData = JSON.parse(item.data);
-          console.log('Parsed data from string:', parsedData);
-        } catch (error) {
-          console.log('Data is not JSON:', item.data);
-        }
-      } else if (typeof item.data === 'object') {
-        parsedData = item.data;
-        console.log('Data is already an object:', parsedData);
-      }
-    }
-
-    // Determine the action and ID based on notification type and parsed data
-    let action, id;
-    switch (item.type) {
-      case 'reaction':
-      case 'comments':
-        action = 'post';
-        id = parsedData?.post_id || item.post_id;
-        break;
-      case 'message':
-        action = 'conversation';
-        id = parsedData?.conversation_id || item.conversation_id;
-        break;
-      default:
-        console.log('Unknown notification type:', item.type);
-        break;
-    }
-
-    console.log('=== Navigation Data ===');
-    console.log('Type:', item.type);
-    console.log('Action:', action);
-    console.log('ID:', id);
-    console.log('Parsed Data:', parsedData);
-    console.log('Full User Profile:', JSON.stringify(userProfile, null, 2));
-    console.log('User Type:', userProfile?.data?.type);
-    console.log('User Email:', userProfile?.data?.email);
-
-    switch (action) {
-      case 'post':
-        if (id) {
-          // Check if user is a fan and navigate accordingly
-          const isFan = userProfile?.data?.role === 'USER';
-          console.log('=== Navigation Decision ===');
-          console.log('Is Fan?', isFan);
-          console.log('User Role Check:', userProfile?.data?.role);
-          
-          if (isFan) {
-            console.log('🚀 Navigating to DMDetailPage for fan');
-            navigation.navigate('DMDetailPage', { postId: id });
-          } else {
-            console.log('🚀 Navigating to PostDetailPage for artist');
-            navigation.navigate('PostDetailPage', { postId: id });
-          }
-        } else {
-          console.log('❌ Navigation failed: Missing post ID in notification data');
-          Alert.alert(
-            'Error',
-            'Could not find the associated post. Please try again later.'
-          );
-        }
-        break;
-
-      case 'conversation':
-        if (id) {
-          navigation.navigate('ConversationThread', {
-            conversationId: id,
-            userId: item.from_user_profile?.id,
-            username: item.from_user_profile?.username,
-            profilePicture: item.from_user_profile?.avatar_url || item.from_user_profile?.img_profile
-          });
-        } else {
-          console.log('❌ Navigation failed: Missing conversation ID in notification data');
-          console.log('Available data:', {
-            parsedData,
-            conversation_id: item.conversation_id,
-            from_id: item.from_id,
-            to_id: item.to_id
-          });
-          Alert.alert(
-            'Error',
-            'Could not find the conversation. Please try again later.'
-          );
-        }
-        break;
-
-      default:
-        console.log('❌ Unknown notification action:', action);
-        break;
-    }
-    console.log('=== End Navigation Debug ===');
   };
 
   // Clear all notifications from UI and backend

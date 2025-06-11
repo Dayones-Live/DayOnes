@@ -344,7 +344,68 @@ class NotificationService {
     }
   }
 
-  // Add clearAllNotifications method
+  // Update markNotificationAsRead method
+  async markNotificationAsRead(notificationId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const authToken = await this.getAuthToken();
+      if (!authToken) {
+        throw new Error('No auth token available');
+      }
+
+      const response = await axiosInstance.patch(`/api/v1/notifications/${notificationId}`, {}, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (response.data?.success) {
+        // Update badge count if needed
+        if (typeof OneSignal !== 'undefined') {
+          const currentBadgeCount = await OneSignal.User.getTags().then(tags => parseInt(tags.badge_count || '0'));
+          if (currentBadgeCount > 0) {
+            OneSignal.User.addTag('badge_count', (currentBadgeCount - 1).toString());
+          }
+        }
+        return { success: true, message: 'Notification marked as read' };
+      }
+      
+      return { success: false, message: 'Failed to mark notification as read' };
+    } catch (error) {
+      console.error('❌ Error marking notification as read:', error);
+      throw error;
+    }
+  }
+
+  // Add markAllNotificationsAsRead method
+  async markAllNotificationsAsRead(): Promise<{ success: boolean; message: string }> {
+    try {
+      const authToken = await this.getAuthToken();
+      if (!authToken) {
+        throw new Error('No auth token available');
+      }
+
+      const response = await axiosInstance.patch('/api/v1/notifications/mark-all-read', {}, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (response.data?.success) {
+        // Reset badge count for all devices
+        if (typeof OneSignal !== 'undefined') {
+          OneSignal.User.addTag('badge_count', '0');
+        }
+        return { success: true, message: 'All notifications marked as read' };
+      }
+      
+      return { success: false, message: 'Failed to mark notifications as read' };
+    } catch (error) {
+      console.error('❌ Error marking all notifications as read:', error);
+      throw error;
+    }
+  }
+
+  // Add back clearAllNotifications method
   async clearAllNotifications(): Promise<{ success: boolean; message: string }> {
     try {
       const authToken = await this.getAuthToken();
