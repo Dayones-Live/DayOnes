@@ -297,7 +297,7 @@ const NotificationsScreen = () => {
   }
 
   const renderNotification = ({ item }) => {
-    console.log('Rendering notification:', item);
+   
     
     const getNotificationMessage = () => {
       // For message notifications, show the actual message content

@@ -203,17 +203,9 @@ class NotificationService {
   private setupEventListeners(): void {
     console.log('🎯 Setting up notification event listeners...');
 
-    // Handle notification opened
-    const clickHandler = async (event: NotificationClickEvent) => {
-      console.log('🔔 Notification opened:', event);
-      await this.handleNotificationClick(event);
-    };
+   
 
-    // Handle notification received
-    const foregroundHandler = (event: NotificationWillDisplayEvent) => {
-      console.log('📨 Notification received:', event);
-      this.handleNotificationReceived(event);
-    };
+    
 
     // Handle permission changes
     const permissionHandler = async (state: boolean) => {
@@ -227,15 +219,10 @@ class NotificationService {
       await this.handleSubscriptionChange(state);
     };
 
-    // Add event listeners
-    OneSignal.Notifications.addEventListener('click', clickHandler);
-    OneSignal.Notifications.addEventListener('foregroundWillDisplay', foregroundHandler);
+
     OneSignal.Notifications.addEventListener('permission' as any, permissionHandler);
     OneSignal.User.pushSubscription.addEventListener('change', subscriptionHandler);
 
-    // Store listeners for cleanup
-    this.eventListeners.set('click', clickHandler);
-    this.eventListeners.set('foreground', foregroundHandler);
     this.eventListeners.set('permission', permissionHandler);
     this.eventListeners.set('subscription', subscriptionHandler);
   }

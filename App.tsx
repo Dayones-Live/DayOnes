@@ -108,8 +108,11 @@ const AppContent = () => {
 
   useEffect(() => {
     // Store navigation reference globally
-    global.navigationRef = navigationRef;
-  }, []);
+    if (navigationRef.current) {
+      global.navigationRef = navigationRef;
+      console.log('Navigation reference set globally');
+    }
+  }, [navigationRef.current]);
 
   // Use our new notification hook with proper typing
   useNotifications({
@@ -310,8 +313,10 @@ const AppContent = () => {
         AsyncStorage.setItem(PERSISTENCE_KEY, JSON.stringify(state));
       }}
       onReady={() => {
-        global.navigationRef = navigationRef;
-        console.log('Navigation is ready, ref set');
+        if (navigationRef.current) {
+          global.navigationRef = navigationRef;
+          console.log('Navigation is ready, ref set');
+        }
       }}
     >
       <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
