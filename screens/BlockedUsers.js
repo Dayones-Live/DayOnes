@@ -21,13 +21,27 @@ const BlockedUsers = ({ route }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const accessToken = useSelector(state => state.accessToken);
+  const userRole = useSelector(state => state.userProfile?.data?.role);
 
   useEffect(() => {
-    if (route.params?.blockedUsers) {
-      const users = route.params.blockedUsers.data?.blocked_users || [];
-      setBlockedUsers(users);
-    }
-  }, [route.params?.blockedUsers]);
+    const fetchBlockedUsers = async () => {
+      try {
+        const response = await axios.get(`${BASEURL}/api/v1/blocks`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        console.log('Fetched blocked users:', response.data);
+        const users = response.data.data.blocked_users || [];
+        setBlockedUsers(users);
+      } catch (error) {
+        console.error('Error fetching blocked users:', error);
+        Alert.alert('Error', 'Failed to fetch blocked users.');
+      }
+    };
+
+    fetchBlockedUsers();
+  }, [accessToken]);
 
   const handleUnblock = async (userId) => {
     setIsLoading(true);
@@ -52,13 +66,29 @@ const BlockedUsers = ({ route }) => {
     }
   };
 
+  const handleBackPress = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      if (userRole === 'ARTIST') {
+        navigation.navigate('ArtistStack', {
+          screen: 'MainTabs'
+        });
+      } else {
+        navigation.navigate('FanStack', {
+          screen: 'MainTabs'
+        });
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigation.goBack()}>
+          onPress={handleBackPress}>
           <Icon name="arrow-left" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Blocked Users</Text>
@@ -67,13 +97,17 @@ const BlockedUsers = ({ route }) => {
 
       {/* Content */}
       <ScrollView style={styles.content}>
-        {blockedUsers.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.emptyContainer}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+          </View>
+        ) : blockedUsers.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No blocked users</Text>
           </View>
         ) : (
           blockedUsers.map((user) => (
-            <View key={user.blockedUser.id} style={styles.userCard}>
+            <View key={user.id} style={styles.userCard}>
               <View style={styles.userInfo}>
                 <Image
                   source={

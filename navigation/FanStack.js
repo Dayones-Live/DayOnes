@@ -9,9 +9,11 @@ import DayOnesScreen from '../screens/fan/DayOnesScreen'; // DayOnes screen
 import DMsScreen from '../screens/DMsScreen'; // Direct Messages screen
 import FanOnboardingTutorial from '../screens/fan/FanOnboardingTutorial';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import BlockedUsers from '../screens/BlockedUsers';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createStackNavigator();
+const RootStack = createStackNavigator();
 
 // Create a stack navigator for the Home tab
 const HomeStackScreen = () => {
@@ -20,6 +22,76 @@ const HomeStackScreen = () => {
       <HomeStack.Screen name="FHomePage" component={FHomePage} />
       <HomeStack.Screen name="Notifications" component={NotificationsScreen} />
     </HomeStack.Navigator>
+  );
+};
+
+// Create a stack navigator for the root level screens
+const RootStackScreen = () => {
+  return (
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Screen name="MainTabs" component={TabNavigator} />
+      <RootStack.Screen name="BlockedUsers" component={BlockedUsers} />
+    </RootStack.Navigator>
+  );
+};
+
+// Create the tab navigator
+const TabNavigator = () => {
+  return (
+    <Tab.Navigator
+      initialRouteName="Home"
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+          switch (route.name) {
+            case 'Home':
+              iconName = 'home';
+              break;
+            case 'My Collections':
+              iconName = 'star';
+              break;
+            case 'DayOnes':
+              iconName = 'comment';
+              break;
+            case "DM's":
+              iconName = 'envelope-o';
+              break;
+            default:
+              iconName = 'circle';
+              break;
+          }
+          return <Icon name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#FF0080',
+        tabBarInactiveTintColor: 'gray',
+        tabBarStyle: {
+          backgroundColor: '#000',
+          borderTopWidth: 0,
+        },
+        headerShown: false,
+      })}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeStackScreen}
+        options={{ tabBarLabel: 'Home', tabBarTestID: 'homeButton' }}
+      />
+      <Tab.Screen
+        name="My Collections"
+        component={MyCollectionsPage}
+        options={{ tabBarLabel: 'My Collections', tabBarTestID: 'collectionsButton' }}
+      />
+      <Tab.Screen
+        name="DayOnes"
+        component={DayOnesScreen}
+        options={{ tabBarLabel: 'DayOnes', tabBarTestID: 'messagesButton' }}
+      />
+      <Tab.Screen
+        name="DM's"
+        component={DMsScreen}
+        options={{ tabBarLabel: "DM's", tabBarTestID: 'dmsButton' }}
+      />
+    </Tab.Navigator>
   );
 };
 
@@ -55,61 +127,7 @@ const FanStack = ({ navigation }) => {
 
   return (
     <>
-      <Tab.Navigator
-        initialRouteName="Home"
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ color, size }) => {
-            let iconName;
-            switch (route.name) {
-              case 'Home':
-                iconName = 'home';
-                break;
-              case 'My Collections':
-                iconName = 'star';
-                break;
-              case 'DayOnes':
-                iconName = 'comment';
-                break;
-              case "DM's":
-                iconName = 'envelope-o';
-                break;
-              default:
-                iconName = 'circle';
-                break;
-            }
-            return <Icon name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: '#FF0080',
-          tabBarInactiveTintColor: 'gray',
-          tabBarStyle: {
-            backgroundColor: '#000',
-            borderTopWidth: 0,
-          },
-          headerShown: false,
-        })}
-      >
-        <Tab.Screen
-          name="Home"
-          component={HomeStackScreen}
-          options={{ tabBarLabel: 'Home', tabBarTestID: 'homeButton' }}
-        />
-        <Tab.Screen
-          name="My Collections"
-          component={MyCollectionsPage}
-          options={{ tabBarLabel: 'My Collections', tabBarTestID: 'collectionsButton' }}
-        />
-        <Tab.Screen
-          name="DayOnes"
-          component={DayOnesScreen}
-          options={{ tabBarLabel: 'DayOnes', tabBarTestID: 'messagesButton' }}
-        />
-        <Tab.Screen
-          name="DM's"
-          component={DMsScreen}
-          options={{ tabBarLabel: "DM's", tabBarTestID: 'dmsButton' }}
-        />
-      </Tab.Navigator>
-
+      <RootStackScreen />
       <FanOnboardingTutorial
         isVisible={showTutorial}
         onComplete={handleTutorialComplete}

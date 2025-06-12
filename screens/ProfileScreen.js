@@ -393,9 +393,21 @@ const ProfileScreen = () => {
           fetchBlockedUsers();
           try {
             console.log('Attempting to navigate to BlockedUsers with data:', { blockedUsers });
-            navigation.navigate('BlockedUsers', { 
-              blockedUsers: { data: { blocked_users: blockedUsers } }
-            });
+            if (profile.data?.role === 'ARTIST') {
+              navigation.navigate('ArtistStack', {
+                screen: 'BlockedUsers',
+                params: { 
+                  blockedUsers: { data: { blocked_users: blockedUsers } }
+                }
+              });
+            } else {
+              navigation.navigate('FanStack', {
+                screen: 'BlockedUsers',
+                params: { 
+                  blockedUsers: { data: { blocked_users: blockedUsers } }
+                }
+              });
+            }
           } catch (error) {
             console.error('Navigation error:', error);
             Alert.alert('Error', 'Failed to open blocked users screen. Please try again.');

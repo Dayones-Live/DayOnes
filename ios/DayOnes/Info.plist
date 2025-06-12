@@ -126,5 +126,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.ericdayones.Dayones.backgroundtask</string>
+	</array>
 </dict>
 </plist>
