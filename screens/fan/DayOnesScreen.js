@@ -31,17 +31,27 @@ const DayOnesScreen = ({ navigation }) => {
   // Initial load
   useFocusEffect(
     useCallback(() => {
+      if (!accessToken) {
+        console.log("No access token available, skipping initial load");
+        return;
+      }
+      
       console.log("Screen focused, loading initial posts");
       setPosts([]);
       setPageNo(1);
       setHasMore(true);
       setIsInitialLoad(true);
       fetchArtistPosts(1);
-    }, [])
+    }, [accessToken])
   );
 
   const fetchArtistPosts = async (page = 1, pageSize = 20) => {
     if (loading) return;
+    
+    if (!accessToken) {
+      console.log("No access token available, skipping fetchArtistPosts");
+      return;
+    }
     
     console.log(`Fetching posts: page=${page}, pageSize=${pageSize}`);
     try {

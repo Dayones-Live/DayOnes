@@ -156,6 +156,7 @@ const clearAuthData = async () => {
       'tokenExpiry',
       'userProfile',
       'userRole',
+      'userData',
       'loggedInUser'
     ]);
     

@@ -63,12 +63,16 @@ const DMsScreen = ({ navigation }) => {
   // Add focus effect to refresh conversations when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
+      if (!accessToken) {
+        console.log('No access token available, skipping conversation refresh');
+        return;
+      }
       console.log('DMsScreen focused, refreshing conversations...');
       fetchConversations();
     });
 
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, accessToken]);
 
   const fetchConversations = async () => {
     if (!accessToken) {

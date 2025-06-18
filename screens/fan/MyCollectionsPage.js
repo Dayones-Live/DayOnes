@@ -21,6 +21,11 @@ const MyCollectionsPage = ({ navigation }) => {
   const accessToken = useSelector((state) => state.accessToken);
 
   const fetchArtistPosts = async () => {
+    if (!accessToken) {
+      console.log("No access token available, skipping fetchArtistPosts");
+      return;
+    }
+    
     try {
       const response = await axios.get(`${BASEURL}/api/v1/post/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -35,8 +40,12 @@ const MyCollectionsPage = ({ navigation }) => {
   // Refetch collection whenever page is focused
   useFocusEffect(
     useCallback(() => {
+      if (!accessToken) {
+        console.log("No access token available, skipping collection fetch");
+        return;
+      }
       fetchArtistPosts();
-    }, [])
+    }, [accessToken])
   );
 
   const openImageViewer = (imageUrl) => {

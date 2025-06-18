@@ -119,12 +119,6 @@ const ProfileScreen = () => {
     try {
       console.log('Deleting user with ID:', profile.id);
 
-      // Navigate to the login page first
-      navigation.navigate('LoginPage');
-
-      // Slight delay to ensure navigation occurs
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       // Make the API call to delete the user
       const response = await axios.post(
         url,
@@ -138,12 +132,27 @@ const ProfileScreen = () => {
       );
 
       if (response.status === 200) {
-        // Success message
-        Alert.alert('Success', 'Account successfully deleted.');
-
+        // Clear all auth-related data from AsyncStorage
+        await AsyncStorage.multiRemove([
+          'authToken',
+          'refreshToken',
+          'tokenExpiry',
+          'userRole',
+          'userData'
+        ]);
+        
         // Clear Redux state
         dispatch(setAccessToken(null));
         dispatch(setUserProfile(null));
+        
+        // Success message
+        Alert.alert('Success', 'Account successfully deleted.');
+        
+        // Navigate to login page using reset to clear navigation stack
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'LoginPage' }],
+        });
       }
     } catch (error) {
       console.error('Error deleting user:', error.response?.data || error.message);
@@ -299,14 +308,27 @@ const ProfileScreen = () => {
       );
 
       if (response.status === 200) {
-        // Clear local storage
-        await AsyncStorage.removeItem('authToken');
-        await AsyncStorage.removeItem('userRole');
-        console.log('User logged out and AsyncStorage cleared');
+        // Clear all auth-related data from AsyncStorage
+        await AsyncStorage.multiRemove([
+          'authToken',
+          'refreshToken',
+          'tokenExpiry',
+          'userRole',
+          'userData'
+        ]);
+        
+        // Clear Redux store
+        dispatch(setAccessToken(null));
+        dispatch(setUserProfile(null));
+        
+        console.log('User logged out and all auth data cleared');
 
-        // Notify user and navigate to login page
+        // Notify user and navigate to login page using reset to clear navigation stack
         Alert.alert('Logged Out', 'You have been logged out successfully.');
-        navigation.navigate('LoginPage');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'LoginPage' }],
+        });
       }
     } catch (error) {
       console.error('Error logging out:', error);
@@ -654,6 +676,11 @@ const ProfileScreen = () => {
 
   // Add function to fetch connected artists
   const fetchConnectedArtists = async () => {
+    if (!accessToken) {
+      console.log('No access token available, skipping fetchConnectedArtists');
+      return;
+    }
+    
     try {
       const response = await axios.get(`${BASEURL}/api/v1/post/?pageNo=1&pageSize=10`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -681,10 +708,10 @@ const ProfileScreen = () => {
 
   // Add useEffect to fetch artists when component mounts
   useEffect(() => {
-    if (profile.data?.role !== 'ARTIST') {
+    if (profile.data?.role !== 'ARTIST' && accessToken) {
       fetchConnectedArtists();
     }
-  }, [profile.data?.role]);
+  }, [profile.data?.role, accessToken]);
 
   return (
     <>

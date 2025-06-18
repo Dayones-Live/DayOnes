@@ -36,7 +36,7 @@ const useSetupNotificationsAndLocation = () => {
           accessToken = await AsyncStorage.getItem('authToken');
           console.log('🔑 Access token from storage:', accessToken ? 'Found' : 'Not found');
           if (!accessToken) {
-            console.error('❌ Access token not found in Redux or AsyncStorage.');
+            console.log('⚠️ User not authenticated, skipping notification setup');
             return;
           }
         }

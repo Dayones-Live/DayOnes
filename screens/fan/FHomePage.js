@@ -53,7 +53,7 @@ const FHomePage = ({ navigation }) => {
           console.log('Access token:', accessToken);
           fetchUser(); // Fetch user data
         } else {
-          console.error('No access token found in AsyncStorage.');
+          console.log('No access token found in AsyncStorage, skipping user data fetch.');
         }
       } catch (error) {
         console.error('Error fetching access token:', error);
