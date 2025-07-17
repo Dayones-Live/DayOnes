@@ -90,13 +90,59 @@ const ArtistPostsPage = () => {
       const postsData = response.data?.data?.posts || [];
       console.log(`Received ${postsData.length} posts for page ${pageNum}`);
       
+      // Log the full response structure for debugging
+      console.log('Full API response structure:', {
+        status: response.status,
+        dataKeys: Object.keys(response.data || {}),
+        dataDataKeys: Object.keys(response.data?.data || {}),
+        postsCount: postsData.length
+      });
+      
+      // Log each post's fan count data
+      postsData.forEach((post, index) => {
+        if (post.type === 'GENERIC' && post.associate_fan_count === 0) {
+          console.log(`⚠️ Generic post fan count issue:`, {
+            id: post.id,
+            associate_fan_count: post.associate_fan_count,
+            expected: 'Total artist fans (should be > 0)',
+            issue: 'Backend not calculating total artist fans for generic posts'
+          });
+        }
+      });
+      
       // Find generic post in current batch
       const genericPost = postsData.find(post => post.type === 'GENERIC');
-      console.log('Generic post found in current batch:', genericPost ? {
-        id: genericPost.id,
-        type: genericPost.type,
-        created_at: genericPost.created_at
-      } : 'None');
+      if (genericPost) {
+        console.log('🔍 Generic post full object from backend:', genericPost);
+      }
+
+      // If we found a generic post, try to fetch its details separately
+      if (genericPost) {
+        try {
+          console.log('Fetching generic post details separately...');
+          const genericPostResponse = await axios.get(`${BASEURL}/api/v1/post/${genericPost.id}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          
+          const detailedGenericPost = genericPostResponse.data?.data?.post;
+          console.log('Detailed generic post data:', {
+            id: detailedGenericPost?.id,
+            type: detailedGenericPost?.type,
+            associate_fan_count: detailedGenericPost?.associate_fan_count,
+            fan_count: detailedGenericPost?.fan_count,
+            user_count: detailedGenericPost?.user_count,
+            allKeys: detailedGenericPost ? Object.keys(detailedGenericPost).filter(key => key.includes('fan') || key.includes('count') || key.includes('user')) : []
+          });
+          
+          // Update the generic post with detailed data if it has better fan count
+          if (detailedGenericPost && detailedGenericPost.associate_fan_count > genericPost.associate_fan_count) {
+            console.log('Updating generic post with detailed data');
+            Object.assign(genericPost, detailedGenericPost);
+          }
+        } catch (error) {
+          console.log('Error fetching generic post details:', error.response?.status);
+        }
+      }
 
       // Filter out generic posts from regular posts
       const regularPosts = postsData.filter(post => post.type !== 'GENERIC');
@@ -397,7 +443,14 @@ const ArtistPostsPage = () => {
 
         console.log('Generic post creation response:', {
           status: response.status,
-          data: response.data
+          data: response.data,
+          postData: response.data?.data?.post,
+          fanCountData: {
+            associate_fan_count: response.data?.data?.post?.associate_fan_count,
+            fan_count: response.data?.data?.post?.fan_count,
+            user_count: response.data?.data?.post?.user_count,
+            allKeys: response.data?.data?.post ? Object.keys(response.data.data.post).filter(key => key.includes('fan') || key.includes('count') || key.includes('user')) : []
+          }
         });
 
         if (response.status === 200 || response.status === 201) {
@@ -452,6 +505,18 @@ const ArtistPostsPage = () => {
       const response = await axios.get(`${BASEURL}/api/v1/post/${postId}`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
+      
+      console.log('checkPostExists response for post:', postId, {
+        status: response.status,
+        postData: response.data?.data?.post,
+        fanCountData: {
+          associate_fan_count: response.data?.data?.post?.associate_fan_count,
+          fan_count: response.data?.data?.post?.fan_count,
+          user_count: response.data?.data?.post?.user_count,
+          allKeys: response.data?.data?.post ? Object.keys(response.data.data.post).filter(key => key.includes('fan') || key.includes('count') || key.includes('user')) : []
+        }
+      });
+      
       return response.status === 200;
     } catch (error) {
       console.log('Post does not exist:', error.response?.status);
@@ -464,6 +529,19 @@ const ArtistPostsPage = () => {
     const date = new Date(post.created_at);
     const postDate = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)} ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
 
+    // Log fan count data for each post being rendered
+    // Note: associate_fan_count has different meanings:
+    // - For regular posts: Number of fans for that specific post
+    // - For generic posts: Number of fans of the artist (across all their posts)
+    if (post.type === 'GENERIC' && post.associate_fan_count === 0) {
+      console.log(`⚠️ Rendering generic post with missing fan count:`, {
+        id: post.id,
+        associate_fan_count: post.associate_fan_count,
+        expected: 'Total artist fans (should be > 0)',
+        issue: 'Backend not providing total artist fan count'
+      });
+    }
+
     return (
       <TouchableOpacity
         key={index}
@@ -475,6 +553,11 @@ const ArtistPostsPage = () => {
         <Text style={styles.postUser}>{post.locale || 'My DayOnes'}</Text>
 
         {/* Fan Count (Top-Right Corner) */}
+        {/* 
+          associate_fan_count meaning:
+          - Regular posts: Number of fans for this specific post
+          - Generic posts: Total number of fans of the artist (across all posts)
+        */}
         <View style={styles.fanCountCorner}>
           <MaterialIcons name="person" size={18} color="#FFF" />
           <Text style={styles.fanCountText}>{post.associate_fan_count || 0}</Text>
@@ -549,6 +632,7 @@ const ArtistPostsPage = () => {
         </TouchableOpacity>
 
         <Text style={styles.pageTitle}>Posts</Text>
+        
         <FlatList
           ref={flatListRef}
           data={posts}

@@ -35,6 +35,24 @@ const RegFanPage = () => {
   const [callingCode, setCallingCode] = useState('1');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false); // For password visibility
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false); // For confirm password visibility
+  const [selectedRole, setSelectedRole] = useState(null); // 'FAN' or 'ARTIST'
+  const [showRoleSelection, setShowRoleSelection] = useState(true); // Show role selection first
+
+  const handleRoleSelection = (role) => {
+    setSelectedRole(role);
+    setShowRoleSelection(false);
+  };
+
+  const handleBackToRoleSelection = () => {
+    setShowRoleSelection(true);
+    setSelectedRole(null);
+    // Clear form data when going back
+    setFullName('');
+    setEmail('');
+    setPhone('');
+    setPassword('');
+    setConfirmPassword('');
+  };
 
   const handleSignup = async () => {
     // Regular expression to validate email format
@@ -59,7 +77,7 @@ const RegFanPage = () => {
       const payload = {
         email,
         password,
-        role: 'USER',
+        role: selectedRole,
         name,
       };
 
@@ -97,22 +115,101 @@ const RegFanPage = () => {
     }
   };
 
+  const renderRoleSelection = () => (
+    <View style={styles.roleSelectionContainer}>
+      <View style={styles.roleSelectionContent}>
+        <Text style={styles.roleSelectionTitle}>Choose Your Role</Text>
+        <Text style={styles.roleSelectionSubtitle}>
+          Select how you want to use DayOnes
+        </Text>
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <KeyboardAwareScrollView contentContainerStyle={styles.scrollViewContent}>
-        <ImageBackground
-          source={require('../../assets/images/background.png')}
-          style={styles.backgroundImage}
-        >
+        <View style={styles.roleCardsContainer}>
+          <TouchableOpacity
+            style={[styles.roleCard, styles.fanCard]}
+            onPress={() => handleRoleSelection('USER')}
+          >
+            <View style={styles.roleCardHeader}>
+              <Icon name="heart" size={40} color="#ff6b9d" />
+              <Text style={styles.roleCardTitle}>Fan</Text>
+            </View>
+            <Text style={styles.roleCardDescription}>
+              Get exclusive access to your favorite artists' posts from concerts you attended. Receive digital autographs, stay updated on future shows, and enjoy a one-on-one connection with the artists you love.
+            </Text>
+            <View style={styles.roleFeatures}>
+              <View style={styles.featureItem}>
+                <Icon name="check" size={14} color="#4caf50" />
+                <Text style={styles.featureText}>Exclusive concert posts</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="check" size={14} color="#4caf50" />
+                <Text style={styles.featureText}>Digital autographs</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="check" size={14} color="#4caf50" />
+                <Text style={styles.featureText}>Artist updates & news</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.roleCard, styles.artistCard]}
+            onPress={() => handleRoleSelection('ARTIST')}
+          >
+            <View style={styles.roleCardHeader}>
+              <Icon name="music" size={40} color="#00ff00" />
+              <Text style={styles.roleCardTitle}>Artist</Text>
+            </View>
+            <Text style={styles.roleCardDescription}>
+              Connect with your real fans who attended your concerts. Share exclusive posts, send digital autographs, promote future shows, and build lasting relationships with your dedicated audience.
+            </Text>
+            <View style={styles.roleFeatures}>
+              <View style={styles.featureItem}>
+                <Icon name="check" size={14} color="#4caf50" />
+                <Text style={styles.featureText}>Share concert posts</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="check" size={14} color="#4caf50" />
+                <Text style={styles.featureText}>Send digital autographs</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <Icon name="check" size={14} color="#4caf50" />
+                <Text style={styles.featureText}>Promote future shows</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.roleSelectionNote}>
+          
+        </Text>
+      </View>
+    </View>
+  );
+
+  const renderSignupForm = () => (
           <View style={styles.contentContainer}>
             <View style={styles.topSection}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBackToRoleSelection}
+        >
+          <Icon name="arrow-left" size={20} color="#fff" />
+        </TouchableOpacity>
               <Image
                 source={require('../../assets/images/1024.png')}
                 style={styles.avatar}
                 resizeMode="contain"
               />
+        <View style={styles.roleIndicator}>
+          <Icon 
+            name={selectedRole === 'USER' ? "heart" : "music"} 
+            size={16} 
+            color={selectedRole === 'USER' ? "#ff6b9d" : "#00ff00"} 
+          />
+          <Text style={styles.roleIndicatorText}>
+            Signing up as {selectedRole === 'USER' ? 'Fan' : 'Artist'}
+          </Text>
+        </View>
             </View>
 
             <View style={styles.inputContainer}>
@@ -217,7 +314,7 @@ const RegFanPage = () => {
 
             <LinearGradient colors={['#ff00ff', '#7000ff']} style={styles.signupButton}>
               <TouchableOpacity onPress={handleSignup} style={styles.fullWidth}>
-                <Text style={styles.buttonText}>Signup</Text>
+          <Text style={styles.buttonText}>Signup as {selectedRole === 'USER' ? 'Fan' : 'Artist'}</Text>
               </TouchableOpacity>
             </LinearGradient>
 
@@ -228,12 +325,21 @@ const RegFanPage = () => {
               </Text>
             </Text>
           </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <KeyboardAwareScrollView contentContainerStyle={styles.scrollViewContent}>
+        <ImageBackground
+          source={require('../../assets/images/background.png')}
+          style={styles.backgroundImage}
+        >
+          {showRoleSelection ? renderRoleSelection() : renderSignupForm()}
         </ImageBackground>
       </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };
-
-
 
 export default RegFanPage;

@@ -21,6 +21,7 @@ import useFetchUser from '../../assets/hooks/useFetchUser';
 import styles from './fanStyles/FHomePageStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import useNotifications from '../../assets/hooks/useNotifications';
 import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotificationsAndLocation';
 
@@ -156,10 +157,17 @@ const FHomePage = ({ navigation }) => {
         const responseData = await response.json();
         const pendingInvites = responseData.data.filter((invite) => invite.status === 'PENDING');
 
-        console.log('Pending invites:', pendingInvites);
-        setInvites(pendingInvites);
+        // Sort invites by expiration time - closest to expiration first
+        const sortedInvites = pendingInvites.sort((a, b) => {
+          const timeA = new Date(a.valid_till).getTime();
+          const timeB = new Date(b.valid_till).getTime();
+          return timeA - timeB; // Ascending order - earliest expiration first
+        });
 
-        if (pendingInvites.length > 0) {
+        console.log('Sorted pending invites:', sortedInvites);
+        setInvites(sortedInvites);
+
+        if (sortedInvites.length > 0) {
           console.log('Pending invite detected, stopping polling.');
           handleCancel(); // Stop polling if a pending invite is detected
         }
@@ -182,11 +190,6 @@ const FHomePage = ({ navigation }) => {
 
   const handleConfirmInvite = async (inviteId, artistPostId) => {
     try {
-      // Stop polling and clean up
-      handleCancel();
-      dispatch(setInvitesEnabled(false));
-      setIsInviteEnabled(false);
-
       await fetch(`${BASEURL}/api/v1/invites/${inviteId}`, {
         method: 'PATCH',
         headers: {
@@ -200,9 +203,6 @@ const FHomePage = ({ navigation }) => {
       setInvites(prevInvites => prevInvites.filter(invite => invite.id !== inviteId));
 
       Alert.alert('Success', 'Invite confirmed.');
-
-      // Navigate to DMDetailPage with the artist_post_id
-      navigation.navigate('DMDetailPage', { postId: artistPostId });
     } catch (error) {
       console.error('Error confirming invite:', error);
       Alert.alert('Error', 'Failed to confirm invite.');
@@ -241,7 +241,10 @@ const FHomePage = ({ navigation }) => {
                         },
                         body: JSON.stringify({ status: 'REJECTED' }),
                       });
-                      fetchInvites();
+                      
+                      // Remove the declined invite from the UI immediately
+                      setInvites(prevInvites => prevInvites.filter(invite => invite.id !== inviteId));
+                      
                       Alert.alert('Success', 'Invite denied.');
                     } catch (error) {
                       Alert.alert('Error', 'Failed to deny invite.');
@@ -256,30 +259,113 @@ const FHomePage = ({ navigation }) => {
     );
   };
 
+  const handleAcceptAllInvites = async () => {
+    Alert.alert(
+      'Accept All Invites?',
+      `Are you sure you want to accept all ${invites.length} invite${invites.length !== 1 ? 's' : ''}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Accept All',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              
+              // Accept all invites in parallel
+              const acceptPromises = invites.map(invite => 
+                fetch(`${BASEURL}/api/v1/invites/${invite.id}`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                  },
+                  body: JSON.stringify({ status: 'ACCEPTED' }),
+                })
+              );
+
+              await Promise.all(acceptPromises);
+              
+              // Clear all invites from the UI
+              setInvites([]);
+              
+              // Stop polling and reset invite status
+              handleCancel();
+              dispatch(setInvitesEnabled(false));
+              setIsInviteEnabled(false);
+              
+              Alert.alert('Success', `All ${invites.length} invite${invites.length !== 1 ? 's' : ''} accepted!`);
+            } catch (error) {
+              console.error('Error accepting all invites:', error);
+              Alert.alert('Error', 'Failed to accept all invites. Please try again.');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderInviteItem = ({ item }) => (
-    <LinearGradient colors={['#0c002b', '#1b0248']} style={styles.inviteItemGradient}>
-      <View style={styles.inviteItem}>
-        <View style={styles.userInfoContainer}>
-          <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
-          <Text style={styles.userName}>{item.user.full_name}</Text>
+    <View style={styles.inviteCard}>
+      <LinearGradient 
+        colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']} 
+        style={styles.inviteCardGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        {/* Header with user info */}
+        <View style={styles.inviteHeader}>
+          <View style={styles.userInfoContainer}>
+            <View style={styles.avatarContainer}>
+              <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
+              <View style={styles.onlineIndicator} />
+            </View>
+            <Text style={styles.userName}>{item.user.full_name}</Text>
+            <Text style={styles.inviteLabel}>sent you an invite</Text>
+          </View>
         </View>
-        <Text style={styles.inviteText}>Invite valid until: {new Date(item.valid_till).toLocaleString()}</Text>
+
+        {/* Invite details */}
+        <View style={styles.inviteDetails}>
+          <View style={styles.validityContainer}>
+            <FontAwesome name="clock-o" size={14} color="#888" />
+            <Text style={styles.validityText}>
+              Valid until {new Date(item.valid_till).toLocaleDateString()} at {new Date(item.valid_till).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            </Text>
+          </View>
+        </View>
+
+        {/* Action buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={[styles.inviteButton, styles.confirmButton]}
-            onPress={() => handleConfirmInvite(item.id, item.artist_post_id)} // Pass artist_post_id
-          >
-            <Text style={styles.buttonText}>Confirm</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.inviteButton, styles.denyButton]}
+            style={styles.denyButton}
             onPress={() => handleDenyInvite(item.id)}
           >
-            <Text style={styles.buttonText}>Deny</Text>
+            <FontAwesome name="times" size={16} color="#FF6B6B" />
+            <Text style={styles.denyButtonText}>Decline</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={() => handleConfirmInvite(item.id, item.artist_post_id)}
+          >
+            <LinearGradient
+              colors={['#00E5FF', '#D500F9']}
+              style={styles.confirmButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <FontAwesome name="check" size={16} color="white" />
+              <Text style={styles.confirmButtonText}>Accept</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-      </View>
-    </LinearGradient>
+      </LinearGradient>
+    </View>
   );
 
   return (
@@ -305,14 +391,37 @@ const FHomePage = ({ navigation }) => {
           source={require('../../assets/images/1024.png')}
           style={styles.logo}
         />
-        <Text style={styles.personalMediaText}>Personal Media</Text>
+        <Text style={styles.personalMediaText}>DayOnes Live</Text>
       </View>
 
       <FlatList
         data={invites}
         keyExtractor={(item) => item.id}
         renderItem={renderInviteItem}
-        contentContainerStyle={{ paddingTop: hp('10%') }}
+        contentContainerStyle={{ paddingTop: hp('2%') }}
+        ListHeaderComponent={
+          invites.length > 0 ? (
+            <View style={styles.invitesHeader}>
+              <Text style={styles.invitesCountText}>
+                You have {invites.length} invite{invites.length !== 1 ? 's' : ''}!
+              </Text>
+              <TouchableOpacity
+                style={styles.acceptAllButton}
+                onPress={handleAcceptAllInvites}
+              >
+                <LinearGradient
+                  colors={['#00E5FF', '#D500F9']}
+                  style={styles.acceptAllButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <MaterialIcons name="check-circle" size={18} color="white" />
+                  <Text style={styles.acceptAllButtonText}>Accept All</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          ) : null
+        }
       />
 
       {/* Static Placeholder Image and Text */}

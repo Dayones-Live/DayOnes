@@ -26,6 +26,30 @@ const styles = StyleSheet.create({
     topSection: {
         alignItems: 'center',
         marginBottom: 20,
+        position: 'relative',
+    },
+    backButton: {
+        position: 'absolute',
+        left: 0,
+        top: 10,
+        padding: 10,
+        borderRadius: 8,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    roleIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginTop: 10,
+    },
+    roleIndicatorText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
+        marginLeft: 6,
     },
     avatar: {
         width: 200,
@@ -132,6 +156,89 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 10,
+    },
+    // Role Selection Styles
+    roleSelectionContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 20,
+    },
+    roleSelectionContent: {
+        width: '100%',
+        maxWidth: 400,
+    },
+    roleSelectionTitle: {
+        color: '#fff',
+        fontSize: 28,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 10,
+    },
+    roleSelectionSubtitle: {
+        color: '#ccc',
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 30,
+        lineHeight: 22,
+    },
+    roleCardsContainer: {
+        gap: 20,
+        marginBottom: 30,
+    },
+    roleCard: {
+        backgroundColor: 'rgba(51, 51, 51, 0.9)',
+        borderRadius: 16,
+        padding: 20,
+        borderWidth: 2,
+        borderColor: 'transparent',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
+    fanCard: {
+        borderColor: '#ff6b9d',
+    },
+    artistCard: {
+        borderColor: '#00ff00',
+    },
+    roleCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    roleCardTitle: {
+        color: '#fff',
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginLeft: 15,
+    },
+    roleCardDescription: {
+        color: '#ccc',
+        fontSize: 14,
+        lineHeight: 20,
+        marginBottom: 15,
+    },
+    roleFeatures: {
+        gap: 8,
+    },
+    featureItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    featureText: {
+        color: '#fff',
+        fontSize: 13,
+        marginLeft: 8,
+    },
+    roleSelectionNote: {
+        color: '#888',
+        fontSize: 12,
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
 });
 

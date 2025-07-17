@@ -14,7 +14,10 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  ImageBackground,
+  Linking,
+  Animated
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
@@ -29,6 +32,7 @@ import { handleGoogleSignIn } from '../assets/services/auth.service';
 import { setAccessToken, setUserProfile } from '../assets/redux/actions';
 import { AppleSignInButton } from '../components/AppleSignInButton';
 import { handleAppleSignIn } from '../assets/services/auth.service';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 const { width } = Dimensions.get('window');
 
@@ -40,6 +44,16 @@ const LoginScreen = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [role, setRole] = useState(null);
   const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const buttonAnim = React.useRef(new Animated.Value(1)).current; // opacity/translateY for buttons
+  const formAnim = React.useRef(new Animated.Value(0)).current;   // opacity/translateY for form
+  const logoAnim = React.useRef(new Animated.Value(0)).current;   // 0: default, 1: moved up/faded
+  const formFieldAnims = [
+    React.useRef(new Animated.Value(0)).current, // email
+    React.useRef(new Animated.Value(0)).current, // password
+    React.useRef(new Animated.Value(0)).current, // login
+    React.useRef(new Animated.Value(0)).current, // back
+  ];
 
   const navigation = useNavigation();
   const userProfile = useSelector((state) => state.userProfile);
@@ -150,6 +164,12 @@ const LoginScreen = () => {
                 index: 0,
                 routes: [{ name: 'FanStack' }],
               });
+            } else if (userRole === 'SUPER_ADMIN') {
+              console.log('👑 [LoginPage] Navigating to SuperAdminDashboard');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'SuperAdminDashboard' }],
+              });
             }
           } else {
             console.error('❌ [LoginPage] Token missing in response');
@@ -199,6 +219,9 @@ const LoginScreen = () => {
         } else if (result.user.role === 'USER') {
           console.log('👤 [LoginPage] Navigating to FanStack');
           navigation.navigate('FanStack');
+        } else if (result.user.role === 'SUPER_ADMIN') {
+          console.log('👑 [LoginPage] Navigating to SuperAdminDashboard');
+          navigation.navigate('SuperAdminDashboard');
         }
       } else {
         console.error('❌ [LoginPage] Token missing in Google sign-in result');
@@ -254,6 +277,12 @@ const LoginScreen = () => {
               index: 0,
               routes: [{ name: 'FanStack' }],
             });
+          } else if (result.user.role === 'SUPER_ADMIN') {
+            console.log('👑 [LoginPage] Navigating to SuperAdminDashboard');
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'SuperAdminDashboard' }],
+            });
           }
         } else {
           console.log('🔒 [LoginPage] Navigating to PermissionsScreen');
@@ -274,31 +303,145 @@ const LoginScreen = () => {
     }
   };
 
+  const animateToForm = () => {
+    Animated.parallel([
+      Animated.timing(buttonAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowEmailForm(true);
+      formAnim.setValue(0);
+      formFieldAnims.forEach(anim => anim.setValue(0));
+      Animated.sequence([
+        Animated.timing(formAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.stagger(80, formFieldAnims.map(anim =>
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 250,
+            useNativeDriver: true,
+          })
+        )),
+      ]).start();
+    });
+  };
+
+  const animateToButtons = () => {
+    Animated.parallel([
+      Animated.stagger(60, formFieldAnims.slice().reverse().map(anim =>
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        })
+      )),
+      Animated.timing(formAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoAnim, {
+        toValue: 0,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowEmailForm(false);
+      Animated.timing(buttonAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContentContainer}
-          keyboardShouldPersistTaps="handled"
+    <ImageBackground
+      source={require('../assets/images/LOGINIMAGE.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay} />
+      <SafeAreaView style={styles.safeArea}>
+        {/* Logo and App Name at the top, always visible */}
+        <Animated.View
+          style={[
+            styles.centerContent,
+            {
+              transform: [
+                {
+                  translateY: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -80] })
+                },
+                {
+                  scale: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.95] })
+                }
+              ],
+              opacity: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.8] })
+            },
+          ]}
         >
-          <View style={styles.contentContainer}>
-            <View style={styles.topSection}>
-              <Image
-                source={require('../assets/images/1024.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-
-            <View style={styles.middleSection}>
-              <Text style={styles.pageTitle}>Log into DayOnes</Text>
-
-              <Text style={styles.inputLabel}>EMAIL</Text>
+          <Image
+            source={require('../assets/images/1024.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.appName}>DayOnes</Text>
+        </Animated.View>
+        {/* Animated content area below logo */}
+        <View style={styles.animatedContentArea}>
+          {/* Button Group - always rendered, absolutely positioned within this area */}
+          <Animated.View
+            pointerEvents={showEmailForm ? 'none' : 'auto'}
+            style={[
+              styles.buttonGroup,
+              {
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                opacity: buttonAnim,
+                transform: [{ translateY: buttonAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }],
+              },
+            ]}
+          >
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity style={styles.whiteButton} onPress={handleAppleLogin}>
+                <FontAwesome name="apple" size={22} color="#111" style={{ marginRight: 10 }} />
+                <Text style={styles.whiteButtonText}>Continue with Apple</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.whiteButton} onPress={handleGoogleLogin}>
+              <Image source={require('../assets/images/7123025_logo_google_g_icon-2.png')} style={styles.buttonIcon} />
+              <Text style={styles.whiteButtonText}>Continue with Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.darkButton} onPress={animateToForm}>
+              <Text style={styles.darkButtonText}>Continue with email</Text>
+            </TouchableOpacity>
+          </Animated.View>
+          {/* Email Form - always rendered, absolutely positioned within this area */}
+          <Animated.View
+            pointerEvents={showEmailForm ? 'auto' : 'none'}
+            style={[
+              styles.emailFormContainer,
+              {
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                opacity: formAnim,
+                transform: [{ translateY: formAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }],
+              },
+            ]}
+          >
+            <Animated.View style={{ width: '100%', opacity: formFieldAnims[0], transform: [{ translateY: formFieldAnims[0].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }}>
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[styles.input, { color: '#000' }]}
@@ -312,8 +455,8 @@ const LoginScreen = () => {
                   autoCapitalize="none"
                 />
               </View>
-
-              <Text style={styles.inputLabel}>PASSWORD</Text>
+            </Animated.View>
+            <Animated.View style={{ width: '100%', opacity: formFieldAnims[1], transform: [{ translateY: formFieldAnims[1].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }}>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={[styles.passwordInput, { color: '#000' }]}
@@ -333,7 +476,8 @@ const LoginScreen = () => {
                   />
                 </TouchableOpacity>
               </View>
-
+            </Animated.View>
+            <Animated.View style={{ width: '100%', opacity: formFieldAnims[2], transform: [{ translateY: formFieldAnims[2].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }}>
               <TouchableOpacity
                 onPress={handleLogin}
                 style={styles.fullButtonContainer}
@@ -343,56 +487,28 @@ const LoginScreen = () => {
                   <Text style={[styles.buttonText, styles.loginButtonText]}>{isLoading ? 'Logging in...' : 'LOG IN'}</Text>
                 </LinearGradient>
               </TouchableOpacity>
-
-              <View style={styles.orDividerContainer}>
-                <View style={styles.orDividerLine} />
-                <Text style={styles.orDividerText}>OR</Text>
-                <View style={styles.orDividerLine} />
-              </View>
-
-              {Platform.OS === 'ios' && (
-                <View style={styles.socialButtonsContainer}>
-                  <AppleSignInButton
-                    onSuccess={() => {
-                      console.log('Apple sign-in completed successfully');
-                    }}
-                    onError={(error) => {
-                      console.error('Apple sign-in error:', error);
-                      Alert.alert('Error', 'Apple sign-in failed. Please try again.');
-                    }}
-                  />
-                </View>
-              )}
-
-              <TouchableOpacity
-                onPress={handleGoogleLogin}
-                style={styles.googleButton}
-                disabled={isGoogleLoading}
-              >
-                <View style={styles.buttonContent}>
-                  <Image
-                    source={require('../assets/images/7123025_logo_google_g_icon-2.png')}
-                    style={styles.googleLogo}
-                  />
-                  <Text style={[styles.buttonText, styles.googleButtonText]}>
-                    {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
-                  </Text>
-                </View>
+            </Animated.View>
+            <Animated.View style={{ opacity: formFieldAnims[3], transform: [{ translateY: formFieldAnims[3].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }}>
+              <TouchableOpacity style={styles.backButton} onPress={animateToButtons}>
+                <Text style={styles.backButtonText}>Back</Text>
               </TouchableOpacity>
-
-              <View style={styles.registerContainer}>
-                <Text style={styles.registerText}>Don't have an account?</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('RegFanPage')}>
-                  <Text style={styles.registerLink}>Sign Up </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.bottomPlaceholder} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              <TouchableOpacity style={styles.signupLinkButton} onPress={() => navigation.navigate('RegFanPage')}>
+                <Text style={styles.signupLinkButtonText}>Sign up</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
+        </View>
+        <View style={styles.bottomLinks}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://dayones.live/privacy-policy-2/')}>
+            <Text style={styles.bottomLinkText}>Privacy policy</Text>
+          </TouchableOpacity>
+          <Text style={styles.bottomLinkText}>  </Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://dayones.live/safety-standards/')}>
+            <Text style={styles.bottomLinkText}>Terms of service</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
