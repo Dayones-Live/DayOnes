@@ -37,6 +37,7 @@ const MyCollectionsPage = ({ navigation }) => {
   const accessToken = useSelector((state) => state.accessToken);
   const coverFlowRef = useRef(null);
   const [listReady, setListReady] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const fetchArtistPosts = async () => {
     if (!accessToken) {
@@ -102,8 +103,10 @@ const MyCollectionsPage = ({ navigation }) => {
     : filteredPosts;
 
   useEffect(() => {
+    // Only reset listReady when posts change, not when artist changes
+    // This prevents flickering when switching artists
     setListReady(false);
-  }, [filteredPosts.length, selectedArtist]);
+  }, [filteredPosts.length]);
 
   useEffect(() => {
     // Only scroll if there are items and the FlatList is ready
@@ -149,22 +152,33 @@ const MyCollectionsPage = ({ navigation }) => {
             animated: false,
           });
         }
-      }, 50);
+      }, 100); // Increased delay to ensure smooth transition
     }
   }, [selectedArtist, listReady]);
 
   const handleArtistSelect = (artist) => {
-    setSelectedArtist(artist);
-    setIsArtistModalVisible(false);
-    // Reset animation state and index for new artist
-    scrollX.setValue(0);
-    setCurrentIndex(0);
-    setListReady(false);
+    // Fade out current view
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setSelectedArtist(artist);
+      setIsArtistModalVisible(false);
+      // Reset animation state and index for new artist
+      scrollX.setValue(0);
+      setCurrentIndex(0);
+      // Fade back in
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   const handleBackToGallery = () => {
     setSelectedArtist(null);
-    setListReady(false); // Reset listReady so cover flow re-initializes
     setCurrentIndex(0); // Reset currentIndex so cover flow starts at the first image
     // Reset animation state when going back to main gallery
     scrollX.setValue(0);
@@ -342,14 +356,20 @@ const MyCollectionsPage = ({ navigation }) => {
         </View>
 
         {/* Cover Flow Gallery */}
-        <View style={styles.coverFlowContainer} onLayout={() => setListReady(true)}>
+        <Animated.View 
+          style={[
+            styles.coverFlowContainer, 
+            { opacity: fadeAnim }
+          ]} 
+          onLayout={() => setListReady(true)}
+        >
           {artistFilteredPosts.length === 0 ? (
             <Text style={styles.noPostsText}>
               No autographs from {selectedArtist.name}
             </Text>
           ) : (
             <Animated.FlatList
-              key={`artist-${selectedArtist.id}-${artistFilteredPosts.length}-${currentIndex}`}
+              key={`artist-${selectedArtist.id}-${artistFilteredPosts.length}`}
               ref={coverFlowRef}
               data={artistFilteredPosts}
               renderItem={renderCoverFlowItem}
@@ -375,7 +395,7 @@ const MyCollectionsPage = ({ navigation }) => {
               }}
             />
           )}
-        </View>
+        </Animated.View>
 
         {/* Fullscreen image viewer */}
         <ImageViewing
