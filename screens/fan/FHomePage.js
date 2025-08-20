@@ -24,11 +24,12 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import useNotifications from '../../assets/hooks/useNotifications';
 import useSetupNotificationsAndLocation from '../../assets/hooks/useSetupNotificationsAndLocation';
+import { useFocusEffect } from '@react-navigation/native';
 
 const FHomePage = ({ navigation }) => {
   const dispatch = useDispatch();
   const invitesFromRedux = useSelector((state) => state.invitesEnabled);
-  const { mutate: fetchUser } = useFetchUser();
+  const { mutate: fetchUser, isSuccess: fetchUserSuccess, isError: fetchUserError, error: fetchUserErrorData } = useFetchUser();
   const { data: notificationsData } = useNotifications();
   const userProfile = useSelector((state) => state.userProfile);
   const unreadCount = notificationsData?.data?.data?.filter(n => 
@@ -36,8 +37,30 @@ const FHomePage = ({ navigation }) => {
     n.from_user_profile?.id !== userProfile?.data?.id
   )?.length || 0;
 
+  // Log when useFetchUser state changes
+  useEffect(() => {
+    console.log('🔄 useFetchUser state changed:', {
+      isSuccess: fetchUserSuccess,
+      isError: fetchUserError,
+      error: fetchUserErrorData
+    });
+  }, [fetchUserSuccess, fetchUserError, fetchUserErrorData]);
+
   // Initialize notifications and location
   useSetupNotificationsAndLocation();
+
+  // Add focus effect to log when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🎯 FHomePage screen focused');
+      console.log('🔑 Access token present:', !!accessToken);
+      console.log('👤 User profile:', userProfile);
+      console.log('📋 Current invites state:', invites);
+      console.log('🔄 Is polling:', isPolling);
+      console.log('⏰ Countdown:', countdown);
+      console.log('🔄 Is loading:', isLoading);
+    }, [accessToken, userProfile, invites, isPolling, countdown, isLoading])
+  );
 
   const [isInviteEnabled, setIsInviteEnabled] = useState(invitesFromRedux);
   const [invites, setInvites] = useState([]);
@@ -47,17 +70,22 @@ const FHomePage = ({ navigation }) => {
   const [intervalId, setIntervalId] = useState(null);
 
   useEffect(() => {
+    console.log('🔄 FHomePage useEffect - fetchUserData called');
     const fetchUserData = async () => {
       try {
+        console.log('🔍 Checking AsyncStorage for auth token...');
         const accessToken = await AsyncStorage.getItem('authToken');
         if (accessToken) {
-          console.log('Access token:', accessToken);
+          console.log('✅ Access token found in AsyncStorage');
+          console.log('🔑 Token length:', accessToken.length);
+          console.log('🔑 Token preview:', accessToken.substring(0, 20) + '...');
+          console.log('👤 Calling fetchUser()...');
           fetchUser(); // Fetch user data
         } else {
-          console.log('No access token found in AsyncStorage, skipping user data fetch.');
+          console.log('❌ No access token found in AsyncStorage, skipping user data fetch.');
         }
       } catch (error) {
-        console.error('Error fetching access token:', error);
+        console.error('❌ Error fetching access token from AsyncStorage:', error);
       }
     };
 
@@ -67,33 +95,89 @@ const FHomePage = ({ navigation }) => {
   const accessToken = useSelector((state) => state.accessToken);
 
   useEffect(() => {
+    console.log('🔄 FHomePage useEffect - invitesFromRedux changed:', invitesFromRedux);
     setIsInviteEnabled(invitesFromRedux);
   }, [invitesFromRedux]);
 
+  useEffect(() => {
+    console.log('🔄 FHomePage useEffect - accessToken changed:', !!accessToken);
+    console.log('🔄 FHomePage useEffect - userProfile changed:', userProfile);
+  }, [accessToken, userProfile]);
+
+  useEffect(() => {
+    console.log('🔄 FHomePage useEffect - invites state changed:', invites);
+    console.log('🔄 FHomePage useEffect - invites length:', invites.length);
+  }, [invites]);
+
+  useEffect(() => {
+    console.log('🔄 FHomePage useEffect - isPolling state changed:', isPolling);
+  }, [isPolling]);
+
+  useEffect(() => {
+    console.log('🔄 FHomePage useEffect - isLoading state changed:', isLoading);
+  }, [isLoading]);
+
+  useEffect(() => {
+    console.log('🔄 FHomePage useEffect - countdown state changed:', countdown);
+  }, [countdown]);
+
+  useEffect(() => {
+    console.log('🔄 FHomePage useEffect - intervalId state changed:', intervalId);
+  }, [intervalId]);
+
+  useEffect(() => {
+    console.log('🔄 FHomePage useEffect - component mounted');
+    
+    return () => {
+      console.log('🔄 FHomePage useEffect - component unmounting');
+      if (intervalId) {
+        console.log('🔄 Clearing interval on component unmount:', intervalId);
+        clearInterval(intervalId);
+      }
+      setIsPolling(false); // Ensure polling state is reset
+    };
+  }, [intervalId]);
+
   const toggleInviteAndFetch = () => {
+    console.log('🚀 toggleInviteAndFetch called');
+    console.log('📍 Current access token:', accessToken ? 'Present' : 'Missing');
+    console.log('👤 Current user profile:', userProfile);
+    
     setIsLoading(true);
     setCountdown(60);
     dispatch(setInvitesEnabled(true));
     setIsInviteEnabled(true);
 
+    console.log('📍 Getting current position...');
     Geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        console.log('📍 Location obtained:', { latitude, longitude });
+        
         try {
+          console.log('📡 Updating notification status...');
           await updateNotificationStatus(latitude, longitude, true);
+          console.log('✅ Notification status updated successfully');
+          
+          console.log('🔄 Starting invite polling...');
           startInvitePolling();
         } catch (error) {
+          console.error('❌ Error updating invite status:', error);
           Alert.alert('Error', 'Failed to update invite status');
         }
       },
-      (error) => Alert.alert('Error', 'Failed to get location'),
+      (error) => {
+        console.error('❌ Geolocation error:', error);
+        Alert.alert('Error', 'Failed to get location');
+      },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
   };
 
   const updateNotificationStatus = async (latitude, longitude, notificationsEnabled) => {
+    console.log('📡 updateNotificationStatus called with:', { latitude, longitude, notificationsEnabled });
     try {
-      await fetch(`${BASEURL}/api/v1/user/update-notification-status`, {
+      const response = await fetch(`${BASEURL}/api/v1/user/update-notification-status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,46 +189,72 @@ const FHomePage = ({ navigation }) => {
           notificationsEnabled,
         }),
       });
+      
+      console.log('📡 Notification status update response status:', response.status);
+      
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('✅ Notification status update successful:', responseData);
+      } else {
+        const errorData = await response.text();
+        console.error('❌ Notification status update failed:', response.status, errorData);
+      }
     } catch (error) {
+      console.error('❌ Error in updateNotificationStatus:', error);
       throw new Error('Failed to update notification status');
     }
   };
 
   const startInvitePolling = () => {
     if (isPolling) {
-      console.log('Polling is already running, skipping new interval setup.');
+      console.log('⚠️ Polling is already running, skipping new interval setup.');
       return;
     }
 
+    console.log('🔄 Starting invite polling...');
     setIsPolling(true);
     const id = setInterval(async () => {
+      console.log('⏰ Polling interval triggered, countdown:', countdown);
       await fetchInvites();
       setCountdown((prevCountdown) => {
         if (prevCountdown <= 1) {
+          console.log('⏰ Countdown finished, stopping polling');
           clearInterval(id);
           setIsPolling(false);
           setIsLoading(false);
         }
         return prevCountdown - 1;
       });
-    }, 1000); // Poll every 5 seconds
+    }, 1000); // Poll every 1 second
     setIntervalId(id);
-    console.log('Polling started with interval ID:', id);
+    console.log('✅ Polling started with interval ID:', id);
   };
 
   const handleCancel = () => {
+    console.log('🛑 handleCancel called');
     if (intervalId) {
-      console.log('Clearing interval:', intervalId);
+      console.log('🔄 Clearing interval:', intervalId);
       clearInterval(intervalId);
       setIntervalId(null);
       setIsPolling(false); // Reset the polling state
     }
     setIsLoading(false); // Hide the loading modal
     setCountdown(60); // Reset the countdown timer
+    console.log('✅ Polling cancelled and reset');
   };
 
   const fetchInvites = async () => {
+    console.log('🔍 fetchInvites called');
+    console.log('🔑 Access token present:', !!accessToken);
+    console.log('👤 User profile:', userProfile);
+    
+    if (!accessToken) {
+      console.error('❌ No access token available for fetching invites');
+      return;
+    }
+
     try {
+      console.log('📡 Making API request to:', `${BASEURL}/api/v1/invites`);
       const response = await fetch(`${BASEURL}/api/v1/invites`, {
         method: 'GET',
         headers: {
@@ -153,28 +263,57 @@ const FHomePage = ({ navigation }) => {
         },
       });
 
+      console.log('📡 Invites API response status:', response.status);
+      console.log('📡 Invites API response headers:', Object.fromEntries(response.headers.entries()));
+
       if (response.ok) {
         const responseData = await response.json();
-        const pendingInvites = responseData.data.filter((invite) => invite.status === 'PENDING');
+        console.log('📦 Raw invites response data:', responseData);
+        
+        if (responseData.data && Array.isArray(responseData.data)) {
+          console.log('📊 Total invites received:', responseData.data.length);
+          console.log('📋 All invites:', responseData.data);
+          
+          const pendingInvites = responseData.data.filter((invite) => invite.status === 'PENDING');
+          console.log('⏳ Pending invites found:', pendingInvites.length);
+          console.log('⏳ Pending invite details:', pendingInvites);
 
-        // Sort invites by expiration time - closest to expiration first
-        const sortedInvites = pendingInvites.sort((a, b) => {
-          const timeA = new Date(a.valid_till).getTime();
-          const timeB = new Date(b.valid_till).getTime();
-          return timeA - timeB; // Ascending order - earliest expiration first
-        });
+          // Sort invites by expiration time - closest to expiration first
+          const sortedInvites = pendingInvites.sort((a, b) => {
+            const timeA = new Date(a.valid_till).getTime();
+            const timeB = new Date(b.valid_till).getTime();
+            return timeA - timeB; // Ascending order - earliest expiration first
+          });
 
-        console.log('Sorted pending invites:', sortedInvites);
-        setInvites(sortedInvites);
+          console.log('🕒 Sorted pending invites:', sortedInvites);
+          console.log('🔄 Setting invites state to:', sortedInvites);
+          setInvites(sortedInvites);
 
-        if (sortedInvites.length > 0) {
-          console.log('Pending invite detected, stopping polling.');
-          handleCancel(); // Stop polling if a pending invite is detected
+          if (sortedInvites.length > 0) {
+            console.log('🎉 Pending invite detected, stopping polling.');
+            handleCancel(); // Stop polling if a pending invite is detected
+          } else {
+            console.log('📭 No pending invites found, continuing to poll...');
+          }
+        } else {
+          console.warn('⚠️ Response data is not an array:', responseData.data);
+          setInvites([]);
         }
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Invites API request failed:', response.status, errorText);
+        console.error('❌ Response headers:', Object.fromEntries(response.headers.entries()));
+        setInvites([]);
       }
     } catch (error) {
-      console.error('Error fetching invites:', error);
+      console.error('❌ Error fetching invites:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       Alert.alert('Error', 'Failed to fetch invites.');
+      setInvites([]);
     }
   };
 
@@ -189,8 +328,15 @@ const FHomePage = ({ navigation }) => {
   }, [intervalId]);
 
   const handleConfirmInvite = async (inviteId, artistPostId) => {
+    console.log('✅ handleConfirmInvite called with:', { inviteId, artistPostId });
+    console.log('🔑 Access token present:', !!accessToken);
+    console.log('👤 Current user profile:', userProfile);
+    
     try {
-      await fetch(`${BASEURL}/api/v1/invites/${inviteId}`, {
+      console.log('📡 Making PATCH request to:', `${BASEURL}/api/v1/invites/${inviteId}`);
+      console.log('📡 Request body:', { status: 'ACCEPTED' });
+      
+      const response = await fetch(`${BASEURL}/api/v1/invites/${inviteId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -199,12 +345,34 @@ const FHomePage = ({ navigation }) => {
         body: JSON.stringify({ status: 'ACCEPTED' }),
       });
 
-      // Clear the accepted invite from the UI
-      setInvites(prevInvites => prevInvites.filter(invite => invite.id !== inviteId));
+      console.log('📡 Confirm invite response status:', response.status);
+      console.log('📡 Confirm invite response headers:', Object.fromEntries(response.headers.entries()));
 
-      Alert.alert('Success', 'Invite confirmed.');
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('✅ Invite confirmation successful:', responseData);
+        
+        // Clear the accepted invite from the UI
+        console.log('🔄 Updating invites state, removing invite:', inviteId);
+        setInvites(prevInvites => {
+          const newInvites = prevInvites.filter(invite => invite.id !== inviteId);
+          console.log('🔄 New invites state:', newInvites);
+          return newInvites;
+        });
+
+        Alert.alert('Success', 'Invite confirmed.');
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Invite confirmation failed:', response.status, errorText);
+        Alert.alert('Error', 'Failed to confirm invite.');
+      }
     } catch (error) {
-      console.error('Error confirming invite:', error);
+      console.error('❌ Error confirming invite:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       Alert.alert('Error', 'Failed to confirm invite.');
     }
   };
@@ -370,6 +538,15 @@ const FHomePage = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {console.log('🎨 FHomePage render - Current state:', {
+        invitesLength: invites.length,
+        isPolling,
+        isLoading,
+        countdown,
+        accessToken: !!accessToken,
+        userProfile: !!userProfile
+      })}
+      
       <ProfilePictureButton navigation={navigation} />
       
       {/* Add notification button */}
@@ -399,9 +576,11 @@ const FHomePage = ({ navigation }) => {
         keyExtractor={(item) => item.id}
         renderItem={renderInviteItem}
         contentContainerStyle={{ paddingTop: hp('2%') }}
+        onLayout={() => console.log('📱 FlatList onLayout - invites data:', invites)}
         ListHeaderComponent={
           invites.length > 0 ? (
             <View style={styles.invitesHeader}>
+              {console.log('📋 Rendering invites header with', invites.length, 'invites')}
               <Text style={styles.invitesCountText}>
                 You have {invites.length} invite{invites.length !== 1 ? 's' : ''}!
               </Text>
@@ -427,6 +606,7 @@ const FHomePage = ({ navigation }) => {
       {/* Static Placeholder Image and Text */}
       {invites.length === 0 && (
         <View style={styles.staticContainer}>
+          {console.log('🖼️ Rendering static placeholder - no invites available')}
           <Image
             source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
             style={styles.staticPlaceholderImage}
@@ -438,9 +618,20 @@ const FHomePage = ({ navigation }) => {
       {/* Fixed "Get Invites" Button */}
       {invites.length === 0 && (
         <View style={styles.fixedButtonContainer}>
+          {console.log('🔘 Rendering Get Invites button - no invites available')}
           <TouchableOpacity
             style={styles.sendButtonGradient}
-            onPress={toggleInviteAndFetch}
+            onPress={() => {
+              console.log('👆 Get Invites button pressed');
+              console.log('📍 Current state before toggleInviteAndFetch:', {
+                invitesLength: invites.length,
+                isPolling,
+                isLoading,
+                accessToken: !!accessToken,
+                userProfile: !!userProfile
+              });
+              toggleInviteAndFetch();
+            }}
           >
             <LinearGradient
               colors={['#00E5FF', '#D500F9']}
