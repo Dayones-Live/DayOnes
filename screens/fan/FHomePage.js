@@ -51,10 +51,7 @@ const FHomePage = ({ navigation }) => {
       try {
         const accessToken = await AsyncStorage.getItem('authToken');
         if (accessToken) {
-          console.log('Access token:', accessToken);
           fetchUser(); // Fetch user data
-        } else {
-          console.log('No access token found in AsyncStorage, skipping user data fetch.');
         }
       } catch (error) {
         console.error('Error fetching access token:', error);
@@ -70,6 +67,10 @@ const FHomePage = ({ navigation }) => {
     setIsInviteEnabled(invitesFromRedux);
   }, [invitesFromRedux]);
 
+
+
+
+
   const toggleInviteAndFetch = () => {
     setIsLoading(true);
     setCountdown(60);
@@ -79,44 +80,59 @@ const FHomePage = ({ navigation }) => {
     Geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        
         try {
-          await updateNotificationStatus(latitude, longitude, true);
+          await updateLocation(latitude, longitude);
           startInvitePolling();
         } catch (error) {
-          Alert.alert('Error', 'Failed to update invite status');
+          console.error('Failed to update location:', error);
+          // Continue with invite polling even if location update fails
+          startInvitePolling();
         }
       },
-      (error) => Alert.alert('Error', 'Failed to get location'),
+      (error) => {
+        console.error('Location error:', error);
+        Alert.alert('Error', 'Failed to get location');
+      },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
   };
 
-  const updateNotificationStatus = async (latitude, longitude, notificationsEnabled) => {
+  const updateLocation = async (latitude, longitude) => {
     try {
-      await fetch(`${BASEURL}/api/v1/user/update-notification-status`, {
+      const response = await fetch(`${BASEURL}/api/v1/user/update-location`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({
-          longitude: longitude.toString(),
+        body: new URLSearchParams({
           latitude: latitude.toString(),
-          notificationsEnabled,
-        }),
+          longitude: longitude.toString()
+        }).toString(),
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error updating location:', errorText);
+        throw new Error(`Failed to update location: ${response.status}`);
+      }
     } catch (error) {
-      throw new Error('Failed to update notification status');
+      console.error('Error updating location:', error);
+      throw new Error('Failed to update location');
     }
   };
 
   const startInvitePolling = () => {
     if (isPolling) {
-      console.log('Polling is already running, skipping new interval setup.');
       return;
     }
 
     setIsPolling(true);
+    
+    // Do an immediate fetch first
+    fetchInvites();
+    
     const id = setInterval(async () => {
       await fetchInvites();
       setCountdown((prevCountdown) => {
@@ -127,14 +143,12 @@ const FHomePage = ({ navigation }) => {
         }
         return prevCountdown - 1;
       });
-    }, 1000); // Poll every 5 seconds
+    }, 1000); // Poll every 1 second
     setIntervalId(id);
-    console.log('Polling started with interval ID:', id);
   };
 
   const handleCancel = () => {
     if (intervalId) {
-      console.log('Clearing interval:', intervalId);
       clearInterval(intervalId);
       setIntervalId(null);
       setIsPolling(false); // Reset the polling state
@@ -155,22 +169,29 @@ const FHomePage = ({ navigation }) => {
 
       if (response.ok) {
         const responseData = await response.json();
-        const pendingInvites = responseData.data.filter((invite) => invite.status === 'PENDING');
+        
+        if (responseData.data && Array.isArray(responseData.data)) {
+          // Only show PENDING invites
+          const pendingInvites = responseData.data.filter(invite => invite.status === 'PENDING');
+          
+          // Sort pending invites by expiration time - closest to expiration first
+          const sortedInvites = pendingInvites.sort((a, b) => {
+            const timeA = new Date(a.valid_till).getTime();
+            const timeB = new Date(b.valid_till).getTime();
+            return timeA - timeB;
+          });
+          
+          setInvites(sortedInvites);
 
-        // Sort invites by expiration time - closest to expiration first
-        const sortedInvites = pendingInvites.sort((a, b) => {
-          const timeA = new Date(a.valid_till).getTime();
-          const timeB = new Date(b.valid_till).getTime();
-          return timeA - timeB; // Ascending order - earliest expiration first
-        });
-
-        console.log('Sorted pending invites:', sortedInvites);
-        setInvites(sortedInvites);
-
-        if (sortedInvites.length > 0) {
-          console.log('Pending invite detected, stopping polling.');
-          handleCancel(); // Stop polling if a pending invite is detected
+          if (sortedInvites.length > 0) {
+            handleCancel(); // Stop polling if any pending invites are detected
+          }
+        } else {
+          setInvites([]);
         }
+      } else {
+        console.error('Error fetching invites:', response.status);
+        Alert.alert('Error', 'Failed to fetch invites.');
       }
     } catch (error) {
       console.error('Error fetching invites:', error);
@@ -259,10 +280,19 @@ const FHomePage = ({ navigation }) => {
     );
   };
 
+
+
   const handleAcceptAllInvites = async () => {
+    const inviteCount = invites.length;
+    
+    if (inviteCount === 0) {
+      Alert.alert('No Invites', 'You have no invites to accept.');
+      return;
+    }
+    
     Alert.alert(
       'Accept All Invites?',
-      `Are you sure you want to accept all ${invites.length} invite${invites.length !== 1 ? 's' : ''}?`,
+      `Are you sure you want to accept all ${inviteCount} invite${inviteCount !== 1 ? 's' : ''}?`,
       [
         {
           text: 'Cancel',
@@ -288,15 +318,10 @@ const FHomePage = ({ navigation }) => {
 
               await Promise.all(acceptPromises);
               
-              // Clear all invites from the UI
+              // Clear all invites from the UI since they're now accepted
               setInvites([]);
               
-              // Stop polling and reset invite status
-              handleCancel();
-              dispatch(setInvitesEnabled(false));
-              setIsInviteEnabled(false);
-              
-              Alert.alert('Success', `All ${invites.length} invite${invites.length !== 1 ? 's' : ''} accepted!`);
+              Alert.alert('Success', `All ${inviteCount} invite${inviteCount !== 1 ? 's' : ''} accepted!`);
             } catch (error) {
               console.error('Error accepting all invites:', error);
               Alert.alert('Error', 'Failed to accept all invites. Please try again.');
@@ -403,7 +428,7 @@ const FHomePage = ({ navigation }) => {
           invites.length > 0 ? (
             <View style={styles.invitesHeader}>
               <Text style={styles.invitesCountText}>
-                You have {invites.length} invite{invites.length !== 1 ? 's' : ''}!
+                You have {invites.length} pending invite{invites.length !== 1 ? 's' : ''}!
               </Text>
               <TouchableOpacity
                 style={styles.acceptAllButton}
@@ -451,6 +476,9 @@ const FHomePage = ({ navigation }) => {
               <Text style={styles.sendButtonText}>Get Invites</Text>
             </LinearGradient>
           </TouchableOpacity>
+          
+
+          
           <View style={styles.patentText}>
             <Text style={styles.patentLabel}>U.S Patent </Text>
             <Text style={styles.patentNumber}>#10749935</Text>

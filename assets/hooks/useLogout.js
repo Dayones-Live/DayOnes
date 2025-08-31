@@ -48,13 +48,40 @@ const useLogout = () => {
       }
     },
     onError: (error) => {
-      let errorMessage = 'An unexpected error occurred.';
+      console.error('Logout error:', error);
+      
+      if (error.response?.status === 400) {
+        // Handle 400 error specifically - session expired/conflict
+        try {
+          // Clear all auth-related data from AsyncStorage
+          AsyncStorage.multiRemove([
+            'authToken',
+            'refreshToken',
+            'tokenExpiry',
+            'userRole',
+            'userData'
+          ]);
+          
+          // Clear Redux store
+          dispatch(setAccessToken(null));
+          dispatch(setUserID(null));
+          dispatch(setUserProfile(null));
+          
+          Alert.alert('Session Expired', 'Please log in again.');
+        } catch (clearError) {
+          console.error('Error clearing auth data:', clearError);
+          Alert.alert('Session Expired', 'Please log in again.');
+        }
+      } else {
+        // Handle other errors normally
+        let errorMessage = 'An unexpected error occurred.';
 
-      if (error.response?.data?.message) {
-        errorMessage = error.response?.data?.message;
+        if (error.response?.data?.message) {
+          errorMessage = error.response?.data?.message;
+        }
+
+        Alert.alert('Logout Error', errorMessage);
       }
-
-      Alert.alert('Logout Error', errorMessage);
     },
   });
 };
