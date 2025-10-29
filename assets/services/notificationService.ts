@@ -100,21 +100,29 @@ class NotificationService {
 
   private async initializeOneSignal(): Promise<void> {
     try {
-      // Wait for OneSignal to be ready
+      // OneSignal is initialized in index.js, just wait for it to be ready
+      console.log('⏳ Waiting for OneSignal to be ready...');
       await this.waitForOneSignalInitialization();
 
-      // Get user data and set external user ID
+      // Get user data and set external user ID if available
       const userData = await AsyncStorage.getItem('userData');
       if (userData) {
-        const parsedData = JSON.parse(userData);
-        if (parsedData?.data?.id) {
-          await OneSignal.login(parsedData.data.id);
-          console.log('✅ Set OneSignal external user ID:', parsedData.data.id);
+        try {
+          const parsedData = JSON.parse(userData);
+          if (parsedData?.data?.id) {
+            await OneSignal.login(parsedData.data.id);
+            console.log('✅ Set OneSignal external user ID:', parsedData.data.id);
+          }
+        } catch (parseError) {
+          console.error('❌ Error parsing user data:', parseError);
         }
+      } else {
+        console.log('ℹ️ No user data found, skipping OneSignal login');
       }
     } catch (error) {
-      console.error('❌ Error initializing OneSignal:', error);
-      throw error;
+      console.error('❌ Error setting up OneSignal user:', error);
+      // Don't throw - OneSignal might still be initializing
+      // The app can continue without user login initially
     }
   }
 
@@ -123,29 +131,34 @@ class NotificationService {
     
     while (retryCount < this.MAX_RETRIES) {
       try {
+        // Try to access OneSignal - if it's initialized, this should work
         const pushSubscription = OneSignal.User.pushSubscription;
         const [id, token] = await Promise.all([
-          pushSubscription.getIdAsync(),
-          pushSubscription.getTokenAsync()
+          pushSubscription.getIdAsync().catch(() => null),
+          pushSubscription.getTokenAsync().catch(() => null)
         ]);
 
-        if (id && token) {
+        if (id) {
+          console.log('✅ OneSignal is ready, player ID:', id);
           return;
         }
 
+        // If we don't have an ID yet, wait and retry
         console.log(`⏳ Waiting for OneSignal to be ready (attempt ${retryCount + 1}/${this.MAX_RETRIES})...`);
         retryCount++;
         await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY));
       } catch (error) {
         console.error(`❌ Error checking OneSignal initialization (attempt ${retryCount + 1}):`, error);
         retryCount++;
-        if (retryCount === this.MAX_RETRIES) {
-          throw error;
+        if (retryCount >= this.MAX_RETRIES) {
+          console.warn('⚠️ OneSignal not ready after retries, continuing anyway...');
+          // Don't throw - allow the app to continue
+          return;
         }
         await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY));
       }
     }
-    throw new Error('OneSignal initialization timeout');
+    console.warn('⚠️ OneSignal initialization check completed without confirmation');
   }
 
   private async registerDevice(): Promise<void> {

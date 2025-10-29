@@ -101,16 +101,12 @@ const PermissionsScreen = () => {
     }
   };
 
-  const initializeOneSignal = async () => {
+  // Set OneSignal user ID after permission is granted (OneSignal is already initialized in index.js)
+  const setupOneSignalUser = async () => {
     try {
-      // Enable verbose logging for debugging
-      OneSignal.Debug.setLogLevel(LogLevel.Verbose);
-
-      // Initialize OneSignal
-      console.log('🔄 Starting OneSignal initialization...');
-      OneSignal.initialize('0a492844-225d-4244-bec5-4cd0e7d5b986');
-
-      // Get push subscription state
+      console.log('🔄 Setting up OneSignal user after permission granted...');
+      
+      // Get push subscription state (OneSignal is already initialized)
       const pushSubscription = OneSignal.User.pushSubscription;
       const [id, token, optedIn] = await Promise.all([
         pushSubscription.getIdAsync(),
@@ -132,7 +128,7 @@ const PermissionsScreen = () => {
         try {
           const parsedData = JSON.parse(userData);
           if (parsedData?.data?.id) {
-            OneSignal.login(parsedData.data.id);
+            await OneSignal.login(parsedData.data.id);
             console.log('✅ Set OneSignal external user ID:', parsedData.data.id);
           }
         } catch (error) {
@@ -140,9 +136,9 @@ const PermissionsScreen = () => {
         }
       }
 
-      console.log('✅ OneSignal initialization completed successfully');
+      console.log('✅ OneSignal user setup completed');
     } catch (error) {
-      console.error('Error initializing OneSignal:', error);
+      console.error('Error setting up OneSignal user:', error);
     }
   };
 
@@ -162,9 +158,9 @@ const PermissionsScreen = () => {
         const notificationResult = await requestNotifications(['alert', 'sound', 'badge']);
         result = notificationResult.status;
         
-        // Initialize OneSignal if notifications were granted
+        // Set up OneSignal user after notification permission is granted
         if (result === RESULTS.GRANTED) {
-          await initializeOneSignal();
+          await setupOneSignalUser();
         }
       } else {
         result = await request(permission);

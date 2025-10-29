@@ -287,8 +287,12 @@ const EditScreen = ({ route, navigation }) => {
   };
 
   const renderSignature = ({ item }) => (
-    <TouchableOpacity onPress={() => handleSignatureSelect(item)}>
-      <Image source={{ uri: item.url }} style={styles.signatureThumbnail} />
+    <TouchableOpacity onPress={() => handleSignatureSelect(item)} style={styles.signatureThumbnailContainer}>
+      <Image 
+        source={{ uri: item.url }} 
+        style={styles.signatureThumbnail}
+        resizeMode="contain"
+      />
     </TouchableOpacity>
   );
   
@@ -478,13 +482,22 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingTop: 15
   },
-  signatureThumbnail: {
+  signatureThumbnailContainer: {
     width: 100,
     height: 100,
     marginRight: 10,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#fff',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  signatureThumbnail: {
+    width: '95%',
+    height: '95%',
+    resizeMode: 'contain',
   },
   signatureContainer: {
     position: 'absolute',

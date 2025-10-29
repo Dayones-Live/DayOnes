@@ -3,16 +3,27 @@
  */
 import { AppRegistry } from 'react-native';
 import App from './App';
-import { OneSignal } from 'react-native-onesignal';
+import { OneSignal, LogLevel } from 'react-native-onesignal';
 import { name as appName } from './app.json';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { BASEURL } from './assets/constants';
 
+// Initialize OneSignal early - MUST happen before event listeners
+const ONESIGNAL_APP_ID = '0a492844-225d-4244-bec5-4cd0e7d5b986';
+
+console.log('🔧 Initializing OneSignal with App ID:', ONESIGNAL_APP_ID);
+OneSignal.initialize(ONESIGNAL_APP_ID);
+
+// Enable debug logging in development (optional)
+if (__DEV__) {
+  OneSignal.Debug.setLogLevel(LogLevel.Verbose);
+}
+
 // Register the app component
 AppRegistry.registerComponent(appName, () => App);
 
-// Set up notification handlers
+// Set up notification handlers (OneSignal is now initialized)
 OneSignal.Notifications.addEventListener('click', async (event) => {
   console.log('🔔 OneSignal notification opened:', event);
   
