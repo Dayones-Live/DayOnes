@@ -199,6 +199,17 @@ const clearAuthData = async () => {
     ]);
     
     console.log('✅ Auth data cleared from Redux and AsyncStorage');
+    
+    // Navigate to login screen
+    if (global.navigationRef && global.navigationRef.current) {
+      console.log('🔀 Navigating to login screen...');
+      global.navigationRef.current.reset({
+        index: 0,
+        routes: [{ name: 'LoginPage' }],
+      });
+    } else {
+      console.log('⚠️ Navigation ref not available, user will need to restart app');
+    }
   } catch (error) {
     console.error('❌ Error clearing auth data:', error);
   }

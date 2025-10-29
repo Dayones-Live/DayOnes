@@ -190,6 +190,28 @@ const AppContent = () => {
     }
   });
 
+  // Helper function to check token with expiry time
+  const checkTokenValidity = async (authToken: string | null, tokenExpiry: string | null): Promise<boolean> => {
+    if (!authToken || !tokenExpiry) {
+      return false;
+    }
+    const expiryTime = parseInt(tokenExpiry);
+    const now = Date.now();
+    return now < expiryTime;
+  };
+
+  // Handle navigation to login on token expiry
+  const handleTokenExpiry = async () => {
+    console.log('🚫 Token expired, redirecting to login...');
+    await clearAuthData();
+    if (navigationRef.current) {
+      navigationRef.current.reset({
+        index: 0,
+        routes: [{ name: 'LoginPage' as any }],
+      });
+    }
+  };
+
   useEffect(() => {
     const checkAppSetupStatus = async () => {
       try {
@@ -202,13 +224,31 @@ const AppContent = () => {
         ]);
 
         // Check if user is logged in
-        const [authToken, userData] = await Promise.all([
+        const [authToken, userData, tokenExpiry] = await Promise.all([
           AsyncStorage.getItem('authToken'),
-          AsyncStorage.getItem('userData')
+          AsyncStorage.getItem('userData'),
+          AsyncStorage.getItem('tokenExpiry')
         ]);
+
+        // Log token availability check
+        console.log('🔑 [App Startup] Token Check:', {
+          hasToken: !!authToken,
+          hasUserData: !!userData,
+          hasTokenExpiry: !!tokenExpiry,
+          tokenLength: authToken ? authToken.length : 0
+        });
 
         if (authToken && userData) {
           try {
+            // Check if token is still valid
+            const tokenValid = await checkTokenValidity(authToken, tokenExpiry);
+            if (!tokenValid) {
+              console.log('🔐 Token expired on app startup, redirecting to login');
+              await handleTokenExpiry();
+              setIsLoading(false);
+              return;
+            }
+
             const parsedUserData = JSON.parse(userData);
             // Update Redux store with user data
             store.dispatch(setUserProfile(parsedUserData));
@@ -228,6 +268,7 @@ const AppContent = () => {
           }
         } else {
           // User is not logged in
+          console.log('🚫 [App Startup] No token or user data found - redirecting to login/TOS screen');
           if (tosAccepted === 'true' && permissionsAccepted === 'true') {
             console.log('TOS and permissions accepted, going to login');
             setInitialRoute('LoginPage');
@@ -247,6 +288,37 @@ const AppContent = () => {
     };
 
     checkAppSetupStatus();
+  }, []);
+
+  // Add AppState listener to check token when app comes to foreground
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: string) => {
+      if (nextAppState === 'active' && appState.current === 'background') {
+        console.log('📱 App came to foreground, checking token validity...');
+        try {
+          const [authToken, tokenExpiry] = await Promise.all([
+            AsyncStorage.getItem('authToken'),
+            AsyncStorage.getItem('tokenExpiry')
+          ]);
+
+          if (authToken) {
+            const tokenValid = await checkTokenValidity(authToken, tokenExpiry);
+            if (!tokenValid) {
+              console.log('🔐 Token expired while app was in background, redirecting to login');
+              await handleTokenExpiry();
+            }
+          }
+        } catch (error) {
+          console.error('Error checking token on app state change:', error);
+        }
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   const clearAuthData = async () => {
