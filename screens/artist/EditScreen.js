@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Image, TouchableOpacity, Text, StyleSheet, Dimensions, FlatList, Alert, PanResponder, Animated } from 'react-native';
+import { View, Image, TouchableOpacity, Text, StyleSheet, Dimensions, FlatList, Alert, PanResponder, Animated, Easing } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useSelector, useDispatch } from 'react-redux';
-import { setSignatureColor, setSignatureSize } from '../../assets/redux/actions';
+// import { useSelector, useDispatch } from 'react-redux';
+// import { setSignatureColor, setSignatureSize } from '../../assets/redux/actions';
 import ViewShot from 'react-native-view-shot';
 import RNFS from 'react-native-fs';
 import { useSignatures } from '../../assets/hooks/useSignatures';
@@ -21,17 +21,14 @@ const scaleValue = (size) => {
 
 const EditScreen = ({ route, navigation }) => {
   const { selectedImage } = route.params;
-  const [selectedSignature, setSelectedSignature] = useState(null);
-  const [draggedSignaturePosition, setDraggedSignaturePosition] = useState(new Animated.ValueXY({ x: width * 0.6, y: height * 0.55 }));
-  const [lastPosition, setLastPosition] = useState({ x: width * 0.6, y: height * 0.55 });
-  const lastTap = useRef(null);
-  const signatureColor = useSelector(state => state.signatureColor);
-  const signatureSize = useSelector(state => state.signatureSize);
+  // Multiple signatures on canvas
+  const [canvasSignatures, setCanvasSignatures] = useState([]);
+  const [activeSignatureId, setActiveSignatureId] = useState(null);
+  const [editingSignatureId, setEditingSignatureId] = useState(null);
+  const lastTapMapRef = useRef({});
   const [activeTab, setActiveTab] = useState(0);
   const viewShotRef = useRef(null);
-  const dispatch = useDispatch();
-  const [scale] = useState(new Animated.Value(1));
-  const [signatureCenter, setSignatureCenter] = useState({ x: 0, y: 0 });
+  const bottomBarAnim = useRef(new Animated.Value(0)).current; // 0 hidden, 1 visible
   
   // Define sizes at the component level so they're accessible
   const sizes = {
@@ -46,121 +43,181 @@ const EditScreen = ({ route, navigation }) => {
     console.log("Signatures loaded:", signatures);
   }, [signatures]);
 
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderMove: (event, gestureState) => {
-      if (event.nativeEvent.changedTouches.length >= 2) {
-        // Get touch points
-        const touch1 = event.nativeEvent.changedTouches[0];
-        const touch2 = event.nativeEvent.changedTouches[1];
-        
-        // Calculate center point between touches
-        const centerX = (touch1.pageX + touch2.pageX) / 2;
-        const centerY = (touch1.pageY + touch2.pageY) / 2;
-        
-        // Calculate distance for scaling
-        const distance = Math.sqrt(
-          Math.pow(touch2.pageX - touch1.pageX, 2) +
-          Math.pow(touch2.pageY - touch1.pageY, 2)
-        );
+  // Animate bottom toolbar in/out on edit mode toggle
+  useEffect(() => {
+    const toValue = editingSignatureId ? 1 : 0;
+    Animated.timing(bottomBarAnim, {
+      toValue,
+      duration: editingSignatureId ? 220 : 180,
+      easing: editingSignatureId ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [editingSignatureId, bottomBarAnim]);
 
-        if (!this.previousDistance) {
-          this.previousDistance = distance;
-          setSignatureCenter({ x: centerX, y: centerY });
-          return;
-        }
-
-        // Calculate and apply scale while maintaining position
-        const scaleFactor = distance / this.previousDistance;
-        const newScale = scale._value * scaleFactor;
-
-        if (newScale >= 0.5 && newScale <= 3) {
-          scale.setValue(newScale);
-        }
-
-        this.previousDistance = distance;
-      } else {
-        // Regular dragging
-        Animated.event(
-          [null, { dx: draggedSignaturePosition.x, dy: draggedSignaturePosition.y }],
-          { useNativeDriver: false }
-        )(event, gestureState);
-      }
-    },
-    onPanResponderRelease: () => {
-      draggedSignaturePosition.flattenOffset();
-      setLastPosition({
-        x: draggedSignaturePosition.x._value,
-        y: draggedSignaturePosition.y._value
-      });
-      this.previousDistance = null;
-    },
-    onPanResponderGrant: () => {
-      draggedSignaturePosition.setOffset({
-        x: lastPosition.x,
-        y: lastPosition.y
-      });
-      draggedSignaturePosition.setValue({ x: 0, y: 0 });
-    },
-  });
+  const createPanResponder = (sigId) => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        setActiveSignatureId(sigId);
+        bringSignatureToFront(sigId);
+        setCanvasSignatures(prev => prev.map(s => {
+          if (s.id !== sigId) return s;
+          s.position.setOffset({ x: s.lastPos.x, y: s.lastPos.y });
+          s.position.setValue({ x: 0, y: 0 });
+          return s;
+        }));
+      },
+      onPanResponderMove: (event, gestureState) => {
+        setCanvasSignatures(prev => prev.map(s => {
+          if (s.id !== sigId) return s;
+          s.position.x.setValue(gestureState.dx);
+          s.position.y.setValue(gestureState.dy);
+          return s;
+        }));
+      },
+      onPanResponderRelease: () => {
+        setCanvasSignatures(prev => prev.map(s => {
+          if (s.id !== sigId) return s;
+          s.position.flattenOffset();
+          s.lastPos = { x: s.position.x._value, y: s.position.y._value };
+          return s;
+        }));
+      },
+    });
+  };
 
   const handleSignatureSelect = (item) => {
-    setSelectedSignature(item);
-    console.log("Selected signature URL:", item.url);
-    dispatch(setSignatureSize(sizes.small)); // Set initial size
-    const startX = (width - sizes.small.width) / 2;
-    const startY = (height * 0.75 - sizes.small.height) / 2;
-    setDraggedSignaturePosition(new Animated.ValueXY({ x: startX, y: startY }));
-    setLastPosition({ x: startX, y: startY });
+    const id = `${item.id}_${Date.now()}`;
+    const defaultSize = sizes.small;
+    const startX = (width - defaultSize.width) / 2;
+    const startY = (height * 0.62 - defaultSize.height) / 2;
+    const position = new Animated.ValueXY({ x: startX, y: startY });
+    const newSig = {
+      id,
+      url: item.url,
+      position,
+      lastPos: { x: startX, y: startY },
+      size: defaultSize,
+      color: '#FFFFFF',
+      panResponder: null,
+      naturalSize: null,
+    };
+    newSig.panResponder = createPanResponder(id);
+    setCanvasSignatures(prev => [...prev, newSig]);
+    setActiveSignatureId(id);
     setActiveTab(2);
+    // Newest is already at front due to array push
+
+    // Fetch intrinsic image size to compute tight display bounds for border
+    Image.getSize(
+      item.url,
+      (w, h) => {
+        setCanvasSignatures(prev => prev.map(s => s.id === id ? { ...s, naturalSize: { width: w, height: h } } : s));
+      },
+      () => {
+        // Ignore failures; we'll fallback to full box
+      }
+    );
   };
 
-  const handleDoubleTap = () => {
-    console.log('Double tap detected');
-    console.log('Current size:', signatureSize);
-    
-    // Store current position before resizing
-    const currentX = draggedSignaturePosition.x._value;
-    const currentY = draggedSignaturePosition.y._value;
-    
-    if (signatureSize.width === sizes.small.width) {
-      console.log('Changing to medium size');
-      dispatch(setSignatureSize(sizes.medium));
-      // Adjust position to maintain center
-      const xOffset = (sizes.medium.width - sizes.small.width) / 2;
-      const yOffset = (sizes.medium.height - sizes.small.height) / 2;
-      draggedSignaturePosition.setValue({ x: currentX - xOffset, y: currentY - yOffset });
-    } else if (signatureSize.width === sizes.medium.width) {
-      console.log('Changing to large size');
-      dispatch(setSignatureSize(sizes.large));
-      // Adjust position to maintain center
-      const xOffset = (sizes.large.width - sizes.medium.width) / 2;
-      const yOffset = (sizes.large.height - sizes.medium.height) / 2;
-      draggedSignaturePosition.setValue({ x: currentX - xOffset, y: currentY - yOffset });
-    } else {
-      console.log('Changing to small size');
-      dispatch(setSignatureSize(sizes.small));
-      // Adjust position to maintain center
-      const xOffset = (sizes.small.width - sizes.large.width) / 2;
-      const yOffset = (sizes.small.height - sizes.large.height) / 2;
-      draggedSignaturePosition.setValue({ x: currentX - xOffset, y: currentY - yOffset });
-    }
+  const cycleActiveSignatureSize = (sigId) => {
+    setCanvasSignatures(prev => prev.map(s => {
+      if (s.id !== sigId) return s;
+      const currentX = s.position.x._value;
+      const currentY = s.position.y._value;
+      let nextSize = s.size;
+      if (s.size.width === sizes.small.width) {
+        nextSize = sizes.medium;
+        const xOffset = (sizes.medium.width - sizes.small.width) / 2;
+        const yOffset = (sizes.medium.height - sizes.small.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else if (s.size.width === sizes.medium.width) {
+        nextSize = sizes.large;
+        const xOffset = (sizes.large.width - sizes.medium.width) / 2;
+        const yOffset = (sizes.large.height - sizes.medium.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else {
+        nextSize = sizes.small;
+        const xOffset = (sizes.small.width - sizes.large.width) / 2;
+        const yOffset = (sizes.small.height - sizes.large.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      }
+      s.size = nextSize;
+      s.lastPos = { x: s.position.x._value, y: s.position.y._value };
+      return s;
+    }));
   };
 
-  const handleTap = () => {
+  const handleTap = (sigId) => {
     const now = Date.now();
-    console.log('Tap detected, last tap:', lastTap.current);
-    
-    if (lastTap.current && (now - lastTap.current) < 300) {
-      console.log('Double tap interval detected');
-      handleDoubleTap();
+    const prev = lastTapMapRef.current[sigId];
+    setActiveSignatureId(sigId);
+    if (prev && (now - prev) < 300) {
+      cycleActiveSignatureSize(sigId);
     }
-    lastTap.current = now;
+    lastTapMapRef.current[sigId] = now;
   };
 
   const applyColorToSignature = (color) => {
-    dispatch(setSignatureColor(color));
+    if (!activeSignatureId) return;
+    setCanvasSignatures(prev => prev.map(s => s.id === activeSignatureId ? { ...s, color } : s));
+  };
+
+  const deleteActiveSignature = () => {
+    if (!activeSignatureId) return;
+    setCanvasSignatures(prev => prev.filter(s => s.id !== activeSignatureId));
+    setActiveSignatureId(null);
+  };
+
+  const deleteSignature = (sigId) => {
+    setCanvasSignatures(prev => prev.filter(s => s.id !== sigId));
+    if (activeSignatureId === sigId) setActiveSignatureId(null);
+    if (editingSignatureId === sigId) setEditingSignatureId(null);
+  };
+
+  const bringSignatureToFront = (sigId) => {
+    setCanvasSignatures(prev => {
+      const idx = prev.findIndex(s => s.id === sigId);
+      if (idx === -1) return prev;
+      const next = prev.slice();
+      const [item] = next.splice(idx, 1);
+      next.push(item);
+      return next;
+    });
+  };
+
+  const isPointInsideVisibleSignature = (sig, localX, localY) => {
+    const boxW = sig.size.width;
+    const boxH = sig.size.height;
+    // Compute visible content (contain) rect
+    let contentW = boxW;
+    let contentH = boxH;
+    if (sig.naturalSize && sig.naturalSize.width && sig.naturalSize.height) {
+      const scale = Math.min(boxW / sig.naturalSize.width, boxH / sig.naturalSize.height);
+      contentW = sig.naturalSize.width * scale;
+      contentH = sig.naturalSize.height * scale;
+    } else {
+      // Fallback heuristic: assume 85% area is visible content
+      contentW = boxW * 0.85;
+      contentH = boxH * 0.85;
+    }
+    const left = (boxW - contentW) / 2;
+    const top = (boxH - contentH) / 2;
+    const right = left + contentW;
+    const bottom = top + contentH;
+    return localX >= left && localX <= right && localY >= top && localY <= bottom;
+  };
+
+  const handleLongPressSignature = (sig, e) => {
+    const { locationX, locationY } = e.nativeEvent || {};
+    if (locationX == null || locationY == null) return;
+    if (!isPointInsideVisibleSignature(sig, locationX, locationY)) {
+      return; // ignore long-press if outside visible content box
+    }
+    setActiveSignatureId(sig.id);
+    setEditingSignatureId(sig.id);
+    bringSignatureToFront(sig.id);
   };
 
   const captureAndSaveImage = async () => {
@@ -296,14 +353,7 @@ const EditScreen = ({ route, navigation }) => {
     </TouchableOpacity>
   );
   
-  const signatureStyle = {
-    position: 'absolute',
-    transform: [
-      { translateX: draggedSignaturePosition.x },
-      { translateY: draggedSignaturePosition.y },
-      { scale: scale }
-    ]
-  };
+  // Per-signature styles computed at render time
 
   return (
     <View style={styles.container}>
@@ -311,64 +361,133 @@ const EditScreen = ({ route, navigation }) => {
         <Icon name="times" size={24} color="#fff" />
       </TouchableOpacity>
       <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }} style={styles.viewShot}>
-        <Image source={{ uri: selectedImage.uri }} style={styles.image} resizeMode="contain" />
-        {selectedSignature && (
-          <Animated.View
-            style={[styles.signatureContainer, signatureStyle]}
-            {...panResponder.panHandlers}
-          >
-            <TouchableOpacity activeOpacity={1} onPress={handleTap}>
-              {[0, 1, 2, 3].map((_, index) => (
-                <MaskedView
-                  key={index}
-                  style={[
-                    signatureSize,
-                    {
-                      position: 'absolute',
-                      left: index * 0.1,
-                      top: index * 0.1,
-                      transformOrigin: 'center'
-                    }
-                  ]}
-                  maskElement={
-                    <Image
-                      source={{ uri: selectedSignature.url }}
-                      style={[signatureSize, { resizeMode: 'contain' }]}
-                    />
+        <View style={styles.canvasClip}>
+          <Image source={{ uri: selectedImage.uri }} style={styles.image} resizeMode="contain" />
+          {canvasSignatures.map(sig => {
+          const signatureStyleInst = {
+            position: 'absolute',
+            transform: [
+              { translateX: sig.position.x },
+              { translateY: sig.position.y },
+            ]
+          };
+          const isActive = sig.id === activeSignatureId;
+          return (
+            <Animated.View
+              key={sig.id}
+              style={[styles.signatureContainer, signatureStyleInst]}
+              {...(sig.panResponder ? sig.panResponder.panHandlers : {})}
+            >
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={() => handleTap(sig.id)}
+                onLongPress={(e) => handleLongPressSignature(sig, e)}
+                delayLongPress={300}
+              >
+                {editingSignatureId === sig.id && (() => {
+                  const boxW = sig.size.width;
+                  const boxH = sig.size.height;
+                  const PADDING_RATIO = 0.06; // expand ~6% around visible content
+                  // Start from visible content (contain fit)
+                  let contentW = boxW;
+                  let contentH = boxH;
+                  if (sig.naturalSize && sig.naturalSize.width && sig.naturalSize.height) {
+                    const scale = Math.min(boxW / sig.naturalSize.width, boxH / sig.naturalSize.height);
+                    contentW = sig.naturalSize.width * scale;
+                    contentH = sig.naturalSize.height * scale;
                   }
-                >
-                {signatureColor.startsWith('gradient') || 
- signatureColor === 'jamaicanGradient' || 
- signatureColor === 'americanGradient' || 
- signatureColor === 'rastaGradient' ? (
-  <LinearGradient
-    colors={
-      signatureColor === 'gradient1'
-        ? ['#00FFFF', '#FFA5FF']
-        : signatureColor === 'gradient2'
-        ? ['#FFDFA5', '#FF00EE']
-        : signatureColor === 'jamaicanGradient'
-        ? ['#000000', '#008000', '#FFD700']  // Jamaican Flag
-        : signatureColor === 'americanGradient'
-        ? ['#FF0000', '#FFFFFF', '#0000FF']  // American Flag
-        : ['#FF0000', '#FFD700', '#008000']  // 🌿 Rasta Gradient 🌿 (Red, Gold, Green)
-    }
-    start={{ x: 0, y: 0 }}
-    end={{ x: 1, y: 0 }}
-    style={signatureSize}
-  />
-) : (
-  <View style={[signatureSize, { backgroundColor: signatureColor }]} />
-)}
-
-
-
-                </MaskedView>
-              ))}
-            </TouchableOpacity>
-          </Animated.View>
-        )}
+                  // Expand with small padding, but do not exceed box
+                  const targetW = Math.min(boxW, contentW * (1 + PADDING_RATIO));
+                  const targetHBase = Math.min(boxH, contentH * (1 + PADDING_RATIO));
+                  // Reduce bottom more to counter extra transparent baseline in many signatures
+                  const BOTTOM_BIAS = 0.8; // keep 80% of height, trims ~20% from bottom
+                  const targetH = targetHBase * BOTTOM_BIAS;
+                  const left = (boxW - targetW) / 2;
+                  const top = (boxH - targetHBase) / 2 - (targetHBase - targetH) / 2;
+                  return (
+                    <View style={{ position: 'absolute', left, top, width: targetW, height: targetH, borderWidth: 2, borderColor: '#4FC3F7', borderRadius: 8, opacity: 0.9, pointerEvents: 'none' }} />
+                  );
+                })()}
+                {[0, 1, 2, 3].map((_, index) => (
+                  <MaskedView
+                    key={index}
+                    style={[
+                      sig.size,
+                      {
+                        position: 'absolute',
+                        left: index * 0.1,
+                        top: index * 0.1,
+                        transformOrigin: 'center',
+                        opacity: isActive ? 1 : 0.95
+                      }
+                    ]}
+                    maskElement={
+                      <Image
+                        source={{ uri: sig.url }}
+                        style={[sig.size, { resizeMode: 'contain' }]}
+                      />
+                    }
+                  >
+                  {(
+                    typeof sig.color === 'string' && (
+                      sig.color.startsWith('gradient') ||
+                      sig.color === 'jamaicanGradient' ||
+                      sig.color === 'americanGradient' ||
+                      sig.color === 'rastaGradient'
+                    )
+                  ) ? (
+                    <LinearGradient
+                      colors={
+                        sig.color === 'gradient1'
+                          ? ['#00FFFF', '#FFA5FF']
+                          : sig.color === 'gradient2'
+                          ? ['#FFDFA5', '#FF00EE']
+                          : sig.color === 'jamaicanGradient'
+                          ? ['#000000', '#008000', '#FFD700']
+                          : sig.color === 'americanGradient'
+                          ? ['#FF0000', '#FFFFFF', '#0000FF']
+                          : ['#FF0000', '#FFD700', '#008000']
+                      }
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={sig.size}
+                    />
+                  ) : (
+                    <View style={[sig.size, { backgroundColor: sig.color }]} />
+                  )}
+                  </MaskedView>
+                ))}
+              </TouchableOpacity>
+              {/* inline toolbar removed in favor of global bottom toolbar */}
+            </Animated.View>
+          );
+          })}
+        </View>
       </ViewShot>
+      <Animated.View
+        style={[
+          styles.bottomToolbar,
+          {
+            opacity: bottomBarAnim,
+            transform: [
+              {
+                translateY: bottomBarAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
+              },
+            ],
+          },
+        ]}
+        pointerEvents={editingSignatureId ? 'auto' : 'none'}
+      >
+        <TouchableOpacity onPress={() => { if (editingSignatureId) { setActiveSignatureId(editingSignatureId); setActiveTab(1); } }} style={[styles.toolbarButton, { backgroundColor: '#1976D2' }]}>
+          <Icon name="pencil" size={18} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setEditingSignatureId(null)} style={[styles.toolbarButton, { backgroundColor: '#2E7D32' }]}>
+          <Icon name="check" size={18} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => { if (editingSignatureId) deleteSignature(editingSignatureId); }} style={[styles.toolbarButton, { backgroundColor: '#D32F2F' }]}>
+          <Icon name="times" size={18} color="#fff" />
+        </TouchableOpacity>
+      </Animated.View>
   
       <View style={styles.tabContainer}>
         <TouchableOpacity style={[styles.tabButton, activeTab === 0 && styles.activeTab]} onPress={() => setActiveTab(0)}>
@@ -407,6 +526,12 @@ const styles = StyleSheet.create({
   viewShot: {
     width: width,
     height: height * 0.62,
+  },
+  canvasClip: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
@@ -507,6 +632,42 @@ const styles = StyleSheet.create({
   },
   signatureImage: {
     shadowOffset: { width: 0, height: 0 },
+  },
+  toolbarContainer: {
+    position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  toolbarButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 4,
+  },
+  bottomToolbar: {
+    width: '94%',
+    alignSelf: 'center',
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(28,28,30,0.88)',
+    borderRadius: 18,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    // iOS shadow
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 1 },
+    // Android
+    elevation: 6,
   },
 });
 

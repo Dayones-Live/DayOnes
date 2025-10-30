@@ -16,7 +16,7 @@ const FanOnboardingTutorial = ({ navigation, isVisible, onComplete }) => {
   const steps = [
     {
       title: "Welcome to DayOnes!",
-      description: "You're on the Home Screen. Be in attendance when an artist to sends out an Invite, then press the 'Get Invites' button to join their exclusive DayOnes group AND get an awesome autograph!",
+      description: "You're on the Home Screen. Be in attendance when an artist sends out an Invite, then press the 'Get Invites' button to join their exclusive DayOnes group AND get an awesome autograph!",
       target: 'home',
       position: { bottom: 0, left: width * 0 }
     },
@@ -28,7 +28,7 @@ const FanOnboardingTutorial = ({ navigation, isVisible, onComplete }) => {
     },
     {
       title: "Dayones Messages",
-      description: "This is where the artist's DayOnes will receive messages from them personally! You can even message them back for closer-than-ever interactions! Get cool perks like early tickets and merch access! Remember, you have to be in attendance when the artist sends the invite to join! This is only for their DayOnes!",
+      description: "This is where you will receive messages from them personally! You can even message them back for closer-than-ever interactions! Get cool perks like early tickets and merch access! Remember, you have to be in attendance when the artist sends the invite to join! This is only for their DayOnes!",
       target: 'messages',
       position: { bottom: 0, left: width * 0.5 }
     },
