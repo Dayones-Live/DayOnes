@@ -187,6 +187,80 @@ const EditScreen = ({ route, navigation }) => {
     });
   };
 
+  const increaseSignatureSize = () => {
+    if (!editingSignatureId) return;
+    setCanvasSignatures(prev => prev.map(s => {
+      if (s.id !== editingSignatureId) return s;
+      const currentX = s.position.x._value;
+      const currentY = s.position.y._value;
+      let nextSize = s.size;
+      if (s.size.width === sizes.small.width) {
+        nextSize = sizes.medium;
+        const xOffset = (sizes.medium.width - sizes.small.width) / 2;
+        const yOffset = (sizes.medium.height - sizes.small.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else if (s.size.width === sizes.medium.width) {
+        nextSize = sizes.large;
+        const xOffset = (sizes.large.width - sizes.medium.width) / 2;
+        const yOffset = (sizes.large.height - sizes.medium.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else {
+        // Already at largest size, do nothing
+        return s;
+      }
+      s.size = nextSize;
+      s.lastPos = { x: s.position.x._value, y: s.position.y._value };
+      return s;
+    }));
+  };
+
+  const decreaseSignatureSize = () => {
+    if (!editingSignatureId) return;
+    setCanvasSignatures(prev => prev.map(s => {
+      if (s.id !== editingSignatureId) return s;
+      const currentX = s.position.x._value;
+      const currentY = s.position.y._value;
+      let nextSize = s.size;
+      if (s.size.width === sizes.large.width) {
+        nextSize = sizes.medium;
+        const xOffset = (sizes.medium.width - sizes.large.width) / 2;
+        const yOffset = (sizes.medium.height - sizes.large.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else if (s.size.width === sizes.medium.width) {
+        nextSize = sizes.small;
+        const xOffset = (sizes.small.width - sizes.medium.width) / 2;
+        const yOffset = (sizes.small.height - sizes.medium.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else {
+        // Already at smallest size, do nothing
+        return s;
+      }
+      s.size = nextSize;
+      s.lastPos = { x: s.position.x._value, y: s.position.y._value };
+      return s;
+    }));
+  };
+
+  const navigateToPreviousSignature = () => {
+    if (!editingSignatureId || canvasSignatures.length <= 1) return;
+    const currentIndex = canvasSignatures.findIndex(s => s.id === editingSignatureId);
+    const prevIndex = currentIndex === 0 ? canvasSignatures.length - 1 : currentIndex - 1;
+    const prevSignature = canvasSignatures[prevIndex];
+    setEditingSignatureId(prevSignature.id);
+    setActiveSignatureId(prevSignature.id);
+    bringSignatureToFront(prevSignature.id);
+  };
+
+  const navigateToNextSignature = () => {
+    if (!editingSignatureId || canvasSignatures.length <= 1) return;
+    const currentIndex = canvasSignatures.findIndex(s => s.id === editingSignatureId);
+    const nextIndex = currentIndex === canvasSignatures.length - 1 ? 0 : currentIndex + 1;
+    const nextSignature = canvasSignatures[nextIndex];
+    setEditingSignatureId(nextSignature.id);
+    setActiveSignatureId(nextSignature.id);
+    bringSignatureToFront(nextSignature.id);
+  };
+
   const isPointInsideVisibleSignature = (sig, localX, localY) => {
     const boxW = sig.size.width;
     const boxH = sig.size.height;
@@ -478,14 +552,30 @@ const EditScreen = ({ route, navigation }) => {
         ]}
         pointerEvents={editingSignatureId ? 'auto' : 'none'}
       >
+        {canvasSignatures.length > 1 && (
+          <TouchableOpacity onPress={navigateToPreviousSignature} style={[styles.toolbarButton, { backgroundColor: '#9E9E9E' }]}>
+            <Icon name="chevron-left" size={20} color="#fff" />
+          </TouchableOpacity>
+        )}
+        {canvasSignatures.length > 1 && (
+          <TouchableOpacity onPress={navigateToNextSignature} style={[styles.toolbarButton, { backgroundColor: '#9E9E9E' }]}>
+            <Icon name="chevron-right" size={20} color="#fff" />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={decreaseSignatureSize} style={[styles.toolbarButton, { backgroundColor: '#FF9800' }]}>
+          <Icon name="minus" size={20} color="#fff" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => { if (editingSignatureId) { setActiveSignatureId(editingSignatureId); setActiveTab(1); } }} style={[styles.toolbarButton, { backgroundColor: '#1976D2' }]}>
-          <Icon name="pencil" size={18} color="#fff" />
+          <Icon name="pencil" size={20} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={increaseSignatureSize} style={[styles.toolbarButton, { backgroundColor: '#FF9800' }]}>
+          <Icon name="plus" size={20} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => setEditingSignatureId(null)} style={[styles.toolbarButton, { backgroundColor: '#2E7D32' }]}>
-          <Icon name="check" size={18} color="#fff" />
+          <Icon name="check" size={20} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => { if (editingSignatureId) deleteSignature(editingSignatureId); }} style={[styles.toolbarButton, { backgroundColor: '#D32F2F' }]}>
-          <Icon name="times" size={18} color="#fff" />
+          <Icon name="times" size={20} color="#fff" />
         </TouchableOpacity>
       </Animated.View>
   
@@ -643,19 +733,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   toolbarButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 4,
+    marginHorizontal: 8,
   },
   bottomToolbar: {
     width: '94%',
     alignSelf: 'center',
     marginTop: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     backgroundColor: 'rgba(28,28,30,0.88)',
     borderRadius: 18,
     flexDirection: 'row',
