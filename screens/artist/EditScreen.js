@@ -32,9 +32,11 @@ const EditScreen = ({ route, navigation }) => {
   
   // Define sizes at the component level so they're accessible
   const sizes = {
+    extraSmall: { width: scaleValue(100), height: scaleValue(100) },
+    tiny: { width: scaleValue(150), height: scaleValue(150) },
     small: { width: scaleValue(200), height: scaleValue(200) },
-    medium: { width: scaleValue(300), height: scaleValue(300) },
-    large: { width: scaleValue(400), height: scaleValue(400) }
+    medium: { width: scaleValue(350), height: scaleValue(350) },
+    large: { width: scaleValue(500), height: scaleValue(500) }
   };
 
   const { data: signatures, isLoading, isError } = useSignatures();
@@ -99,7 +101,7 @@ const EditScreen = ({ route, navigation }) => {
       position,
       lastPos: { x: startX, y: startY },
       size: defaultSize,
-      color: '#FFFFFF',
+      color: 'default',
       panResponder: null,
       naturalSize: null,
     };
@@ -127,7 +129,17 @@ const EditScreen = ({ route, navigation }) => {
       const currentX = s.position.x._value;
       const currentY = s.position.y._value;
       let nextSize = s.size;
-      if (s.size.width === sizes.small.width) {
+      if (s.size.width === sizes.extraSmall.width) {
+        nextSize = sizes.tiny;
+        const xOffset = (sizes.tiny.width - sizes.extraSmall.width) / 2;
+        const yOffset = (sizes.tiny.height - sizes.extraSmall.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else if (s.size.width === sizes.tiny.width) {
+        nextSize = sizes.small;
+        const xOffset = (sizes.small.width - sizes.tiny.width) / 2;
+        const yOffset = (sizes.small.height - sizes.tiny.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else if (s.size.width === sizes.small.width) {
         nextSize = sizes.medium;
         const xOffset = (sizes.medium.width - sizes.small.width) / 2;
         const yOffset = (sizes.medium.height - sizes.small.height) / 2;
@@ -138,9 +150,9 @@ const EditScreen = ({ route, navigation }) => {
         const yOffset = (sizes.large.height - sizes.medium.height) / 2;
         s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
       } else {
-        nextSize = sizes.small;
-        const xOffset = (sizes.small.width - sizes.large.width) / 2;
-        const yOffset = (sizes.small.height - sizes.large.height) / 2;
+        nextSize = sizes.extraSmall;
+        const xOffset = (sizes.extraSmall.width - sizes.large.width) / 2;
+        const yOffset = (sizes.extraSmall.height - sizes.large.height) / 2;
         s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
       }
       s.size = nextSize;
@@ -194,7 +206,17 @@ const EditScreen = ({ route, navigation }) => {
       const currentX = s.position.x._value;
       const currentY = s.position.y._value;
       let nextSize = s.size;
-      if (s.size.width === sizes.small.width) {
+      if (s.size.width === sizes.extraSmall.width) {
+        nextSize = sizes.tiny;
+        const xOffset = (sizes.tiny.width - sizes.extraSmall.width) / 2;
+        const yOffset = (sizes.tiny.height - sizes.extraSmall.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else if (s.size.width === sizes.tiny.width) {
+        nextSize = sizes.small;
+        const xOffset = (sizes.small.width - sizes.tiny.width) / 2;
+        const yOffset = (sizes.small.height - sizes.tiny.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else if (s.size.width === sizes.small.width) {
         nextSize = sizes.medium;
         const xOffset = (sizes.medium.width - sizes.small.width) / 2;
         const yOffset = (sizes.medium.height - sizes.small.height) / 2;
@@ -230,6 +252,16 @@ const EditScreen = ({ route, navigation }) => {
         nextSize = sizes.small;
         const xOffset = (sizes.small.width - sizes.medium.width) / 2;
         const yOffset = (sizes.small.height - sizes.medium.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else if (s.size.width === sizes.small.width) {
+        nextSize = sizes.tiny;
+        const xOffset = (sizes.tiny.width - sizes.small.width) / 2;
+        const yOffset = (sizes.tiny.height - sizes.small.height) / 2;
+        s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
+      } else if (s.size.width === sizes.tiny.width) {
+        nextSize = sizes.extraSmall;
+        const xOffset = (sizes.extraSmall.width - sizes.tiny.width) / 2;
+        const yOffset = (sizes.extraSmall.height - sizes.tiny.height) / 2;
         s.position.setValue({ x: currentX - xOffset, y: currentY - yOffset });
       } else {
         // Already at smallest size, do nothing
@@ -345,6 +377,13 @@ const EditScreen = ({ route, navigation }) => {
         </View>
         <View style={[styles.tabContent, { display: activeTab === 1 ? 'flex' : 'none' }]}>
         <View style={styles.colorOptions}>
+  {/* Default/No Color Option */}
+  <TouchableOpacity onPress={() => applyColorToSignature('default')} style={[styles.colorButton, styles.defaultColorButton]}>
+    <View style={styles.defaultColorIconContainer}>
+      <Icon name="image" size={20} color="#333" />
+    </View>
+  </TouchableOpacity>
+
   {/* Jamaican Flag Gradient */}
   <TouchableOpacity onPress={() => applyColorToSignature('jamaicanGradient')}>
     <LinearGradient
@@ -482,55 +521,76 @@ const EditScreen = ({ route, navigation }) => {
                     <View style={{ position: 'absolute', left, top, width: targetW, height: targetH, borderWidth: 2, borderColor: '#4FC3F7', borderRadius: 8, opacity: 0.9, pointerEvents: 'none' }} />
                   );
                 })()}
-                {[0, 1, 2, 3].map((_, index) => (
-                  <MaskedView
-                    key={index}
-                    style={[
-                      sig.size,
-                      {
-                        position: 'absolute',
-                        left: index * 0.1,
-                        top: index * 0.1,
-                        transformOrigin: 'center',
-                        opacity: isActive ? 1 : 0.95
-                      }
-                    ]}
-                    maskElement={
-                      <Image
-                        source={{ uri: sig.url }}
-                        style={[sig.size, { resizeMode: 'contain' }]}
-                      />
-                    }
-                  >
-                  {(
-                    typeof sig.color === 'string' && (
-                      sig.color.startsWith('gradient') ||
-                      sig.color === 'jamaicanGradient' ||
-                      sig.color === 'americanGradient' ||
-                      sig.color === 'rastaGradient'
-                    )
-                  ) ? (
-                    <LinearGradient
-                      colors={
-                        sig.color === 'gradient1'
-                          ? ['#00FFFF', '#FFA5FF']
-                          : sig.color === 'gradient2'
-                          ? ['#FFDFA5', '#FF00EE']
-                          : sig.color === 'jamaicanGradient'
-                          ? ['#000000', '#008000', '#FFD700']
-                          : sig.color === 'americanGradient'
-                          ? ['#FF0000', '#FFFFFF', '#0000FF']
-                          : ['#FF0000', '#FFD700', '#008000']
-                      }
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={sig.size}
+                {sig.color === 'default' ? (
+                  // Render original image without color overlay
+                  [0, 1, 2, 3].map((_, index) => (
+                    <Image
+                      key={index}
+                      source={{ uri: sig.url }}
+                      style={[
+                        sig.size,
+                        {
+                          position: 'absolute',
+                          left: index * 0.1,
+                          top: index * 0.1,
+                          resizeMode: 'contain',
+                          opacity: isActive ? 1 : 0.95
+                        }
+                      ]}
                     />
-                  ) : (
-                    <View style={[sig.size, { backgroundColor: sig.color }]} />
-                  )}
-                  </MaskedView>
-                ))}
+                  ))
+                ) : (
+                  // Render with color overlay using MaskedView
+                  [0, 1, 2, 3].map((_, index) => (
+                    <MaskedView
+                      key={index}
+                      style={[
+                        sig.size,
+                        {
+                          position: 'absolute',
+                          left: index * 0.1,
+                          top: index * 0.1,
+                          transformOrigin: 'center',
+                          opacity: isActive ? 1 : 0.95
+                        }
+                      ]}
+                      maskElement={
+                        <Image
+                          source={{ uri: sig.url }}
+                          style={[sig.size, { resizeMode: 'contain' }]}
+                        />
+                      }
+                    >
+                    {(
+                      typeof sig.color === 'string' && (
+                        sig.color.startsWith('gradient') ||
+                        sig.color === 'jamaicanGradient' ||
+                        sig.color === 'americanGradient' ||
+                        sig.color === 'rastaGradient'
+                      )
+                    ) ? (
+                      <LinearGradient
+                        colors={
+                          sig.color === 'gradient1'
+                            ? ['#00FFFF', '#FFA5FF']
+                            : sig.color === 'gradient2'
+                            ? ['#FFDFA5', '#FF00EE']
+                            : sig.color === 'jamaicanGradient'
+                            ? ['#000000', '#008000', '#FFD700']
+                            : sig.color === 'americanGradient'
+                            ? ['#FF0000', '#FFFFFF', '#0000FF']
+                            : ['#FF0000', '#FFD700', '#008000']
+                        }
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={sig.size}
+                      />
+                    ) : (
+                      <View style={[sig.size, { backgroundColor: sig.color }]} />
+                    )}
+                    </MaskedView>
+                  ))
+                )}
               </TouchableOpacity>
               {/* inline toolbar removed in favor of global bottom toolbar */}
             </Animated.View>
@@ -675,6 +735,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginHorizontal: 10,
     marginVertical: 9, // Added marginVertical to create space between rows
+  },
+  defaultColorButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#CCCCCC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  defaultColorIconContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   saveContainer: {
     marginTop: 20,
