@@ -8,11 +8,15 @@ import {
   Alert,
   TouchableOpacity,
   FlatList,
+  ScrollView,
   TextInput,
   Modal,
   KeyboardAvoidingView,
   Platform,
   Linking,
+  Animated,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
@@ -29,6 +33,27 @@ import Video from 'react-native-video';
 import ImageViewing from 'react-native-image-viewing';
 import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import ReplyBox from '../../components/ReplyBox';
+
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// Configure smooth animation for comments
+const configureLayoutAnimation = () => {
+  LayoutAnimation.configureNext({
+    duration: 300,
+    create: {
+      type: LayoutAnimation.Types.easeInEaseOut,
+      property: LayoutAnimation.Properties.opacity,
+    },
+    update: {
+      type: LayoutAnimation.Types.easeInEaseOut,
+    },
+  });
+};
 
 const detectAndStyleLinks = (text) => {
   // Regex pattern to match URLs
@@ -140,7 +165,7 @@ const PostDetailPage = () => {
         .map((comment) => comment.id);
       setLikedComments(initialLikedComments);
 
-      // Setting liked replies from artistComments
+      // Setting liked replies from artistComments and regular comments
       const initialLikedReplies = [];
       artistComments.forEach((artistComment) => {
         if (artistComment.replies && artistComment.replies.length > 0) {
@@ -153,7 +178,17 @@ const PostDetailPage = () => {
           });
         }
       });
-      console.log("Initial liked replies from artistComments:", initialLikedReplies); // Log final list of liked replies
+      // Also check regular comment replies
+      structuredComments.forEach((comment) => {
+        if (comment.replies && comment.replies.length > 0) {
+          comment.replies.forEach((reply) => {
+            if (reply.commentReaction && reply.commentReaction.length > 0) {
+              initialLikedReplies.push(reply.id);
+            }
+          });
+        }
+      });
+      console.log("Initial liked replies from artistComments and regular comments:", initialLikedReplies); // Log final list of liked replies
       setLikedReplies(initialLikedReplies);
 
       setPost(combinedPostData);
@@ -184,6 +219,7 @@ const PostDetailPage = () => {
   };
 
   const toggleReplies = (commentId) => {
+    configureLayoutAnimation();
     setShowReplies((prev) => ({
       ...prev,
       [commentId]: !prev[commentId],
@@ -191,6 +227,7 @@ const PostDetailPage = () => {
   };
 
   const toggleArtistReplies = (commentId) => {
+    configureLayoutAnimation();
     setShowArtistReplies((prev) => ({
       ...prev,
       [commentId]: !prev[commentId],
@@ -511,6 +548,7 @@ const PostDetailPage = () => {
   };
 
   const toggleComments = () => {
+    configureLayoutAnimation();
     setCommentsCollapsed((prevState) => !prevState);
 
     if (commentsCollapsed) {
@@ -650,14 +688,16 @@ const PostDetailPage = () => {
       <FlatList
         ref={commentsSectionRef}
         data={[post]}
+        nestedScrollEnabled={true}
+        scrollEnabled={true}
         ListHeaderComponent={
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <AntDesign name="arrowleft" size={35} color="#FFF" />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.plusIcon}>
+              <AntDesign name="arrowleft" size={24} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={styles.postTitle}>{post.locale || 'My DayOnes'}</Text>
             <TouchableOpacity onPress={handleOpenModal} style={styles.plusIcon}>
-              <AntDesign name="pluscircleo" size={35} color="#FFF" />
+              <AntDesign name="pluscircleo" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         }
@@ -665,93 +705,68 @@ const PostDetailPage = () => {
         renderItem={({ item }) => (
           <>
             {item.artistComments && item.artistComments.length > 0 && (
-              <View>
+              <View style={styles.artistCommentsSection}>
                 {item.artistComments
                   .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                   .map((artistComment) => (
-                    <View key={artistComment.id} style={styles.artistCommentContainer}>
+                    <View key={artistComment.id} style={styles.artistPostCard}>
                       <View style={styles.userInfoContainer}>
                         <Image source={{ uri: artistComment.user.avatar_url }} style={styles.avatar} />
-                        <View>
+                        <View style={{ flex: 1 }}>
                           <Text style={styles.userName}>{artistComment.user.full_name}</Text>
-                          <Text style={styles.userLocation}>{artistComment.user.location}</Text>
+                          {artistComment.user.location && (
+                            <Text style={styles.userLocation}>{artistComment.user.location}</Text>
+                          )}
                         </View>
+                        <TouchableOpacity onPress={() => deleteComment(artistComment.id)} style={{ padding: scale(8) }}>
+                          <Icon name="trash-o" size={18} color="#ED4956" />
+                        </TouchableOpacity>
                       </View>
-                      <Text style={[styles.commentText, styles.artistCommentText]}>
-                        {detectAndStyleLinks(artistComment.message)}
-                      </Text>
+                      
+                      {artistComment.message && (
+                        <Text style={styles.postText}>
+                          {detectAndStyleLinks(artistComment.message)}
+                        </Text>
+                      )}
+                      
                       {artistComment.url && artistComment.media_type === "PHOTO" && (
                         <TouchableOpacity onPress={() => openFullScreenImage(artistComment.url)}>
-                          <Image source={{ uri: artistComment.url }} style={styles.artistCommentImage} />
+                          <Image source={{ uri: artistComment.url }} style={styles.postImage} />
                         </TouchableOpacity>
                       )}
                       {artistComment.media_type === "VIDEO" && artistComment.url && (
                         <Video
                           source={{ uri: artistComment.url }}
-                          style={styles.messageVideo}
+                          style={styles.postImage}
                           paused={true}
                           resizeMode="contain"
                           controls
                         />
                       )}
+                      
                       <View style={styles.interactionRow}>
-                        <TouchableOpacity onPress={() => toggleArtistReplies(artistComment.id)}>
-                          <Foundation name="comments" size={24} color="#fff" />
+                        <TouchableOpacity 
+                          onPress={() => toggleArtistReplies(artistComment.id)}
+                          style={{ flexDirection: 'row', alignItems: 'center', marginRight: scale(20) }}
+                        >
+                          <Icon name="comment-o" size={22} color="#FFFFFF" />
                           <Text style={styles.iconText}>{artistComment.replies?.length || 0}</Text>
                         </TouchableOpacity>
-                        <View style={styles.iconContainer}>
-                          <Foundation name="heart" size={24} color="#fff" />
-                          <Text style={styles.iconText}>{artistComment.commentReactionCount}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Icon name="heart-o" size={22} color="#FFFFFF" />
+                          <Text style={styles.iconText}>{artistComment.commentReactionCount || 0}</Text>
                         </View>
-
-                        <TouchableOpacity onPress={() => deleteComment(artistComment.id)}>
-                          <Icon name="trash" size={20} color="red" />
-                        </TouchableOpacity>
                       </View>
+                      
                       {showArtistReplies[artistComment.id] && artistComment.replies && artistComment.replies.length > 0 && (
-                        <View style={styles.repliesContainer}>
-                          {artistComment.replies
-                            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                            .map((reply) => (
-                              <View key={reply.id} style={[styles.commentContainer, { marginLeft: 20 }]}>
-                                <View style={styles.userInfoContainer}>
-                                  <Image source={{ uri: reply.user.avatar_url }} style={styles.avatar} />
-                                  <View>
-                                    <Text style={styles.userName}>{reply.user.full_name}</Text>
-                                    <Text style={styles.commentText}>{reply.message}</Text>
-                                  </View>
-                                </View>
-                                {reply.url && reply.media_type === "PHOTO" && (
-                                  <Image source={{ uri: reply.url }} style={styles.commentAImage} />
-                                )}
-                                {reply.url && reply.media_type === "VIDEO" && (
-                                  <Video
-                                    source={{ uri: reply.url }}
-                                    style={styles.commentVideo}
-                                    paused={true}
-                                    resizeMode="contain"
-                                    controls
-                                  />
-                                )}
-                                <View style={styles.interactionRow}>
-                                  <TouchableOpacity onPress={() => likeReply(reply.id)}>
-                                    <Icon
-                                      name="heart"
-                                      size={20}
-                                      color={likedReplies.includes(reply.id) ? "red" : "#333"}
-                                    />
-                                  </TouchableOpacity>
-                                  <TouchableOpacity onPress={() => createOrNavigateConversation(reply.user.id, reply.user.avatar_url, reply.user.full_name)}>
-                                    <Icon name="paper-plane" size={20} color="#333" />
-                                  </TouchableOpacity>
-                                  <TouchableOpacity onPress={() => openReportMenu(reply.id)}>
-                                    <Icon name="ellipsis-h" size={20} color="#333" style={styles.dotsButton} />
-                                  </TouchableOpacity>
-
-                                </View>
-                              </View>
-                            ))}
-                        </View>
+                        <ReplyBox
+                          replies={artistComment.replies}
+                          likedReplies={likedReplies}
+                          onLikeReply={likeReply}
+                          onOpenConversation={createOrNavigateConversation}
+                          onOpenReportMenu={openReportMenu}
+                          onOpenFullScreenImage={openFullScreenImage}
+                        />
                       )}
                     </View>
                   ))}
@@ -775,117 +790,116 @@ const PostDetailPage = () => {
                 </TouchableOpacity>
               )}
               <View style={styles.interactionRow}>
-                <TouchableOpacity onPress={toggleComments}>
-                  <Foundation name="comments" size={24} color="#FFF" />
-                  <Text style={styles.iconText}>{item.comments.length}</Text>
+                <TouchableOpacity 
+                  onPress={toggleComments}
+                  style={{ flexDirection: 'row', alignItems: 'center', marginRight: scale(20) }}
+                >
+                  <Icon name="comment-o" size={22} color="#FFFFFF" />
+                  <Text style={styles.iconText}>{item.comments?.length || 0}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity>
-                  <Foundation name="heart" size={24} color="#FFF" />
-                  <Text style={styles.iconText}>{item.reactionCount}</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Icon name="heart-o" size={22} color="#FFFFFF" />
+                  <Text style={styles.iconText}>{item.reactionCount || 0}</Text>
+                </View>
               </View>
             </View>
           </>
         )}
         ListFooterComponent={
           <View>
-            <TouchableOpacity onPress={toggleComments}>
-
-            </TouchableOpacity>
             {!commentsCollapsed && (
-              <FlatList
-                data={post.comments}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                  <View style={styles.commentContainer}>
-                    <View style={styles.userInfoContainer}>
-                      {item.user.avatar_url && (
-                        <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
-                      )}
-                      <View>
-                        <Text style={styles.userName}>{item.user.full_name}</Text>
-                        <Text
-                          style={[
-                            styles.commentText,
-                            item.user.type === 'artist' ? styles.artistCommentText : styles.fanCommentText,
-                          ]}
-                        >
-                          {detectAndStyleLinks(item.message)}
-                        </Text>
-                      </View>
-                    </View>
-                    {item.imageUrl && (
-                      <Image source={{ uri: item.imageUrl }} style={styles.commentImage} />
-                    )}
-                    <View style={styles.interactionRow}>
-                      <TouchableOpacity onPress={() => likeComment(item.id)}>
-                        <Icon
-                          name="heart"
-                          size={20}
-                          color={likedComments.includes(item.id) ? 'red' : '#333'}
-                        />
-                      </TouchableOpacity>
-
-                      <TouchableOpacity onPress={() => createOrNavigateConversation(item.user.id, item.user.avatar_url, item.user.full_name)}>
-                        <Icon name="paper-plane" size={20} color="#333" />
-                      </TouchableOpacity>
-                      {/* Three-Dot Button */}
-                      <TouchableOpacity onPress={() => openReportMenu(item.id)}>
-                        <Icon name="ellipsis-h" size={20} color="#333" style={styles.dotsButton} />
-                      </TouchableOpacity>
-
-                    </View>
-                    {item.replies && item.replies.length > 0 && (
-                      <TouchableOpacity onPress={() => toggleReplies(item.id)} style={styles.dropdownButton}>
-                        <Text style={styles.dropdownText}>
-                          {showReplies[item.id] ? 'Hide Replies' : `View Replies (${item.replies.length})`}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    {showReplies[item.id] && (
-                      <View style={styles.repliesContainer}>
-                        {item.replies.map((reply, index) => (
-                          <View key={index} style={styles.reply}>
-                            <View style={styles.userInfoContainer}>
-                              {reply.user.avatar_url && (
-                                <Image source={{ uri: reply.user.avatar_url }} style={styles.avatar} />
-                              )}
-                              <Text style={styles.userName}>{reply.user.full_name}</Text>
-                            </View>
-                            <Text style={styles.replyText}>{reply.message}</Text>
-                            {reply.url && reply.media_type === 'PHOTO' && (
-                              <TouchableOpacity onPress={() => openFullScreenImage(reply.url)}>
-                                <Image source={{ uri: reply.url }} style={styles.commentAImage} />
-                              </TouchableOpacity>
-                            )}
-                            {reply.url && reply.media_type === 'VIDEO' && (
-                              <Video
-                                source={{ uri: reply.url }}
-                                style={styles.commentVideo}
-                                paused={true}
-                                resizeMode="contain"
-                                controls
-                              />
-                            )}
-                            <Text style={styles.replyTimestamp}>
-                              {new Date(reply.created_at).toLocaleTimeString()}
-                            </Text>
-                          </View>
-                        ))}
-
-                        <ImageViewing
-                          images={imagesForViewing} // This contains the selected image's URL
-                          imageIndex={0}
-                          visible={isFullScreenVisible}
-                          onRequestClose={closeFullScreenImage}
-                        />
-
-                      </View>
-                    )}
-
+              <View style={styles.commentsSection}>
+                {post.comments && post.comments.length > 0 && (
+                  <View style={styles.repliesHeader}>
+                    <Text style={styles.repliesHeaderText}>Comments ({post.comments.length})</Text>
+                    <Text style={[styles.repliesHeaderText, { fontSize: moderateScale(11) }]}>
+                      Scroll to view all
+                    </Text>
                   </View>
                 )}
-              />
+                <ScrollView
+                  style={[styles.replyBoxScrollContainer, { maxHeight: verticalScale(450) }]}
+                  nestedScrollEnabled={true}
+                  showsVerticalScrollIndicator={true}
+                  scrollEventThrottle={16}
+                  bounces={false}
+                >
+                  {post.comments && post.comments.map((item) => (
+                    <View key={item.id.toString()} style={styles.commentContainer}>
+                      <View style={styles.userInfoContainer}>
+                        {item.user.avatar_url && (
+                          <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.userName}>{item.user.full_name}</Text>
+                          <Text
+                            style={[
+                              styles.commentText,
+                              item.user.type === 'artist' ? styles.artistCommentText : styles.fanCommentText,
+                            ]}
+                          >
+                            {detectAndStyleLinks(item.message)}
+                          </Text>
+                        </View>
+                      </View>
+                      {item.url && item.media_type === 'PHOTO' && (
+                        <TouchableOpacity onPress={() => openFullScreenImage(item.url)}>
+                          <Image source={{ uri: item.url }} style={styles.commentImage} />
+                        </TouchableOpacity>
+                      )}
+                      {item.url && item.media_type === 'VIDEO' && (
+                        <Video
+                          source={{ uri: item.url }}
+                          style={styles.commentVideo}
+                          paused={true}
+                          resizeMode="contain"
+                          controls
+                        />
+                      )}
+                      <View style={styles.interactionRow}>
+                        <TouchableOpacity 
+                          onPress={() => likeComment(item.id)}
+                          style={{ flexDirection: 'row', alignItems: 'center', marginRight: scale(16) }}
+                        >
+                          <Icon
+                            name={likedComments.includes(item.id) ? "heart" : "heart-o"}
+                            size={18}
+                            color={likedComments.includes(item.id) ? '#ED4956' : '#FFFFFF'}
+                          />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                          onPress={() => createOrNavigateConversation(item.user.id, item.user.avatar_url, item.user.full_name)}
+                          style={{ flexDirection: 'row', alignItems: 'center', marginRight: scale(16) }}
+                        >
+                          <Icon name="paper-plane-o" size={18} color="#FFFFFF" />
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity onPress={() => openReportMenu(item.id)}>
+                          <Icon name="ellipsis-h" size={18} color="#FFFFFF" style={styles.dotsButton} />
+                        </TouchableOpacity>
+                      </View>
+                      {item.replies && item.replies.length > 0 && (
+                        <TouchableOpacity onPress={() => toggleReplies(item.id)} style={styles.dropdownButton}>
+                          <Text style={styles.dropdownText}>
+                            {showReplies[item.id] ? 'Hide Replies' : `View Replies (${item.replies.length})`}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                      {showReplies[item.id] && item.replies && item.replies.length > 0 && (
+                        <ReplyBox
+                          replies={item.replies}
+                          likedReplies={likedReplies}
+                          onLikeReply={likeReply}
+                          onOpenConversation={createOrNavigateConversation}
+                          onOpenReportMenu={openReportMenu}
+                          onOpenFullScreenImage={openFullScreenImage}
+                        />
+                      )}
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
             )}
           </View>
         }
@@ -901,7 +915,13 @@ const PostDetailPage = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Message Group</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(20) }}>
+              <View style={{ flex: 1 }} />
+              <Text style={styles.modalTitle}>New Comment</Text>
+              <TouchableOpacity onPress={handleCloseModal} style={{ flex: 1, alignItems: 'flex-end' }}>
+                <AntDesign name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={styles.textInput}
               placeholder="Write a message..."
@@ -930,24 +950,24 @@ const PostDetailPage = () => {
                   style={styles.clearButton}
                   onPress={() => setSelectedImage(null)}
                 >
-                  <AntDesign name="close" size={24} color="white" />
+                  <AntDesign name="close" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
             )}
-            <View style={styles.iconRow}>
-              {isSelectingMedia ? (
-                <ActivityIndicator size="small" color="blue" />
-              ) : (
-                <>
-                  <TouchableOpacity onPress={handleSelectMedia}>
-                    <Icon name="image" size={24} color="blue" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleTakeMedia}>
-                    <Icon name="camera" size={24} color="blue" />
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
+              <View style={styles.iconRow}>
+                {isSelectingMedia ? (
+                  <ActivityIndicator size="small" color="#0095F6" />
+                ) : (
+                  <>
+                    <TouchableOpacity onPress={handleSelectMedia} style={{ padding: scale(8) }}>
+                      <Icon name="image" size={24} color="#FF0080" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleTakeMedia} style={{ padding: scale(8) }}>
+                      <Icon name="camera" size={24} color="#FF0080" />
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
 
             <TouchableOpacity
               style={styles.postButton}
@@ -961,9 +981,6 @@ const PostDetailPage = () => {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -980,14 +997,14 @@ const PostDetailPage = () => {
             <TextInput
               style={styles.reportModalDescriptionInput}
               placeholder="Why are you reporting this comment?"
-              placeholderTextColor="#aaa"
+              placeholderTextColor="#8E8E8E"
               multiline
               value={reportDescription}
               onChangeText={(text) => setReportDescription(text)}
             />
             <View style={styles.reportModalButtons}>
               <TouchableOpacity style={styles.reportModalCancelButton} onPress={closeReportModal}>
-                <Text style={styles.reportModalButtonText}>Cancel</Text>
+                <Text style={styles.reportModalCancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.reportModalSubmitButton} onPress={submitCommentReport}>
                 <Text style={styles.reportModalButtonText}>Submit</Text>
@@ -1012,19 +1029,19 @@ const PostDetailPage = () => {
             <View style={styles.reportMenuContainer}>
               {/* Report Comment */}
               <TouchableOpacity
-                onPress={() => openReportModal(selectedCommentId)} // Pass the comment ID
+                onPress={() => openReportModal(selectedCommentId)}
                 style={styles.reportMenuItem}
               >
-                <Icon name="flag" size={20} color="red" style={styles.reportMenuFlagIcon} />
+                <Icon name="flag-o" size={18} color="#ED4956" style={styles.reportMenuFlagIcon} />
                 <Text style={styles.reportMenuText}>Report Comment</Text>
               </TouchableOpacity>
 
               {/* Block User */}
               <TouchableOpacity
-                onPress={() => handleBlockUser(selectedCommentId)} // Handle block user
+                onPress={() => handleBlockUser(selectedCommentId)}
                 style={styles.reportMenuItem}
               >
-                <Icon name="ban" size={20} color="#ff4444" style={styles.reportMenuFlagIcon} />
+                <Icon name="ban" size={18} color="#ED4956" style={styles.reportMenuFlagIcon} />
                 <Text style={styles.reportMenuText}>Block User</Text>
               </TouchableOpacity>
             </View>

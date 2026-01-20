@@ -1,11 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { SafeAreaView, View, Text, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, FlatList, RefreshControl, LayoutAnimation, UIManager } from 'react-native';
+import { SafeAreaView, View, Text, TouchableOpacity, ScrollView, Image, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, FlatList, RefreshControl, LayoutAnimation, UIManager, Animated } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { BASEURL } from '../../assets/constants';
-import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../../utils';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
@@ -13,7 +12,8 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import Video from 'react-native-video';
 import styles from './artistStyles/ArtistPostsPageStyles';
 import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons'; // Import icon library
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { Linking } from 'react-native';
 import { debounce } from 'lodash';
@@ -22,6 +22,48 @@ import { debounce } from 'lodash';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+// Animated Generic Post Profile Picture Component
+const AnimatedGenericPostProfile = ({ source }) => {
+  const bounceAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Create a smooth continuous loop without reset
+    const bounceAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceAnim, {
+          toValue: -4,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnim, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    
+    bounceAnimation.start();
+    
+    return () => {
+      bounceAnimation.stop();
+    };
+  }, []);
+
+  return (
+    <Animated.Image
+      source={source}
+      style={[
+        styles.genericPostProfileImage,
+        {
+          transform: [{ translateY: bounceAnim }]
+        }
+      ]}
+      resizeMode="contain"
+    />
+  );
+};
 
 const ArtistPostsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -33,6 +75,7 @@ const ArtistPostsPage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const accessToken = useSelector(state => state.accessToken);
   const isLoggedIn = useSelector(state => state.isLoggedIn);
+  const loggedInUser = useSelector(state => state.userProfile?.data) || {};
   const navigation = useNavigation();
   const [mediaType, setMediaType] = useState(null);
   const [genericPostId, setGenericPostId] = useState(null);
@@ -53,6 +96,25 @@ const ArtistPostsPage = () => {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}m`;
     if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
     return count.toString();
+  };
+
+  const formatTimeAgo = (date) => {
+    const now = new Date();
+    const postDate = new Date(date);
+    const differenceInSeconds = Math.floor((now - postDate) / 1000);
+
+    if (differenceInSeconds < 60) {
+      return `${differenceInSeconds} seconds ago`;
+    } else if (differenceInSeconds < 3600) {
+      const minutes = Math.floor(differenceInSeconds / 60);
+      return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    } else if (differenceInSeconds < 86400) {
+      const hours = Math.floor(differenceInSeconds / 3600);
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+      const days = Math.floor(differenceInSeconds / 86400);
+      return `${days} day${days > 1 ? 's' : ''} ago`;
+    }
   };
 
   const findGenericPost = (posts) => {
@@ -525,14 +587,31 @@ const ArtistPostsPage = () => {
   };
 
   const renderPostItem = (post, index) => {
-    // Format date to US style (MM/DD/YY)
-    const date = new Date(post.created_at);
-    const postDate = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)} ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+    const timeAgo = formatTimeAgo(post.created_at);
+    const isGenericPost = post.type === 'GENERIC';
+    
+    // Determine username and profile image
+    let username = 'User';
+    let profileImageSource = null;
+    let location = '';
+    
+    if (isGenericPost) {
+      // Keep generic posts as they were
+      username = 'My DayOnes';
+      profileImageSource = require('../../assets/images/1024.png');
+    } else {
+      // For non-generic posts, use logged-in user's data
+      username = loggedInUser.full_name || loggedInUser.fullName || 'User';
+      location = post.locale || '';
+      
+      if (loggedInUser.avatar_url) {
+        profileImageSource = { uri: loggedInUser.avatar_url };
+      } else {
+        profileImageSource = require('../../assets/images/defaultProfileImage.jpg');
+      }
+    }
 
     // Log fan count data for each post being rendered
-    // Note: associate_fan_count has different meanings:
-    // - For regular posts: Number of fans for that specific post
-    // - For generic posts: Number of fans of the artist (across all their posts)
     if (post.type === 'GENERIC' && post.associate_fan_count === 0) {
       console.log(`⚠️ Rendering generic post with missing fan count:`, {
         id: post.id,
@@ -549,46 +628,68 @@ const ArtistPostsPage = () => {
         onPress={() => navigation.navigate('PostDetailPage', { postId: post.id })}
         onLongPress={() => confirmDelete(post.id)}
       >
-        {/* Location */}
-        <Text style={styles.postUser}>{post.locale || 'My DayOnes'}</Text>
-
-        {/* Fan Count (Top-Right Corner) */}
-        {/* 
-          associate_fan_count meaning:
-          - Regular posts: Number of fans for this specific post
-          - Generic posts: Total number of fans of the artist (across all posts)
-        */}
-        <View style={styles.fanCountCorner}>
-          <MaterialIcons name="person" size={18} color="#FFF" />
-          <Text style={styles.fanCountText}>{post.associate_fan_count || 0}</Text>
+        {/* Post Header - Profile Picture and User Info */}
+        <View style={styles.postHeader}>
+          <View style={[
+            styles.profileImageContainer,
+            isGenericPost && styles.genericPostProfileContainer
+          ]}>
+            {isGenericPost ? (
+              <AnimatedGenericPostProfile source={profileImageSource} />
+            ) : (
+              <Image
+                source={profileImageSource}
+                style={styles.profileImage}
+                resizeMode="cover"
+              />
+            )}
+          </View>
+          <View style={styles.userInfoContainer}>
+            <Text style={styles.username}>{username}</Text>
+            {!isGenericPost && location && (
+              <Text style={styles.locationAndTime}>{location} • {timeAgo}</Text>
+            )}
+            {isGenericPost && (
+              <Text style={styles.timeAgo}>{timeAgo}</Text>
+            )}
+          </View>
         </View>
+
+        {/* Post Text Content */}
+        {post.message && (
+          <Text style={styles.postText}>{post.message}</Text>
+        )}
 
         {/* Post Image */}
         {post.type === 'GENERIC' ? (
           <Image
-            source={require('../../assets/images/Untitled_design-2.jpg')} // Always use the placeholder image for generic posts
+            source={require('../../assets/images/Untitled_design-2.jpg')}
             style={styles.postImage}
+            resizeMode="cover"
           />
         ) : post.image_url ? (
-          <Image source={{ uri: post.image_url }} style={styles.postImage} />
-        ) : (
-          <View style={styles.inviteOnlyBox}>
-            <Text style={styles.inviteOnlyText}>Invite Only</Text>
+          <Image 
+            source={{ uri: post.image_url }} 
+            style={styles.postImage}
+            resizeMode="cover"
+          />
+        ) : null}
+
+        {/* Engagement Metrics */}
+        <View style={styles.engagementContainer}>
+          <View style={styles.engagementItem}>
+            <FontAwesome name="heart-o" size={16} color="#FFFFFF" />
+            <Text style={styles.engagementText}>{formatCount(post.reactionCount || 0)}</Text>
           </View>
-        )}
-
-        {/* Interaction Data */}
-        <View style={styles.interactionContainer}>
-          <Text style={styles.interactionText}>
-            ❤️ {post.reactionCount || 0} {/* Reaction Count */}
-          </Text>
-          <Text style={styles.interactionText}>
-            💬 {post.commentsCount || 0} {/* Comment Count */}
-          </Text>
+          <View style={styles.engagementItem}>
+            <FontAwesome name="comment-o" size={16} color="#FFFFFF" />
+            <Text style={styles.engagementText}>{formatCount(post.commentsCount || 0)}</Text>
+          </View>
+          <View style={styles.engagementItem}>
+            <FontAwesome name="user-o" size={16} color="#FFFFFF" />
+            <Text style={styles.engagementText}>{formatCount(post.associate_fan_count || 0)}</Text>
+          </View>
         </View>
-
-        {/* Post Date */}
-        <Text style={styles.postDate}>{postDate}</Text>
       </TouchableOpacity>
     );
   };
@@ -623,15 +724,38 @@ const ArtistPostsPage = () => {
     }
   };
 
+  const userProfile = useSelector(state => state.userProfile?.data) || {
+    avatar_url: null,
+    fullName: 'User',
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <ProfilePictureButton />
-        <TouchableOpacity style={styles.plusButton} onPress={handleOpenModal}>
-          <AntDesign name="pluscircleo" size={35} color="#FFFFFF" />
-        </TouchableOpacity>
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          {/* Left Plus Button */}
+          <TouchableOpacity style={styles.plusButton} onPress={handleOpenModal}>
+            <AntDesign name="pluscircleo" size={35} color="#FFFFFF" />
+          </TouchableOpacity>
 
-        <Text style={styles.pageTitle}>Posts</Text>
+          {/* Center Title */}
+          <View style={styles.titleContainer}>
+            <Text style={styles.headerTitle}>Posts</Text>
+            <Text style={styles.headerTagline}>Unleash Your Reach</Text>
+          </View>
+
+          {/* Right Profile Picture */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ProfileScreen')}
+            style={styles.headerProfileContainer}
+          >
+            <Image
+              source={userProfile.avatar_url ? { uri: userProfile.avatar_url } : require('../../assets/images/defaultProfileImage.jpg')}
+              style={styles.headerProfileImage}
+            />
+          </TouchableOpacity>
+        </View>
         
         <FlatList
           ref={flatListRef}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Image, TouchableOpacity, Text, StyleSheet, Dimensions, FlatList, Alert, PanResponder, Animated, Easing } from 'react-native';
+import { View, Image, TouchableOpacity, Text, StyleSheet, Dimensions, FlatList, Alert, PanResponder, Animated, Easing, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 // import { useSelector, useDispatch } from 'react-redux';
 // import { setSignatureColor, setSignatureSize } from '../../assets/redux/actions';
@@ -18,6 +18,23 @@ const baseWidth = 375;  // Adjust according to the base device
 const scaleValue = (size) => {
   return (size * width) / baseWidth;
 }
+
+// Color button size - 6 columns, with small side padding
+const HORIZONTAL_PADDING = 8;
+const GAP_SIZE = 4;
+// Calculate available height for color grid (bottom ~38% of screen)
+const AVAILABLE_HEIGHT = height * 0.38;
+// For 4 rows: 4 * buttonHeight + 3 * rowGap + padding = available height
+// buttonHeight = (availableHeight - padding - 3*rowGap) / 4
+const ROW_GAP = 8;
+const VERTICAL_PADDING = 24;
+const MAX_BUTTON_HEIGHT = (AVAILABLE_HEIGHT - VERTICAL_PADDING - (3 * ROW_GAP)) / 4;
+// For 6 buttons per row: 6 * buttonWidth + 5 * gap = available width (with small padding)
+const AVAILABLE_WIDTH = width - (HORIZONTAL_PADDING * 2);
+const BUTTON_WIDTH_CALC = (AVAILABLE_WIDTH - (5 * GAP_SIZE)) / 6;
+// Use the smaller dimension to ensure squares fit both width and height constraints
+// Making slightly smaller to ensure no overflow
+const COLOR_BUTTON_SIZE = Math.min(BUTTON_WIDTH_CALC, MAX_BUTTON_HEIGHT) * 0.82;
 
 const EditScreen = ({ route, navigation }) => {
   const { selectedImage } = route.params;
@@ -376,78 +393,110 @@ const EditScreen = ({ route, navigation }) => {
           />
         </View>
         <View style={[styles.tabContent, { display: activeTab === 1 ? 'flex' : 'none' }]}>
-        <View style={styles.colorOptions}>
-  {/* Default/No Color Option */}
-  <TouchableOpacity onPress={() => applyColorToSignature('default')} style={[styles.colorButton, styles.defaultColorButton]}>
-    <View style={styles.defaultColorIconContainer}>
-      <Icon name="image" size={20} color="#333" />
-    </View>
-  </TouchableOpacity>
+          <ScrollView 
+            style={styles.colorScrollView}
+            contentContainerStyle={styles.colorOptionsContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.colorOptions}>
+              {/* Color Palette Grid - 6 columns x 4 rows layout */}
+            {/* Row 1: Gallery Icon, Bright Yellow, Bright Orange, Deep Red, Light Purple, Dark Violet */}
+            <TouchableOpacity onPress={() => applyColorToSignature('default')} style={[styles.colorButton, styles.defaultColorButton]}>
+              <View style={styles.defaultColorIconContainer}>
+                <Icon name="image" size={20} color="#333" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#FFEB3B' }]} onPress={() => applyColorToSignature('#FFEB3B')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#FF9800' }]} onPress={() => applyColorToSignature('#FF9800')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#D32F2F' }]} onPress={() => applyColorToSignature('#D32F2F')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#E1BEE7' }]} onPress={() => applyColorToSignature('#E1BEE7')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#673AB7' }]} onPress={() => applyColorToSignature('#673AB7')} />
 
-  {/* Jamaican Flag Gradient */}
-  <TouchableOpacity onPress={() => applyColorToSignature('jamaicanGradient')}>
-    <LinearGradient
-      colors={['#000000', '#008000', '#FFD700']} // Black, Green, Yellow
-      style={styles.colorButton}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-    />
-  </TouchableOpacity>
+            {/* Row 2: Fuchsia, Light Pink, Sky Blue, Royal Blue, Dark Teal, Teal Green */}
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#E91E63' }]} onPress={() => applyColorToSignature('#E91E63')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#F8BBD0' }]} onPress={() => applyColorToSignature('#F8BBD0')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#87CEEB' }]} onPress={() => applyColorToSignature('#87CEEB')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#2196F3' }]} onPress={() => applyColorToSignature('#2196F3')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#00796B' }]} onPress={() => applyColorToSignature('#00796B')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#009688' }]} onPress={() => applyColorToSignature('#009688')} />
 
-  {/* American Flag Gradient */}
-  <TouchableOpacity onPress={() => applyColorToSignature('americanGradient')}>
-    <LinearGradient
-      colors={['#FF0000', '#FFFFFF', '#0000FF']} // Red, White, Blue
-      style={styles.colorButton}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-    />
-  </TouchableOpacity>
+            {/* Row 3: Navy Blue, Burnt Orange/Brown, Olive Green, Forest Green, Jamaican Gradient, American Gradient */}
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#0D47A1' }]} onPress={() => applyColorToSignature('#0D47A1')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#8D6E63' }]} onPress={() => applyColorToSignature('#8D6E63')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#827717' }]} onPress={() => applyColorToSignature('#827717')} />
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#1B5E20' }]} onPress={() => applyColorToSignature('#1B5E20')} />
+            
+            {/* Jamaican Gradient - Black, Green, Gold */}
+            <TouchableOpacity onPress={() => applyColorToSignature('jamaicanGradient')} style={styles.colorButtonContainer}>
+              <LinearGradient
+                colors={['#000000', '#008000', '#FFD700']}
+                style={styles.colorButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              />
+            </TouchableOpacity>
 
-  {/* Rasta Flag Gradient */}
-<TouchableOpacity onPress={() => applyColorToSignature('rastaGradient')}>
-  <LinearGradient
-    colors={['#FF0000', '#FFD700', '#008000']} // Red, Yellow (Gold), Green
-    style={styles.colorButton}
-    start={{ x: 0, y: 0 }}
-    end={{ x: 1, y: 0 }}
-  />
-</TouchableOpacity>
+            {/* American Gradient - Red, White, Blue */}
+            <TouchableOpacity onPress={() => applyColorToSignature('americanGradient')} style={styles.colorButtonContainer}>
+              <LinearGradient
+                colors={['#FF0000', '#FFFFFF', '#0000FF']}
+                style={styles.colorButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              />
+            </TouchableOpacity>
 
+            {/* Row 4: White, Bubblegum Gradient, Dark Grey, Gradient 1 (Cyan to Pink), Gradient 2 (Peach to Magenta), Rasta Gradient */}
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CCCCCC' }]} onPress={() => applyColorToSignature('#FFFFFF')} />
+            
+            {/* Bubblegum Gradient - Blue, Pink, White */}
+            <TouchableOpacity onPress={() => applyColorToSignature('bubblegumGradient')} style={styles.colorButtonContainer}>
+              <LinearGradient
+                colors={['#4FC3F7', '#FF69B4', '#FFFFFF']}
+                style={styles.colorButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#424242' }]} onPress={() => applyColorToSignature('#424242')} />
+            
+            {/* Gradient 1 - Cyan to Pink */}
+            <TouchableOpacity onPress={() => applyColorToSignature('gradient1')} style={styles.colorButtonContainer}>
+              <LinearGradient
+                colors={['#00FFFF', '#FFA5FF']}
+                style={styles.colorButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              />
+            </TouchableOpacity>
 
-  {/* Existing Gradient Colors */}
-  <TouchableOpacity onPress={() => applyColorToSignature('gradient1')}>
-    <LinearGradient
-      colors={['#00FFFF', '#FFA5FF']}
-      style={styles.colorButton}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-    />
-  </TouchableOpacity>
-  <TouchableOpacity onPress={() => applyColorToSignature('gradient2')}>
-    <LinearGradient
-      colors={['#FFDFA5', '#FF00EE']}
-      style={styles.colorButton}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-    />
-  </TouchableOpacity>
-
-  {/* Solid Colors */}
-  {['#FFFFFF', '#FF00FF', '#00FF00', '#00FFFF', '#FFFF00', '#FF0000'].map((color) => (
-    <TouchableOpacity
-      key={color}
-      style={[styles.colorButton, { backgroundColor: color }]}
-      onPress={() => applyColorToSignature(color)}
-    />
-  ))}
-</View>
-
+            {/* Gradient 2 - Peach to Magenta */}
+            <TouchableOpacity onPress={() => applyColorToSignature('gradient2')} style={styles.colorButtonContainer}>
+              <LinearGradient
+                colors={['#FFDFA5', '#FF00EE']}
+                style={styles.colorButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              />
+            </TouchableOpacity>
+            
+            {/* Rasta Gradient - Black, Gold, Green */}
+            <TouchableOpacity onPress={() => applyColorToSignature('rastaGradient')} style={styles.colorButtonContainer}>
+              <LinearGradient
+                colors={['#000000', '#FFD700', '#008000']}
+                style={styles.colorButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              />
+            </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
-        <View style={[styles.tabContent, { display: activeTab === 2 ? 'flex' : 'none' }]}>
+        <View style={[styles.tabContent, { display: activeTab === 2 ? 'flex' : 'none', justifyContent: 'center' }]}>
           <View style={styles.saveContainer}>
-            <TouchableOpacity style={styles.saveButton} onPress={captureAndSaveImage}>
-              <Icon name="save" size={24} color="#fff" />
+            <TouchableOpacity style={styles.saveButton} onPress={captureAndSaveImage} activeOpacity={0.8}>
+              <Icon name="check-circle" size={22} color="#FFFFFF" />
               <Text style={styles.saveButtonText}>Save Picture</Text>
             </TouchableOpacity>
           </View>
@@ -566,7 +615,8 @@ const EditScreen = ({ route, navigation }) => {
                         sig.color.startsWith('gradient') ||
                         sig.color === 'jamaicanGradient' ||
                         sig.color === 'americanGradient' ||
-                        sig.color === 'rastaGradient'
+                        sig.color === 'rastaGradient' ||
+                        sig.color === 'bubblegumGradient'
                       )
                     ) ? (
                       <LinearGradient
@@ -579,7 +629,11 @@ const EditScreen = ({ route, navigation }) => {
                             ? ['#000000', '#008000', '#FFD700']
                             : sig.color === 'americanGradient'
                             ? ['#FF0000', '#FFFFFF', '#0000FF']
-                            : ['#FF0000', '#FFD700', '#008000']
+                            : sig.color === 'rastaGradient'
+                            ? ['#000000', '#FFD700', '#008000']
+                            : sig.color === 'bubblegumGradient'
+                            ? ['#4FC3F7', '#FF69B4', '#FFFFFF']
+                            : ['#4FC3F7', '#FF69B4', '#FFFFFF']
                         }
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
@@ -641,13 +695,25 @@ const EditScreen = ({ route, navigation }) => {
   
       <View style={styles.tabContainer}>
         <TouchableOpacity style={[styles.tabButton, activeTab === 0 && styles.activeTab]} onPress={() => setActiveTab(0)}>
-          <Text style={styles.tabText}>Signatures</Text>
+          {activeTab === 0 ? (
+            <Text style={[styles.tabText, styles.activeTabText]}>Signatures</Text>
+          ) : (
+            <Text style={styles.tabText}>Signatures</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tabButton, activeTab === 1 && styles.activeTab]} onPress={() => setActiveTab(1)}>
-          <Text style={styles.tabText}>Color</Text>
+          {activeTab === 1 ? (
+            <Text style={[styles.tabText, styles.activeTabText]}>Color</Text>
+          ) : (
+            <Text style={styles.tabText}>Color</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tabButton, activeTab === 2 && styles.activeTab]} onPress={() => setActiveTab(2)}>
-          <Text style={styles.tabText}>Save</Text>
+          {activeTab === 2 ? (
+            <Text style={[styles.tabText, styles.activeTabText]}>Save</Text>
+          ) : (
+            <Text style={styles.tabText}>Save</Text>
+          )}
         </TouchableOpacity>
       </View>
   
@@ -690,55 +756,96 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#333',
+    justifyContent: 'space-between',
+    backgroundColor: '#1C1C1E',
     width: '100%',
-    paddingVertical: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#3A3A3C',
+    backgroundColor: 'transparent',
+    minHeight: 40,
   },
   activeTab: {
-    backgroundColor: '#555',
+    backgroundColor: '#2C2C2E',
+    borderColor: '#3A3A3C',
   },
-  tabText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  tabContentOverlay: {
-    position: 'relative',
-    width: '100%',
-    height: 150, // Ensure consistent height
-  },
-  tabContent: {
+  tabButtonGradient: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  tabText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  activeTabText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  tabContentOverlay: {
+    position: 'relative',
+    width: '100%',
+    flex: 1,
+    backgroundColor: '#000000',
+    paddingBottom: 20,
+  },
+  tabContent: {
+    width: '100%',
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingBottom: 0,
+  },
+  colorScrollView: {
+    width: '100%',
+    flex: 1,
+  },
+  colorOptionsContainer: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
   colorOptions: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap', // This allows the items to wrap into multiple rows
-    width: '80%', // Adjust the width to fit the buttons nicely
-    marginTop: 14, // Optional: add margin at the top
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    width: width,
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   colorButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginHorizontal: 10,
-    marginVertical: 9, // Added marginVertical to create space between rows
+    width: COLOR_BUTTON_SIZE,
+    height: COLOR_BUTTON_SIZE,
+    borderRadius: 8,
+    marginRight: GAP_SIZE,
+    marginBottom: ROW_GAP,
+  },
+  colorButtonContainer: {
+    width: COLOR_BUTTON_SIZE,
+    height: COLOR_BUTTON_SIZE,
+    borderRadius: 8,
+    marginRight: GAP_SIZE,
+    marginBottom: ROW_GAP,
+    overflow: 'hidden',
   },
   defaultColorButton: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#CCCCCC',
     justifyContent: 'center',
     alignItems: 'center',
@@ -748,21 +855,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveContainer: {
-    marginTop: 20,
+    width: '90%',
+    paddingHorizontal: 16,
+    paddingBottom: 40,
   },
   saveButton: {
-    backgroundColor: '#FF0080',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 10,
+    backgroundColor: '#2C2C2E',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#3A3A3C',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   saveButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 5,
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '600',
+    marginLeft: 8,
+    letterSpacing: 0.3,
   },
   signaturesList: {
     paddingLeft: 10,

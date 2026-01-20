@@ -5,21 +5,22 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  ImageBackground,
   SafeAreaView,
-  Switch,
-  ScrollView,
   Animated,
   ActivityIndicator,
   Linking,
+  Platform,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import LinearGradient from 'react-native-linear-gradient';
 import Geolocation from '@react-native-community/geolocation';
 import Geocoder from 'react-native-geocoder-reborn';
 import { useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import ProfilePictureButton from '../../assets/components/ProfilePictureButton';
 import { BASEURL } from '../../assets/constants';
 import { uploadImageToBucket } from '../../utils';
 import styles from './artistStyles/HHomePageStyles';
@@ -29,51 +30,44 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import useFetchUser from '../../assets/hooks/useFetchUser';
 import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { verticalScale } from 'react-native-size-matters';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const HHomePage = () => {
-  const [isMaxRange, setIsMaxRange] = useState(true);
+  const [radius, setRadius] = useState(100);
   const [selectedImage, setSelectedImage] = useState(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
-  const [postType, setPostType] = useState('INVITE_PHOTO');
+  const [contentType, setContentType] = useState('INVITE_ONLY');
   const [scaleValue] = useState(new Animated.Value(1));
+  const insets = useSafeAreaInsets();
 
   const { mutate: fetchUser } = useFetchUser();
   const navigation = useNavigation();
   const route = useRoute();
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const accessToken = await AsyncStorage.getItem('authToken');
-        if (accessToken) {
-          console.log('Access token:', accessToken);
-          fetchUser(); // Fetch user data
-        } else {
-          console.log('No access token found in AsyncStorage, skipping user data fetch.');
-        }
-      } catch (error) {
-        console.error('Error fetching access token:', error);
-      }
-    };
-
-    fetchUserData();
-  }, [fetchUser]); // Include `fetchUser` in the dependency array
-
-  useEffect(() => {
-    console.log('UserProfile from Redux:', userProfile);
-  }, [userProfile]);
-
-  const userProfile = useSelector(state => state.userProfile) || {
+  const userProfile = useSelector(state => state.userProfile?.data) || {
     username: 'unknown',
     fullName: 'Unknown User',
+    avatar_url: null,
   };
 
   const accessToken = useSelector(state => state.accessToken);
 
   useEffect(() => {
-    console.log('UserProfile from Redux:', userProfile);
-  }, [userProfile]);
+    const fetchUserData = async () => {
+      try {
+        const accessToken = await AsyncStorage.getItem('authToken');
+        if (accessToken) {
+          fetchUser();
+        }
+      } catch (error) {
+        console.error('Error fetching access token:', error);
+      }
+    };
+    fetchUserData();
+  }, [fetchUser]);
 
   useSetupNotificationsAndLocation();
 
@@ -91,12 +85,12 @@ const HHomePage = () => {
   const animateButton = () => {
     Animated.sequence([
       Animated.timing(scaleValue, {
-        toValue: 1.1, // Scale up
+        toValue: 1.1,
         duration: 100,
         useNativeDriver: true,
       }),
       Animated.timing(scaleValue, {
-        toValue: 1, // Scale back to original size
+        toValue: 1,
         duration: 100,
         useNativeDriver: true,
       }),
@@ -109,53 +103,53 @@ const HHomePage = () => {
         Platform.OS === 'android'
           ? PERMISSIONS.ANDROID.CAMERA
           : PERMISSIONS.IOS.CAMERA;
-  
-      // Check if permission is granted
+
       const result = await check(permission);
-  
-      // Define camera options
+
       const options = {
         mediaType: 'photo',
         saveToPhotos: true,
         includeBase64: false,
       };
-  
+
       if (result === RESULTS.GRANTED) {
-        // Permission is already granted; launch the camera
         launchCamera(options, response => {
           if (response.didCancel) {
-            console.log('User cancelled image picker');
+            setContentType('INVITE_ONLY');
           } else if (response.errorMessage) {
-            console.log('ImagePicker Error: ', response.errorMessage);
+            setContentType('INVITE_ONLY');
           } else if (response.assets && response.assets.length > 0) {
             const capturedImage = response.assets[0];
             setSelectedImage(capturedImage);
+            setContentType('INVITE_PHOTO');
             navigation.navigate('EditScreen', { selectedImage: capturedImage });
           }
         });
       } else if (result === RESULTS.DENIED) {
-        // Request permission
         const requestResult = await request(permission);
         if (requestResult === RESULTS.GRANTED) {
-          // Permission granted after request; launch the camera
           launchCamera(options, response => {
             if (response.didCancel) {
-              console.log('User cancelled image picker');
+              setContentType('INVITE_ONLY');
             } else if (response.errorMessage) {
-              console.log('ImagePicker Error: ', response.errorMessage);
+              setContentType('INVITE_ONLY');
             } else if (response.assets && response.assets.length > 0) {
               const capturedImage = response.assets[0];
               setSelectedImage(capturedImage);
+              setContentType('INVITE_PHOTO');
               navigation.navigate('EditScreen', { selectedImage: capturedImage });
             }
           });
+        } else {
+          setContentType('INVITE_ONLY');
         }
       } else if (result === RESULTS.BLOCKED) {
-        // Permission is blocked; open settings
         Linking.openSettings();
+        setContentType('INVITE_ONLY');
       }
     } catch (error) {
       console.error('Error checking camera permission:', error);
+      setContentType('INVITE_ONLY');
     }
   };
 
@@ -163,7 +157,6 @@ const HHomePage = () => {
     try {
       let filePath = imageUri;
 
-      // Use helper function for Android scoped storage
       if (Platform.OS === 'android' && imageUri.startsWith('content://')) {
         filePath = await convertToTemporaryFile(imageUri, 'jpg');
       }
@@ -175,26 +168,23 @@ const HHomePage = () => {
       }
 
       setUploadedImageUrl(s3Url);
-      console.log('Image uploaded successfully to S3:', s3Url);
-
-      return s3Url; // Ensure this URL is returned to the caller
+      return s3Url;
     } catch (error) {
       console.error('Error in uploadImageToS3:', error);
       Alert.alert('Image upload failed. Please try again.');
-      throw error; // Re-throw to handle in `createPost`
+      throw error;
     }
   };
 
   const uploadFile = () => {
     launchImageLibrary(options, async response => {
       if (response.didCancel) {
-        console.log('User cancelled image picker');
+        setContentType('INVITE_ONLY');
       } else if (response.errorMessage) {
-        console.log('ImagePicker Error: ', response.errorMessage);
+        setContentType('INVITE_ONLY');
       } else if (response.assets && response.assets.length > 0) {
         const uploadedImage = response.assets[0];
 
-        // Use helper function for Android scoped storage
         if (
           Platform.OS === 'android' &&
           uploadedImage.uri.startsWith('content://')
@@ -206,9 +196,21 @@ const HHomePage = () => {
         }
 
         setSelectedImage(uploadedImage);
+        setContentType('INVITE_PHOTO');
         navigation.navigate('EditScreen', { selectedImage: uploadedImage });
       }
     });
+  };
+
+  const handleTakePhoto = async () => {
+    await takePicture();
+  };
+
+  const handleContentTypeChange = (type) => {
+    setContentType(type);
+    if (type === 'INVITE_ONLY') {
+      setSelectedImage(null);
+    }
   };
 
   const clearSelectedImage = () => {
@@ -236,65 +238,51 @@ const HHomePage = () => {
 
   const createPost = async () => {
     setIsLoading(true);
-
-    // Animate the send button for visual feedback
     animateButton();
 
-    // Validate selected image for the 'INVITE_PHOTO' post type
+    let postType = 'INVITE_ONLY';
+    if (contentType === 'INVITE_PHOTO') {
+      postType = 'INVITE_PHOTO';
+    }
+
     if (postType === 'INVITE_PHOTO' && !selectedImage) {
       Alert.alert(
         'Warning',
-        'You must select a photo when choosing "Invite + Photo."',
+        'You must select a photo when choosing "Invite + Media."',
       );
       setIsLoading(false);
       return;
     }
 
-    console.log('Starting post creation...');
-
     Geolocation.getCurrentPosition(
       async position => {
         const { latitude, longitude } = position.coords;
-        console.log("User's current position:", { latitude, longitude });
 
         try {
           let postImageUrl = null;
 
-          // Step 1: Upload image to S3 if required
           if (postType === 'INVITE_PHOTO') {
-            console.log('Uploading image to S3...');
             if (!selectedImage) {
-              console.error('No image selected for upload.');
               Alert.alert('Error', 'No image selected for upload.');
+              setIsLoading(false);
               return;
             }
-
-            console.log('Image URI before upload:', selectedImage.uri);
             postImageUrl = await uploadImageToS3(selectedImage.uri);
-            console.log('S3 URL received:', postImageUrl);
           }
 
-          // Step 2: Get locale information based on geolocation
-          console.log('Fetching location details...');
           const locale = await getLocale(latitude, longitude);
-          console.log('Locale determined:', locale);
 
-          // Step 3: Prepare post data to be sent
           const postData = {
-            imageUrl: postImageUrl, // Null if post type is 'INVITE_ONLY'
-            range: isMaxRange ? 1000 : 100, // Range in feet
-            type: postType, // INVITE_PHOTO or INVITE_ONLY
-            latitude: latitude.toString(), // Latitude as string
-            longitude: longitude.toString(), // Longitude as string
+            imageUrl: postImageUrl,
+            range: radius,
+            type: postType,
+            latitude: latitude.toString(),
+            longitude: longitude.toString(),
             locale: locale || 'Unknown location',
             message:
               "Welcome to my exclusive DayOnes group! Here, you're more than just a fan, you're family.🔥 💯 🔥",
           };
 
-          console.log('Post data prepared:', postData);
-
-          // Step 4: Send POST request to create a new post
-          console.log('Sending API request to create post...');
           const response = await fetch(`${BASEURL}/api/v1/post/`, {
             method: 'POST',
             headers: {
@@ -305,28 +293,22 @@ const HHomePage = () => {
           });
 
           const jsonResponse = await response.json();
-          console.log('API response received:', jsonResponse);
 
           if (response.ok) {
             setIsLoading(false);
-            const newPostId = jsonResponse.data?.id; // Extract the new post ID
+            const newPostId = jsonResponse.data?.id;
             Alert.alert('Success', 'Post created successfully!');
-            console.log('Post created successfully!');
 
-            // Navigate to PostDetailPage with the new post ID
             if (newPostId) {
               navigation.navigate('PostDetailPage', { postId: newPostId });
-            } else {
-              console.error('Post ID not returned in response.');
             }
 
-            clearSelectedImage(); // Clear the selected image after a successful post
+            clearSelectedImage();
           } else {
-            console.error('Failed to create post:', jsonResponse);
+            setIsLoading(false);
             Alert.alert(
               'Error',
-              `Failed to create post: ${jsonResponse.message || 'Unknown error'
-              }`,
+              `Failed to create post: ${jsonResponse.message || 'Unknown error'}`,
             );
           }
         } catch (error) {
@@ -348,133 +330,202 @@ const HHomePage = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <ProfilePictureButton />
+    <View style={styles.outerContainer}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <ImageBackground
+        source={require('../../assets/images/background.png')}
+        style={styles.backgroundImage}
+        resizeMode="stretch"
+        imageStyle={styles.backgroundImageStyle}
+      >
+        <View style={[styles.container, { paddingTop: insets.top + verticalScale(20) - 3, paddingBottom: insets.bottom + (Platform.OS === 'ios' ? 90 : 70) }]}>
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../assets/images/1024.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </View>
 
-        <View style={styles.header}>
-          <Text style={styles.headerText}>DayOnes Live</Text>
-        </View>
+          <View style={styles.titleContainer}>
+            <Text style={styles.headerTitle}>DayOnes Live</Text>
+            <Text style={styles.headerTagline}>Unleash Your Reach</Text>
+          </View>
 
-        <View style={styles.imageContainer}>
-          {selectedImage ? (
-            <View style={styles.selectedImageContainer}>
-              <Image
-                source={{ uri: selectedImage.uri }}
-                style={styles.selectedImage}
-              />
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={clearSelectedImage}>
-                <Icon name="times" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.placeholderContainer}>
-              <Image
-                source={require('../../assets/images/ArtistHomePagePlaceholder2.jpg')}
-                style={styles.placeholderImage}
-              />
-              <View style={styles.overlayTextContainer}>
-                <Text style={styles.overlayText}>
-                  Unleash Your Reach{' '}
-                </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ProfileScreen')}
+            style={styles.profileContainer}
+          >
+            <LinearGradient
+              colors={['#D500F9', '#FF0080']}
+              style={styles.profileGradientBorder}
+            >
+              <View style={styles.profileImageContainer}>
+                <Image
+                  source={userProfile.avatar_url ? { uri: userProfile.avatar_url } : require('../../assets/images/defaultProfileImage.jpg')}
+                  style={styles.profileImage}
+                />
               </View>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.pictureContainer}>
-          <TouchableOpacity
-            style={styles.pictureButton}
-            onPress={takePicture}>
-            <FontAwesome5
-              name="camera"
-              size={35}
-              color="#C0C0C0"
-              style={styles.cameraIcon}
-            />
-            <Text style={styles.buttonText}>Take Picture</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.pictureButton}
-            onPress={uploadFile}>
-            <FontAwesome5
-              name="file-upload"
-              size={35}
-              color="#C0C0C0"
-              style={styles.uploadIcon}
-            />
-            <Text style={styles.buttonText}>Upload File</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.radioGroup}>
-          <Text style={styles.radioGroupLabel}>Choose what to send:</Text>
-          <TouchableOpacity
-            style={styles.radioButton}
-            onPress={() => setPostType('INVITE_PHOTO')}>
-            <Icon
-              name={
-                postType === 'INVITE_PHOTO' ? 'dot-circle-o' : 'circle-o'
-              }
-              size={24}
-              color="#fff"
-            />
-            <Text style={styles.radioLabel}>Invite + Photo</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.radioButton}
-            onPress={() => setPostType('INVITE_ONLY')}>
-            <Icon
-              name={
-                postType === 'INVITE_ONLY' ? 'dot-circle-o' : 'circle-o'
-              }
-              size={24}
-              color="#fff"
-            />
-            <Text style={styles.radioLabel}>Invite Only</Text>
-          </TouchableOpacity>
+        {/* Choose Your Content Card */}
+        <View style={styles.contentCard}>
+          <Text style={styles.cardTitle}>Choose Your Content</Text>
+          <View style={styles.contentGrid}>
+            <TouchableOpacity
+              style={[
+                styles.contentButton,
+                contentType === 'INVITE_ONLY' && styles.contentButtonSelected,
+              ]}
+              onPress={() => handleContentTypeChange('INVITE_ONLY')}
+            >
+              {contentType === 'INVITE_ONLY' ? (
+                <LinearGradient
+                  colors={['#00D9FF', '#7000FF']}
+                  style={styles.contentButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.contentButtonTextSelected}>Invite Only</Text>
+                </LinearGradient>
+              ) : (
+                <Text style={styles.contentButtonText}>Invite Only</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.contentButton,
+                contentType === 'INVITE_PHOTO' && styles.contentButtonSelected,
+              ]}
+              onPress={() => handleContentTypeChange('INVITE_PHOTO')}
+            >
+              {contentType === 'INVITE_PHOTO' ? (
+                <LinearGradient
+                  colors={['#00D9FF', '#7000FF']}
+                  style={styles.contentButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.contentButtonTextSelected}>Invite + Media</Text>
+                </LinearGradient>
+              ) : (
+                <Text style={styles.contentButtonText}>Invite + Media</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.contentButton}
+              onPress={handleTakePhoto}
+            >
+              <FontAwesome5 name="camera" size={20} color="#FFFFFF" style={styles.contentButtonIcon} />
+              <Text style={styles.contentButtonText}>Take Photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.contentButton}
+              onPress={uploadFile}
+            >
+              <FontAwesome5 name="file-upload" size={20} color="#FFFFFF" style={styles.contentButtonIcon} />
+              <Text style={styles.contentButtonText}>Upload File</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <View style={styles.switchContainer}>
-          <Text style={styles.sliderLabel}>
-            {isMaxRange ? 'Max (1000ft)' : 'Min (100ft)'}
-          </Text>
-          <Switch
-            value={isMaxRange}
-            onValueChange={() => setIsMaxRange(!isMaxRange)}
-            trackColor={{ false: '#FFF', true: '#E03FD8' }}
-            thumbColor={isMaxRange ? '#FFF' : '#FFF'}
-          />
+        {/* Set Invite Radius Card */}
+        <View style={styles.radiusCard}>
+          <Text style={styles.cardTitle}>Set Invite Radius</Text>
+          <View style={styles.radiusOptionsContainer}>
+            <TouchableOpacity
+              style={[
+                styles.radiusButton,
+                radius === 100 && styles.radiusButtonSelected,
+              ]}
+              onPress={() => setRadius(100)}
+            >
+              {radius === 100 ? (
+                <LinearGradient
+                  colors={['#00D9FF', '#7000FF']}
+                  style={styles.radiusButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <FontAwesome5 name="microphone-alt" size={24} color="#FFFFFF" />
+                  <Text style={styles.radiusButtonTextSelected}>100 ft</Text>
+                  <Text style={styles.radiusButtonSubtext}>Front Stage</Text>
+                </LinearGradient>
+              ) : (
+                <>
+                  <FontAwesome5 name="microphone-alt" size={24} color="#FFFFFF" style={styles.radiusButtonIcon} />
+                  <View style={styles.radiusButtonTextContainer}>
+                    <Text style={styles.radiusButtonText}>100 ft</Text>
+                    <Text style={styles.radiusButtonSubtextUnselected}>Front Stage</Text>
+                  </View>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.radiusButton,
+                radius === 1000 && styles.radiusButtonSelected,
+              ]}
+              onPress={() => setRadius(1000)}
+            >
+              {radius === 1000 ? (
+                <LinearGradient
+                  colors={['#00D9FF', '#7000FF']}
+                  style={styles.radiusButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <FontAwesome5 name="landmark" size={24} color="#FFFFFF" />
+                  <Text style={styles.radiusButtonTextSelected}>1000 ft</Text>
+                  <Text style={styles.radiusButtonSubtext}>Full Venue</Text>
+                </LinearGradient>
+              ) : (
+                <>
+                  <FontAwesome5 name="landmark" size={24} color="#FFFFFF" style={styles.radiusButtonIcon} />
+                  <View style={styles.radiusButtonTextContainer}>
+                    <Text style={styles.radiusButtonText}>1000 ft</Text>
+                    <Text style={styles.radiusButtonSubtextUnselected}>Full Venue</Text>
+                  </View>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
+        {/* Send Invites Button */}
         <View style={styles.sendButtonContainer}>
           <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
             <TouchableOpacity
-              style={styles.sendButtonGradient}
               onPress={createPost}
-              disabled={isLoading}>
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
               <LinearGradient
-                colors={['#00E5FF', '#D500F9']}
+                colors={['#00D9FF', '#7000FF']}
                 style={styles.sendButtonGradient}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}>
+                end={{ x: 1, y: 0 }}
+              >
                 {isLoading ? (
                   <ActivityIndicator size="large" color="#FFF" />
                 ) : (
-                  <Text style={styles.sendButtonText}>Send Invite</Text>
+                  <Text style={styles.sendButtonText}>Send Invites</Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>
-            <View style={styles.patentText}>
-              <Text style={styles.patentLabel}>U.S Patent </Text>
-              <Text style={styles.patentNumber}>#10749935</Text>
-            </View>
           </Animated.View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        </View>
+      </ImageBackground>
+    </View>
   );
 };
 

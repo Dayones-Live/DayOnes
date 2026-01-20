@@ -1,0 +1,44 @@
+FIVERR DEVELOPER - WORK INSTRUCTIONS
+====================================
+
+You are working on the 'fiverr-developer' branch.
+
+STEP 1: SETUP
+-------------
+1. Clone the repository:
+   git clone <repository-url>
+   cd DayOnes
+
+2. Switch to the fiverr-developer branch:
+   git checkout fiverr-developer
+
+3. Verify you're on the correct branch:
+   git branch
+   (You should see * fiverr-developer)
+
+
+STEP 2: DO YOUR WORK
+--------------------
+Make your code changes as needed.
+
+
+STEP 3: PUSH YOUR CHANGES
+--------------------------
+After making changes, run these commands:
+
+   git add .
+   git commit -m "Description of what you changed"
+   git push origin fiverr-developer
+
+
+IMPORTANT RULES:
+----------------
+✓ Work ONLY in the 'fiverr-developer' branch
+✗ Do NOT push to main/master/demo/react-native-version branches
+✗ Do NOT merge other branches
+✓ Push your changes regularly so we can review
+✓ Contact me if you have questions or issues
+
+
+That's it! Just follow these steps and push to fiverr-developer.
+

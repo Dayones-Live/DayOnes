@@ -5,7 +5,7 @@ import ArtistPostsPage from '../screens/artist/ArtistPostsPage';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import DMsScreen from '../screens/DMsScreen';
 import HHomePage from '../screens/artist/HHomePage'; // Import the home page
-import { View, Text } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { useSelector } from 'react-redux';
 import useNotifications from '../assets/hooks/useNotifications';
 import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
@@ -66,16 +66,34 @@ const ArtistTabNavigator = () => {
 
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#FF0080',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: '#FFFFFF',
         tabBarStyle: {
-          backgroundColor: '#000',
+          backgroundColor: 'rgba(30, 30, 30, 0.95)',
           borderTopWidth: 0,
+          borderTopLeftRadius: 0,
+          borderTopRightRadius: 0,
+          paddingTop: 10,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+          height: Platform.OS === 'ios' ? 90 : 70,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          color: '#FFFFFF',
         },
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Main" component={HHomePage} />
+      <Tab.Screen 
+        name="Main" 
+        component={HHomePage}
+        options={{
+          contentStyle: { backgroundColor: 'transparent' },
+        }}
+      />
       <Tab.Screen name="Posts" component={ArtistPostsPage} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} />
       <Tab.Screen name="DM's" component={DMsScreen} />
