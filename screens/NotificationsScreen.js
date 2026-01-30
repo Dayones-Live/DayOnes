@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  ScrollView,
   ActivityIndicator,
   SafeAreaView,
   Image,
@@ -13,31 +14,44 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 import useNotifications from '../assets/hooks/useNotifications';
-import { formatDate } from '../utils/dateFormat';
+import { formatTimeAgo } from '../utils/dateFormat';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import styles from './sharedStyles/NotificationsScreenStyles';
-import axios from 'axios';
+import styles, { colors } from './sharedStyles/NotificationsScreenStyles';
 import { BASEURL } from '../assets/constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { notificationService } from '../assets/services/notificationService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'messages', label: 'Messages' },
+  { key: 'activity', label: 'Activity' },
+];
+
 const NotificationsScreen = () => {
   const queryClient = useQueryClient();
-  const { data, error, isLoading, refetch } = useNotifications();
+  const { data, error, isLoading, isFetching, refetch } = useNotifications();
   const userProfile = useSelector((state) => state.userProfile);
   const userEmail = userProfile?.data?.email;
   const navigation = useNavigation();
-  const accessToken = useSelector(state => state.accessToken);
   const [markingAsRead, setMarkingAsRead] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [localNotifications, setLocalNotifications] = useState([]);
+  const [activeFilter, setActiveFilter] = useState('all');
   const lastNotificationId = useRef(null);
   const notificationTimeoutRef = useRef(null);
 
-  // Get all notifications without filtering
-  const notifications = localNotifications.length > 0 ? localNotifications : (data?.data?.data || []);
+  const rawNotifications = localNotifications.length > 0 ? localNotifications : (data?.data?.data || []);
+  const notifications = rawNotifications
+    .filter((n) => {
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'messages') return n.type === 'message';
+      if (activeFilter === 'activity') return n.type === 'comment' || n.type === 'reaction';
+      return true;
+    })
+    .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt));
   
   // Update unread count and local notifications based on backend data
   useEffect(() => {
@@ -51,7 +65,7 @@ const NotificationsScreen = () => {
     if (data?.data?.data) {
       setLocalNotifications(data.data.data);
     }
-  }, [data?.data?.unreadCount, data?.data?.data]);
+  }, [data?.data?.unreadCount, data?.data?.data, navigation]);
 
   const hasUnreadNotifications = unreadCount > 0;
   
@@ -259,67 +273,75 @@ const NotificationsScreen = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !data?.data?.data?.length) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.text}>Notifications</Text>
+        <View style={styles.headerSection}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.title}>Notifications</Text>
+              <Text style={styles.subtitle}>Loading…</Text>
+            </View>
+          </View>
         </View>
-        <ActivityIndicator size="large" color="#00ff00" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.accentBlue} />
+          <Text style={styles.loadingText}>Loading notifications</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
-  if (error) {
+  if (error && !data?.data?.data?.length) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.text}>Notifications</Text>
+        <View style={styles.headerSection}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.title}>Notifications</Text>
+              <Text style={styles.subtitle}>Something went wrong</Text>
+            </View>
+          </View>
         </View>
-        <Text style={styles.errorText}>Error loading notifications</Text>
-        <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>Error loading notifications</Text>
+          <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
+
+  const getNotificationMessage = (item) => {
+    if (item.type === 'message' && item.data) {
+      try {
+        const first = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+        const messageData = typeof first === 'string' ? JSON.parse(first) : first;
+        return messageData?.message || item.message || 'sent you a message.';
+      } catch (e) {
+        return item.message || 'sent you a message.';
+      }
+    }
+    return item.message || 'New notification';
+  };
+
+  const isUnread = (item) => !(item.isRead ?? item.is_read ?? false);
 
   const renderNotification = ({ item }) => {
-   
-    
-    const getNotificationMessage = () => {
-      // For message notifications, show the actual message content
-      if (item.type === 'message' && item.data) {
-        try {
-          const messageData = JSON.parse(item.data);
-          return messageData.message || item.message;
-        } catch (error) {
-          console.error('Error parsing notification data:', error);
-        }
-      }
-      return item.message || 'New notification';
-    };
-
-    const safeFormatDate = (dateString) => {
-      try {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return '';
-        return formatDate(date);
-      } catch (error) {
-        console.error('Error formatting date:', error);
-        return '';
-      }
-    };
+    const name = item.from_user_profile?.full_name || 'Unknown user';
+    const action = getNotificationMessage(item);
+    const unread = isUnread(item);
+    const ts = item.created_at || item.createdAt;
+    const timeAgo = ts ? formatTimeAgo(ts) : '';
 
     return (
       <TouchableOpacity
-        style={[
-          styles.notificationItem,
-          !item.isRead && styles.unreadNotification
-        ]}
+        style={[styles.notificationItem, unread && styles.notificationItemUnread]}
         onPress={() => handleNotificationPress(item)}
+        activeOpacity={0.7}
       >
+        {unread && <View style={styles.unreadDot} />}
         <View style={styles.notificationContent}>
           <View style={styles.avatarContainer}>
             {item.from_user_profile?.avatar_url ? (
@@ -328,16 +350,18 @@ const NotificationsScreen = () => {
                 style={styles.avatar}
               />
             ) : (
-              <FontAwesome name="user-circle" size={40} color="#666" />
+              <Image
+                source={require('../assets/images/defaultProfileImage.jpg')}
+                style={styles.avatar}
+              />
             )}
           </View>
           <View style={styles.notificationTextContainer}>
-            <Text style={styles.notificationText}>
-              {item.from_user_profile?.full_name || 'Unknown user'} {getNotificationMessage()}
+            <Text style={styles.notificationMessage}>
+              <Text style={styles.notificationTitle}>{name} </Text>
+              {action}
             </Text>
-            <Text style={styles.notificationTime}>
-              {safeFormatDate(item.createdAt)}
-            </Text>
+            <Text style={styles.notificationTime}>{timeAgo}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -346,40 +370,95 @@ const NotificationsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Clear All button */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <FontAwesome name="arrow-left" size={28} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.text}>Notifications</Text>
-        <TouchableOpacity onPress={clearAllNotifications} style={styles.markReadButton}>
-          <Text style={styles.markReadText}>Clear All</Text>
-        </TouchableOpacity>
+      <View style={styles.headerSection}>
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>Notifications</Text>
+            <Text style={styles.subtitle}>
+              {unreadCount > 0
+                ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
+                : 'All caught up'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={clearAllNotifications}
+            style={styles.clearAllButton}
+            disabled={notifications.length === 0}
+          >
+            <Text
+              style={[
+                styles.clearAllText,
+                notifications.length === 0 && { opacity: 0.5 },
+              ]}
+            >
+              Clear All
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      
+
+      <View style={styles.filterSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          {FILTERS.map((f) => (
+            <TouchableOpacity
+              key={f.key}
+              onPress={() => setActiveFilter(f.key)}
+              style={[styles.filterButton, activeFilter === f.key && styles.filterButtonActive]}
+              activeOpacity={0.8}
+            >
+              {activeFilter === f.key ? (
+                <LinearGradient
+                  colors={[colors.gradientStart, colors.gradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.filterButtonGradient}
+                >
+                  <Text style={styles.filterButtonText}>{f.label}</Text>
+                </LinearGradient>
+              ) : (
+                <Text style={styles.filterButtonText}>{f.label}</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       {notifications.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No new notifications</Text>
+          <FontAwesome name="bell-o" size={48} color={colors.grey} style={{ marginBottom: 16 }} />
+          <Text style={styles.emptyText}>
+            {activeFilter === 'all'
+              ? 'No notifications yet'
+              : `No ${activeFilter === 'messages' ? 'messages' : 'activity'}`}
+          </Text>
         </View>
       ) : (
         <FlatList
-          data={notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))}
+          data={notifications}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderNotification}
           contentContainerStyle={styles.listContent}
-          onRefresh={refetch}
-          refreshing={isLoading}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching && !isLoading}
+              onRefresh={refetch}
+              tintColor={colors.accentBlue}
+            />
+          }
         />
       )}
-      
+
       {userEmail === 'dayonesflorida@gmail.com' && (
-        <>
-          <Text style={styles.adminText}>You have admin access.</Text>
+        <View style={{ padding: 20, paddingBottom: 8 }}>
           <Button
             title="Go to Super Admin Dashboard"
             onPress={() => navigation.navigate('SuperAdminDashboard')}
           />
-        </>
+        </View>
       )}
     </SafeAreaView>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
 import { useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import LinearGradient from 'react-native-linear-gradient';
 import useSendMessage from '../assets/hooks/useSendMessage';
 import { getMessages } from '../assets/services/apiService';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
@@ -24,25 +25,33 @@ import { uploadVideoToBucket } from '../utils/videoUploadService';
 import Video from 'react-native-video';
 import { BASEURL } from '../assets/constants';
 import ImageViewing from 'react-native-image-viewing';
-import styles from './sharedStyles/ConversationThreadStyles';
+import styles, { GRADIENT_START, GRADIENT_END } from './sharedStyles/ConversationThreadStyles';
 import { convertToTemporaryFile } from '../assets/components/convertToTemporaryFileHelper';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 
 const formatTime = (date) => {
-  const options = { hour: 'numeric', minute: 'numeric' };
+  const options = { hour: 'numeric', minute: 'numeric', hour12: true };
   return new Date(date).toLocaleTimeString([], options);
 };
 
-const formatDateLabel = (date) => {
-  const messageDate = new Date(date);
-  const today = new Date();
-  const isToday = messageDate.toDateString() === today.toDateString();
+const formatDateSeparator = (date) => {
+  const d = new Date(date);
+  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+};
 
-  if (isToday) {
-    return formatTime(date);
-  } else {
-    return `${messageDate.getMonth() + 1}/${messageDate.getDate()}`;
+const buildListWithDateSeparators = (messages) => {
+  const reversed = [...messages].reverse();
+  const list = [];
+  let lastDate = null;
+  for (const m of reversed) {
+    const d = new Date(m.created_at).toDateString();
+    if (lastDate !== null && d !== lastDate) {
+      list.push({ type: 'dateSeparator', date: m.created_at, key: `sep-${m.created_at}` });
+    }
+    lastDate = d;
+    list.push({ ...m, type: 'message' });
   }
+  return list;
 };
 
 const ConversationThread = ({ route }) => {
@@ -168,42 +177,66 @@ const ConversationThread = ({ route }) => {
         Platform.OS === 'android'
           ? PERMISSIONS.ANDROID.CAMERA
           : PERMISSIONS.IOS.CAMERA;
-  
-      // Check if permission is granted
+
       const result = await check(permission);
-  
-      // Define camera options
-      const options = {
-        mediaType: 'photo',
-        saveToPhotos: true,
-        includeBase64: false,
-      };
-  
-      if (result === RESULTS.GRANTED) {
-        // Permission is already granted; launch the camera
-        launchCamera(options, (response) => {
-          if (response.didCancel) {
-            console.log('User cancelled image picker');
-          } else if (response.errorMessage) {
-            console.log('ImagePicker Error: ', response.errorMessage);
-          } else if (response.assets && response.assets.length > 0) {
-            const capturedImage = response.assets[0];
-            setSelectedMedia(capturedImage.uri);
-            setMediaType('PHOTO');
-          }
-        });
-      } else if (result === RESULTS.DENIED) {
-        // Request permission
+
+      if (result === RESULTS.DENIED) {
         const requestResult = await request(permission);
         if (requestResult === RESULTS.GRANTED) {
-          handleTakeMedia(); // Retry camera after permission is granted
+          handleTakeMedia();
+          return;
         }
-      } else if (result === RESULTS.BLOCKED) {
-        // Permission is blocked; open settings
-        Linking.openSettings();
+        Alert.alert(
+          'Camera access needed',
+          'Please allow camera access to take photos.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      if (result === RESULTS.BLOCKED) {
+        Alert.alert(
+          'Camera blocked',
+          'Camera access is disabled. Open Settings to enable it.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
+      }
+      if (result !== RESULTS.GRANTED) {
+        Alert.alert('Camera unavailable', 'Unable to access the camera.');
+        return;
+      }
+
+      const options = {
+        mediaType: 'photo',
+        saveToPhotos: false,
+        includeBase64: false,
+      };
+
+      const response = await launchCamera(options);
+
+      if (response.didCancel) {
+        return;
+      }
+      if (response.errorCode || response.errorMessage) {
+        const msg = response.errorMessage || response.errorCode || 'Camera error';
+        Alert.alert('Camera error', msg);
+        return;
+      }
+      if (response.assets && response.assets.length > 0) {
+        const asset = response.assets[0];
+        let uri = asset.uri;
+        if (Platform.OS === 'android' && uri?.startsWith('content://')) {
+          uri = await convertToTemporaryFile(uri, 'jpg');
+        }
+        setSelectedMedia(uri);
+        setMediaType('PHOTO');
       }
     } catch (error) {
-      console.error('Error checking camera permission:', error);
+      console.error('Error in handleTakeMedia:', error);
+      Alert.alert('Camera error', error?.message || 'Something went wrong. Try again.');
     }
   };
   
@@ -411,10 +444,34 @@ const ConversationThread = ({ route }) => {
     }
   };
 
-  const renderMessage = ({ item }) => {
+  const listData = useMemo(() => buildListWithDateSeparators(messages), [messages]);
+
+  const renderItem = ({ item }) => {
+    if (item.type === 'dateSeparator') {
+      return (
+        <View style={styles.dateSeparator}>
+          <Text style={styles.dateSeparatorText}>{formatDateSeparator(item.date)}</Text>
+        </View>
+      );
+    }
+
     const senderEmail = item.messageSender?.email || null;
     const isSender = senderEmail === loggedInUserEmail;
-    const timestamp = formatDateLabel(item.created_at);
+    const timestamp = formatTime(item.created_at);
+
+    const bubbleLongPress = () =>
+      Alert.alert(
+        'Delete Message',
+        'Are you sure you want to delete this message?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => handleDeleteMessage(item.id),
+          },
+        ]
+      );
 
     return (
       <View
@@ -423,7 +480,6 @@ const ConversationThread = ({ route }) => {
           isSender ? styles.senderWrapper : styles.receiverWrapper,
         ]}
       >
-        {/* Render Media */}
         {item.media_type === 'PHOTO' && item.url && (
           <TouchableOpacity
             onPress={() => {
@@ -432,23 +488,14 @@ const ConversationThread = ({ route }) => {
             }}
             style={isSender ? styles.senderMedia : styles.receiverMedia}
           >
-            <Image
-              source={{ uri: item.url }}
-              style={[
-                styles.messageImage,
-                isSender ? styles.senderMedia : styles.receiverMedia,
-              ]}
-            />
+            <Image source={{ uri: item.url }} style={styles.messageImage} />
           </TouchableOpacity>
         )}
         {item.media_type === 'VIDEO' && item.url && (
           <View style={isSender ? styles.senderMedia : styles.receiverMedia}>
             <Video
               source={{ uri: item.url }}
-              style={[
-                styles.messageVideo,
-                isSender ? styles.senderMedia : styles.receiverMedia,
-              ]}
+              style={styles.messageVideo}
               paused={true}
               resizeMode="cover"
               controls
@@ -456,31 +503,39 @@ const ConversationThread = ({ route }) => {
           </View>
         )}
 
-        {/* Render Message Bubble (Text and Timestamp) */}
         {item.message && (
-          <TouchableOpacity
-            onLongPress={() =>
-              Alert.alert(
-                'Delete Message',
-                'Are you sure you want to delete this message?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: () => handleDeleteMessage(item.id),
-                  },
-                ]
-              )
-            }
-            style={[
-              styles.messageBubble,
-              isSender ? styles.senderBubble : styles.receiverBubble,
-            ]}
-          >
-            <Text style={styles.messageText}>{item.message}</Text>
-            <Text style={styles.messageTimestamp}>{timestamp}</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              onLongPress={bubbleLongPress}
+              activeOpacity={1}
+              style={
+                isSender
+                  ? styles.senderBubbleTouchable
+                  : [styles.messageBubble, styles.receiverBubble]
+              }
+            >
+              {isSender ? (
+                <LinearGradient
+                  colors={[GRADIENT_START, GRADIENT_END]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.senderBubbleGradient}
+                >
+                  <Text style={styles.messageText}>{item.message}</Text>
+                </LinearGradient>
+              ) : (
+                <Text style={styles.messageText}>{item.message}</Text>
+              )}
+            </TouchableOpacity>
+            <Text
+              style={[
+                styles.messageTimestamp,
+                isSender ? styles.senderTimestamp : styles.receiverTimestamp,
+              ]}
+            >
+              {timestamp}
+            </Text>
+          </>
         )}
       </View>
     );
@@ -493,13 +548,19 @@ const ConversationThread = ({ route }) => {
     >
       <SafeAreaView style={styles.safeContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={24} color="#fff" style={styles.backButton} />
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.headerButtonCircle, styles.backButton]}
+          >
+            <Icon name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
           <Image source={{ uri: profilePicture }} style={styles.profilePicture} />
           <Text style={styles.username}>{username}</Text>
-          <TouchableOpacity onPress={toggleMenu}>
-            <Icon name="ellipsis-v" size={24} color="#fff" style={styles.menuIcon} />
+          <TouchableOpacity
+            onPress={toggleMenu}
+            style={[styles.headerButtonCircle, styles.menuIcon]}
+          >
+            <Icon name="ellipsis-v" size={20} color="#fff" />
           </TouchableOpacity>
 
           {menuVisible && (
@@ -522,16 +583,25 @@ const ConversationThread = ({ route }) => {
                     onChangeText={setReason}
                   />
 
-                  {/* Report User Button */}
                   <TouchableOpacity onPress={handleReportUser} style={styles.modalItem}>
                     <Icon name="flag" size={20} color="#ffa500" style={styles.modalItemIcon} />
                     <Text style={styles.modalText}>Report User</Text>
                   </TouchableOpacity>
 
-                  {/* Block User Button */}
                   <TouchableOpacity onPress={handleBlockUser} style={styles.modalItem}>
                     <Icon name="ban" size={20} color="#ff4444" style={styles.modalItemIcon} />
                     <Text style={styles.modalText}>Block User</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      toggleMenu();
+                      setTimeout(() => handleSelectMedia(), 200);
+                    }}
+                    style={styles.modalItem}
+                  >
+                    <Icon name="image" size={20} color="#888" style={styles.modalItemIcon} />
+                    <Text style={styles.modalText}>Attach from library</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={toggleMenu} style={styles.modalCloseButton}>
@@ -545,12 +615,14 @@ const ConversationThread = ({ route }) => {
 
         <FlatList
           ref={flatListRef}
-          data={[...messages].reverse()}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderMessage}
+          data={listData}
+          keyExtractor={(item) =>
+            item.type === 'dateSeparator' ? item.key : item.id.toString()
+          }
+          renderItem={renderItem}
           style={styles.messageList}
           inverted={true}
-          contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
+          contentContainerStyle={styles.listContent}
         />
 
         <ImageViewing
@@ -578,27 +650,34 @@ const ConversationThread = ({ route }) => {
               </TouchableOpacity>
             </View>
           )}
-          <TouchableOpacity onPress={handleTakeMedia}>
-            <Icon name="camera" size={24} color="#888" style={styles.icon} />
+          <TouchableOpacity onPress={handleTakeMedia} style={styles.cameraButton}>
+            <Icon name="camera" size={20} color="#fff" />
           </TouchableOpacity>
-          <TextInput
-            value={newMessage}
-            onChangeText={setNewMessage}
-            placeholder="Message..."
-            style={[styles.input, selectedMedia && styles.inputWithImage]}
-            placeholderTextColor="#ccc"
-            returnKeyType="send"
-            onSubmitEditing={handleSendMessage}
-          />
-          <TouchableOpacity onPress={handleSelectMedia} style={styles.iconSpacing}>
-            <Icon name="image" size={24} color="#888" style={styles.icon} />
-          </TouchableOpacity>
+          <View style={[styles.inputWrapper, selectedMedia && styles.inputWithImage]}>
+            <TextInput
+              value={newMessage}
+              onChangeText={setNewMessage}
+              placeholder="Type a message"
+              style={styles.input}
+              placeholderTextColor="#888888"
+              returnKeyType="send"
+              onSubmitEditing={handleSendMessage}
+              multiline
+            />
+          </View>
           <TouchableOpacity
-            style={[styles.sendButton, isSending && { opacity: 0.5 }]} // Disable visual feedback
             onPress={handleSendMessage}
-            disabled={isSending} // Disable button while sending
+            disabled={isSending}
+            style={[styles.sendButton, isSending && { opacity: 0.5 }]}
           >
-            <Icon name="send" size={24} color="#fff" />
+            <LinearGradient
+              colors={[GRADIENT_START, GRADIENT_END]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.sendButtonGradient}
+            >
+              <Icon name="paper-plane" size={20} color="#fff" />
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

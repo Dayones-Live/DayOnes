@@ -155,13 +155,16 @@ const DMsScreen = ({ navigation }) => {
     return sender.email === loggedInUserEmail ? receiver : sender;
   };
 
-  const renderItem = ({ item }) => {
-    // Determine who is not the logged-in user
-    const otherUser = getOtherUser(item.sender, item.reciever, loggedInUser?.data?.email);
+  const unreadCount = conversations.filter(
+    (c) => c.has_unread === true || c.unread === true
+  ).length;
 
+  const renderItem = ({ item }) => {
+    const otherUser = getOtherUser(item.sender, item.reciever, loggedInUser?.data?.email);
     const lastMessageTime = formatTimeAgo(item.updated_at);
     const avatarUrl = otherUser.avatar_url || 'https://example.com/default-avatar.png';
     const displayName = otherUser.full_name;
+    const isUnread = item.has_unread === true || item.unread === true;
 
     return (
       <TouchableOpacity
@@ -178,9 +181,13 @@ const DMsScreen = ({ navigation }) => {
         }
         style={styles.conversationContainer}
       >
+        {isUnread && <View style={styles.unreadDot} />}
         <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         <View style={styles.messageInfo}>
-          <Text style={styles.senderName}>{displayName} sent you a private message</Text>
+          <Text style={styles.messagePreview}>
+            <Text style={styles.senderName}>{displayName}</Text>
+            {' sent you a private message.'}
+          </Text>
           <Text style={styles.lastMessage}>Tap to view message - {lastMessageTime}</Text>
         </View>
       </TouchableOpacity>
@@ -199,12 +206,17 @@ const DMsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Direct Messages</Text>
+      <View style={styles.headerSection}>
+        <Text style={styles.header}>Direct Messages</Text>
+        <Text style={styles.subtitle}>
+          {unreadCount} unread DM{unreadCount === 1 ? '' : "'s"}
+        </Text>
+      </View>
       <FlatList
         data={conversations}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={styles.listContent}
       />
     </SafeAreaView>
   );
