@@ -1,0 +1,26 @@
+diff --git a/node_modules/react-native/Libraries/NativeAnimation/RCTNativeAnimatedModule.mm b/node_modules/react-native/Libraries/NativeAnimation/RCTNativeAnimatedModule.mm
+index b444ecc..5378ef2 100644
+--- a/node_modules/react-native/Libraries/NativeAnimation/RCTNativeAnimatedModule.mm
++++ b/node_modules/react-native/Libraries/NativeAnimation/RCTNativeAnimatedModule.mm
+@@ -368,7 +368,7 @@ - (void)uiManagerWillPerformMounting:(RCTUIManager *)uiManager
+ 
+ - (NSArray<NSString *> *)supportedEvents
+ {
+-  return @[ @"onAnimatedValueUpdate" ];
++  return @[ @"onAnimatedValueUpdate", @"onUserDrivenAnimationEnded" ];
+ }
+ 
+ - (void)animatedNode:(RCTValueAnimatedNode *)node didUpdateValue:(CGFloat)value
+diff --git a/node_modules/react-native/Libraries/NativeAnimation/RCTNativeAnimatedTurboModule.mm b/node_modules/react-native/Libraries/NativeAnimation/RCTNativeAnimatedTurboModule.mm
+index cdf38d9..b7dd306 100644
+--- a/node_modules/react-native/Libraries/NativeAnimation/RCTNativeAnimatedTurboModule.mm
++++ b/node_modules/react-native/Libraries/NativeAnimation/RCTNativeAnimatedTurboModule.mm
+@@ -364,7 +364,7 @@ - (void)didMountComponentsWithRootTag:(NSInteger)rootTag
+ 
+ - (NSArray<NSString *> *)supportedEvents
+ {
+-  return @[ @"onAnimatedValueUpdate" ];
++  return @[ @"onAnimatedValueUpdate", @"onUserDrivenAnimationEnded" ];
+ }
+ 
+ - (void)animatedNode:(RCTValueAnimatedNode *)node didUpdateValue:(CGFloat)value
