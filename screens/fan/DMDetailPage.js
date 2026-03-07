@@ -18,6 +18,7 @@ import { TouchableWithoutFeedback } from 'react-native';
 import styles from './fanStyles/DMDetailPageStyles';
 import { useNavigation } from '@react-navigation/native';
 import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
+import { getMerchDropByPost } from '../../services/merch.service';
 
 
 const MAX_COMMENT_LENGTH = 200;
@@ -74,6 +75,7 @@ const DMDetailPage = ({ route }) => {
   const [openCommentMenuId, setOpenCommentMenuId] = useState(null);
   const [activeCommentMenu, setActiveCommentMenu] = useState(null);
   const navigation = useNavigation();
+  const [merchDrop, setMerchDrop] = useState(null);
 
   // Function to open the menu and set text specific to the comment
   const openCommentMenu = (commentId, text) => {
@@ -327,6 +329,19 @@ const DMDetailPage = ({ route }) => {
     fetchPostDetails();
   }, [postId]);
 
+  useEffect(() => {
+    const checkMerchDrop = async () => {
+      try {
+        const drop = await getMerchDropByPost(postId);
+        if (drop && drop.status === 'ACTIVE') {
+          setMerchDrop(drop);
+        }
+      } catch (error) {
+      }
+    };
+    checkMerchDrop();
+  }, [postId]);
+
   const handleMediaUpload = async (uri) => {
     try {
       // Ensure compliance with scoped storage
@@ -568,6 +583,23 @@ const DMDetailPage = ({ route }) => {
               <EvilIcons name="heart" size={30} color={liked ? "#FF0000" : "#FFFFFF"} />
             </TouchableOpacity>
           </View>
+
+          {merchDrop && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#FF0080',
+                paddingVertical: 12,
+                paddingHorizontal: 24,
+                borderRadius: 8,
+                marginHorizontal: 16,
+                marginVertical: 12,
+                alignItems: 'center',
+              }}
+              onPress={() => navigation.navigate('MerchStorePage', { dropId: merchDrop.id })}
+            >
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>Shop Merch</Text>
+            </TouchableOpacity>
+          )}
 
           <View style={styles.commentsContainer}>
             {post.artistComments
