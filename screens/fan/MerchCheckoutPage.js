@@ -95,6 +95,7 @@ const MerchCheckoutPage = ({ route }) => {
       }
 
       setOrderResult(result);
+      setLoading(false);
       setSuccess(true);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -115,7 +116,7 @@ const MerchCheckoutPage = ({ route }) => {
           </Text>
           <TouchableOpacity
             style={styles.viewOrdersButton}
-            onPress={() => navigation.navigate('MyCollectionsPage')}
+            onPress={() => navigation.navigate('My Collections')}
           >
             <Text style={styles.viewOrdersText}>View Orders</Text>
           </TouchableOpacity>
@@ -244,7 +245,7 @@ const MerchCheckoutPage = ({ route }) => {
           </View>
 
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>Subtotal</Text>
             <Text style={styles.totalValue}>${subtotal}</Text>
           </View>
         </View>

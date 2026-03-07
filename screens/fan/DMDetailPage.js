@@ -586,18 +586,10 @@ const DMDetailPage = ({ route }) => {
 
           {merchDrop && (
             <TouchableOpacity
-              style={{
-                backgroundColor: '#FF0080',
-                paddingVertical: 12,
-                paddingHorizontal: 24,
-                borderRadius: 8,
-                marginHorizontal: 16,
-                marginVertical: 12,
-                alignItems: 'center',
-              }}
+              style={styles.shopMerchButton}
               onPress={() => navigation.navigate('MerchStorePage', { dropId: merchDrop.id })}
             >
-              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>Shop Merch</Text>
+              <Text style={styles.shopMerchText}>Shop Merch</Text>
             </TouchableOpacity>
           )}
 

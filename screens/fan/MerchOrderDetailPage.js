@@ -181,7 +181,7 @@ const MerchOrderDetailPage = () => {
           </View>
         </View>
 
-        {order.status === 'SHIPPED' && order.tracking_number && (
+        {(order.status === 'SHIPPED' || order.status === 'DELIVERED') && order.tracking_number && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Tracking</Text>
             <View style={styles.trackingSection}>
@@ -199,7 +199,7 @@ const MerchOrderDetailPage = () => {
           </View>
         )}
 
-        {order.status === 'SHIPPED' && (
+        {(order.status === 'SHIPPED' || order.status === 'DELIVERED') && (
           <TouchableOpacity style={styles.returnButton} onPress={handleRequestReturn}>
             <Text style={styles.returnButtonText}>Request Return</Text>
           </TouchableOpacity>

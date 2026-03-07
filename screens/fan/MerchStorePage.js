@@ -142,7 +142,7 @@ const MerchStorePage = () => {
           {productGroups.map(({ type, representative, products }) => {
             const imageUri = representative.mockup_url || representative.image_url;
             const label = PRODUCT_TYPE_LABELS[type] || type;
-            const price = representative.price;
+            const price = representative.retail_price;
 
             return (
               <TouchableOpacity

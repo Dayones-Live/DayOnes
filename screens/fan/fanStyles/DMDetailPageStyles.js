@@ -178,6 +178,20 @@ const styles = StyleSheet.create({
         color: '#3498db', // Keep links blue
         textDecorationLine: 'underline',
     },
+    shopMerchButton: {
+        backgroundColor: '#FF0080',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+        marginHorizontal: 16,
+        marginVertical: 12,
+        alignItems: 'center',
+    },
+    shopMerchText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });
 
 
