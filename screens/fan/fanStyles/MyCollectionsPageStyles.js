@@ -330,6 +330,66 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#888888',
         fontWeight: '400'
+    },
+    segmentControl: {
+        flexDirection: 'row',
+        marginHorizontal: 16,
+        marginVertical: 12,
+        backgroundColor: '#1A1A1A',
+        borderRadius: 8,
+        padding: 4
+    },
+    segmentButton: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 6
+    },
+    segmentButtonActive: {
+        backgroundColor: '#FF0080'
+    },
+    segmentText: {
+        color: '#999',
+        fontSize: 14,
+        fontWeight: '600'
+    },
+    segmentTextActive: {
+        color: '#FFF'
+    },
+    orderCard: {
+        backgroundColor: '#1A1A1A',
+        marginHorizontal: 16,
+        marginVertical: 6,
+        padding: 16,
+        borderRadius: 12
+    },
+    orderNumber: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold'
+    },
+    orderDate: {
+        color: '#999',
+        fontSize: 12,
+        marginTop: 4
+    },
+    orderStatus: {
+        color: '#FF0080',
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 4
+    },
+    orderTotal: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginTop: 8
+    },
+    emptyText: {
+        color: '#999',
+        textAlign: 'center',
+        marginTop: 40,
+        fontSize: 16
     }
 });
 

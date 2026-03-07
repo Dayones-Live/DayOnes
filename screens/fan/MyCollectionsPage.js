@@ -11,6 +11,7 @@ import {
   FlatList,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
@@ -18,6 +19,7 @@ import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
 import styles from './fanStyles/MyCollectionsPageStyles';
 import ImageViewing from 'react-native-image-viewing';
+import { getFanOrders } from '../../services/merch.service';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8;
@@ -33,6 +35,9 @@ const MyCollectionsPage = ({ navigation }) => {
   const [selectedArtist, setSelectedArtist] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState('coverFlow'); // 'coverFlow' or 'grid'
+  const [activeTab, setActiveTab] = useState('drops');
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const scrollX = useRef(new Animated.Value(0)).current;
   const accessToken = useSelector((state) => state.accessToken);
   const coverFlowRef = useRef(null);
@@ -53,6 +58,18 @@ const MyCollectionsPage = ({ navigation }) => {
     } catch (error) {
       console.error('Error fetching posts:', error);
       Alert.alert('Error', 'An error occurred while fetching posts.');
+    }
+  };
+
+  const fetchOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      const data = await getFanOrders();
+      setOrders(data || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setOrdersLoading(false);
     }
   };
 
@@ -413,32 +430,71 @@ const MyCollectionsPage = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Your Autographs</Text>
       <Text style={styles.subtitle}>Your personal collection of signed memories</Text>
-      
-      {filteredPosts.length > 0 && (
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{totalAutographs}</Text>
-            <Text style={styles.statLabel}>Autographs</Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.statItem} 
-            onPress={() => setIsArtistModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.statNumber}>{uniqueArtists}</Text>
-            <Text style={styles.statLabel}>Artists</Text>
-          </TouchableOpacity>
-        </View>
+
+      <View style={styles.segmentControl}>
+        <TouchableOpacity
+          style={[styles.segmentButton, activeTab === 'drops' && styles.segmentButtonActive]}
+          onPress={() => setActiveTab('drops')}
+        >
+          <Text style={[styles.segmentText, activeTab === 'drops' && styles.segmentTextActive]}>Drops</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.segmentButton, activeTab === 'orders' && styles.segmentButtonActive]}
+          onPress={() => { setActiveTab('orders'); fetchOrders(); }}
+        >
+          <Text style={[styles.segmentText, activeTab === 'orders' && styles.segmentTextActive]}>Orders</Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeTab === 'drops' && (
+        <>
+          {filteredPosts.length > 0 && (
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{totalAutographs}</Text>
+                <Text style={styles.statLabel}>Autographs</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.statItem}
+                onPress={() => setIsArtistModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.statNumber}>{uniqueArtists}</Text>
+                <Text style={styles.statLabel}>Artists</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <ScrollView style={styles.scrollView} contentContainerStyle={styles.imageGrid}>
+            {filteredPosts.length === 0 ? (
+              <Text style={styles.noPostsText}>Start collecting your first autograph!</Text>
+            ) : (
+              filteredPosts.map((post, index) => renderGridItem({ item: post, index }))
+            )}
+          </ScrollView>
+        </>
       )}
 
-      {/* Always show grid view in main gallery */}
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.imageGrid}>
-        {filteredPosts.length === 0 ? (
-          <Text style={styles.noPostsText}>Start collecting your first autograph!</Text>
-        ) : (
-          filteredPosts.map((post, index) => renderGridItem({ item: post, index }))
-        )}
-      </ScrollView>
+      {activeTab === 'orders' && (
+        <FlatList
+          data={orders}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.orderCard}
+              onPress={() => navigation.navigate('MerchOrderDetailPage', { orderId: item.id })}
+            >
+              <Text style={styles.orderNumber}>{item.order_number}</Text>
+              <Text style={styles.orderDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+              <Text style={styles.orderStatus}>{item.status}</Text>
+              <Text style={styles.orderTotal}>${Number(item.total).toFixed(2)}</Text>
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={
+            ordersLoading ? <ActivityIndicator color="#FF0080" /> : <Text style={styles.emptyText}>No orders yet</Text>
+          }
+        />
+      )}
 
       {/* Artists Modal */}
       <Modal
@@ -451,7 +507,7 @@ const MyCollectionsPage = ({ navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Your Artists</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setIsArtistModalVisible(false)}
                 style={styles.closeButton}
               >
