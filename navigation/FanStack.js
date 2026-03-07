@@ -10,6 +10,10 @@ import DMsScreen from '../screens/DMsScreen'; // Direct Messages screen
 import FanOnboardingTutorial from '../screens/fan/FanOnboardingTutorial';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import BlockedUsers from '../screens/BlockedUsers';
+import MerchStorePage from '../screens/fan/MerchStorePage';
+import MerchProductPage from '../screens/fan/MerchProductPage';
+import MerchCheckoutPage from '../screens/fan/MerchCheckoutPage';
+import MerchOrderDetailPage from '../screens/fan/MerchOrderDetailPage';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createStackNavigator();
@@ -31,6 +35,10 @@ const RootStackScreen = () => {
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="MainTabs" component={TabNavigator} />
       <RootStack.Screen name="BlockedUsers" component={BlockedUsers} />
+      <RootStack.Screen name="MerchStorePage" component={MerchStorePage} />
+      <RootStack.Screen name="MerchProductPage" component={MerchProductPage} />
+      <RootStack.Screen name="MerchCheckoutPage" component={MerchCheckoutPage} />
+      <RootStack.Screen name="MerchOrderDetailPage" component={MerchOrderDetailPage} />
     </RootStack.Navigator>
   );
 };
