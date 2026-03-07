@@ -180,6 +180,18 @@ const AppContent = () => {
               });
             }
           }
+        } else if (data.type === 'merch_drop' && data.drop_id) {
+          if (navigationRef.current) {
+            navigationRef.current.navigate('MerchStorePage', {
+              dropId: data.drop_id,
+            });
+          }
+        } else if (data.type === 'merch_order_shipped' && data.order_id) {
+          if (navigationRef.current) {
+            navigationRef.current.navigate('MerchOrderDetailPage', {
+              orderId: data.order_id,
+            });
+          }
         }
       } catch (error) {
         console.error('Error handling notification click:', error);
