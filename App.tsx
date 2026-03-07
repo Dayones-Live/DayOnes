@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SplashScreen from 'react-native-splash-screen';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import store from './assets/redux/store';
 import { BASEURL } from './assets/constants';
 import TermsAndPrivacyScreen from './auth/TermsAndPrivacyScreen';
@@ -500,11 +501,13 @@ const AppContent = () => {
 // Main App component that wraps everything with Provider
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Provider store={store}>
-        <AppContent />
-      </Provider>
-    </QueryClientProvider>
+    <StripeProvider publishableKey="pk_test_PLACEHOLDER">
+      <QueryClientProvider client={queryClient}>
+        <Provider store={store}>
+          <AppContent />
+        </Provider>
+      </QueryClientProvider>
+    </StripeProvider>
   );
 };
 

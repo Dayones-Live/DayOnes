@@ -1,1 +1,1 @@
-export const BASEURL = 'http://44.202.63.106:3000'
+export const BASEURL = 'https://api.dayones.app'
