@@ -404,6 +404,7 @@ const AppContent = () => {
           global.navigationRef = navigationRef;
           console.log('Navigation is ready, ref set');
         }
+        SplashScreen.hide();
       }}
     >
       <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
