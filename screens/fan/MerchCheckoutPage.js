@@ -33,6 +33,7 @@ const MerchCheckoutPage = ({ route }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [orderResult, setOrderResult] = useState(null);
+  const [orderCreated, setOrderCreated] = useState(false);
   const [error, setError] = useState('');
 
   const subtotal = (product.retail_price * quantity).toFixed(2);
@@ -52,7 +53,7 @@ const MerchCheckoutPage = ({ route }) => {
     return true;
   };
 
-  const handlePlaceOrder = async () => {
+  const handleCreateOrder = async () => {
     if (!validateAddress()) {
       setError('Please fill in all required address fields.');
       return;
@@ -84,6 +85,20 @@ const MerchCheckoutPage = ({ route }) => {
         throw new Error(initError.message);
       }
 
+      setOrderResult(result);
+      setOrderCreated(true);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmPayment = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
       const { error: paymentError } = await presentPaymentSheet();
 
       if (paymentError) {
@@ -94,11 +109,10 @@ const MerchCheckoutPage = ({ route }) => {
         throw new Error(paymentError.message);
       }
 
-      setOrderResult(result);
       setLoading(false);
       setSuccess(true);
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.');
+      setError(err.message || 'Payment failed. Please try again.');
       setLoading(false);
     }
   };
@@ -114,6 +128,9 @@ const MerchCheckoutPage = ({ route }) => {
           <Text style={styles.orderNumberText}>
             Order #{orderResult?.orderNumber}
           </Text>
+          <Text style={styles.orderTotalText}>
+            Total: ${parseFloat(orderResult?.total).toFixed(2)}
+          </Text>
           <TouchableOpacity
             style={styles.viewOrdersButton}
             onPress={() => navigation.navigate('My Collections')}
@@ -121,6 +138,93 @@ const MerchCheckoutPage = ({ route }) => {
             <Text style={styles.viewOrdersText}>View Orders</Text>
           </TouchableOpacity>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (orderCreated && orderResult) {
+    const shippingCost = parseFloat(orderResult.shippingCost || 0).toFixed(2);
+    const total = parseFloat(orderResult.total).toFixed(2);
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => { setOrderCreated(false); setOrderResult(null); }} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color="#ffffff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Confirm Payment</Text>
+          </View>
+
+          <Text style={styles.sectionTitle}>Order Summary</Text>
+
+          <View style={styles.orderSummary}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Product</Text>
+              <Text style={styles.summaryValue}>{product.product_type}</Text>
+            </View>
+
+            {product.size && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Size</Text>
+                <Text style={styles.summaryValue}>{product.size}</Text>
+              </View>
+            )}
+
+            {product.color && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Color</Text>
+                <Text style={styles.summaryValue}>{product.color}</Text>
+              </View>
+            )}
+
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Quantity</Text>
+              <Text style={styles.summaryValue}>{quantity}</Text>
+            </View>
+
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Subtotal</Text>
+              <Text style={styles.summaryValue}>${parseFloat(orderResult.subtotal).toFixed(2)}</Text>
+            </View>
+
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Shipping</Text>
+              <Text style={styles.summaryValue}>
+                {parseFloat(shippingCost) === 0 ? 'FREE' : `$${shippingCost}`}
+              </Text>
+            </View>
+
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalValue}>${total}</Text>
+            </View>
+          </View>
+
+          <View style={styles.shippingAddressPreview}>
+            <Text style={styles.sectionTitle}>Shipping To</Text>
+            <Text style={styles.addressPreviewText}>{address.name}</Text>
+            <Text style={styles.addressPreviewText}>{address.address1}{address.address2 ? `, ${address.address2}` : ''}</Text>
+            <Text style={styles.addressPreviewText}>{address.city}, {address.state_code} {address.zip}</Text>
+          </View>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <TouchableOpacity
+            style={[
+              styles.placeOrderButton,
+              loading && styles.placeOrderButtonDisabled,
+            ]}
+            onPress={handleConfirmPayment}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#ffffff" size="small" />
+            ) : (
+              <Text style={styles.placeOrderText}>Pay ${total}</Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -240,13 +344,8 @@ const MerchCheckoutPage = ({ route }) => {
                 <Text style={styles.freeShippingText}>FREE</Text>
               </View>
             ) : (
-              <Text style={styles.summaryValue}>Calculated at checkout</Text>
+              <Text style={styles.summaryValue}>Calculated next</Text>
             )}
-          </View>
-
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Subtotal</Text>
-            <Text style={styles.totalValue}>${subtotal}</Text>
           </View>
         </View>
 
@@ -257,13 +356,13 @@ const MerchCheckoutPage = ({ route }) => {
             styles.placeOrderButton,
             loading && styles.placeOrderButtonDisabled,
           ]}
-          onPress={handlePlaceOrder}
+          onPress={handleCreateOrder}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="#ffffff" size="small" />
           ) : (
-            <Text style={styles.placeOrderText}>Place Order</Text>
+            <Text style={styles.placeOrderText}>Continue to Payment</Text>
           )}
         </TouchableOpacity>
       </ScrollView>

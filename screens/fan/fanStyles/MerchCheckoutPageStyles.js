@@ -180,6 +180,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
   },
+  orderTotalText: {
+    color: '#999',
+    fontSize: 16,
+    marginTop: 8,
+  },
+  shippingAddressPreview: {
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  addressPreviewText: {
+    color: '#ccc',
+    fontSize: 14,
+    lineHeight: 22,
+  },
 });
 
 export default styles;
