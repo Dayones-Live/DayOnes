@@ -17,6 +17,13 @@ import { useNavigation } from '@react-navigation/native';
 import { createMerchOrder } from '../../services/merch.service';
 import styles from './fanStyles/MerchCheckoutPageStyles';
 
+const PRODUCT_TYPE_LABELS = {
+  HOODIE: 'Hoodie',
+  TSHIRT: 'T-Shirt',
+  TANK: 'Tank Top',
+  POSTER: 'Poster',
+};
+
 const MerchCheckoutPage = ({ route }) => {
   const { dropId, product, quantity } = route.params;
   const navigation = useNavigation();
@@ -39,7 +46,7 @@ const MerchCheckoutPage = ({ route }) => {
   const [orderCreated, setOrderCreated] = useState(false);
   const [error, setError] = useState('');
 
-  const subtotal = (product.retail_price * quantity).toFixed(2);
+  const subtotal = (Number(product.retail_price) * quantity).toFixed(2);
   const isFreeShipping = parseFloat(subtotal) >= 95;
 
   const updateAddress = (field, value) => {
@@ -165,7 +172,7 @@ const MerchCheckoutPage = ({ route }) => {
           <View style={styles.orderSummary}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Product</Text>
-              <Text style={styles.summaryValue}>{product.product_type}</Text>
+              <Text style={styles.summaryValue}>{PRODUCT_TYPE_LABELS[product.product_type] || product.product_type}</Text>
             </View>
 
             {product.size && (
@@ -210,6 +217,7 @@ const MerchCheckoutPage = ({ route }) => {
             <Text style={styles.addressPreviewText}>{address.name}</Text>
             <Text style={styles.addressPreviewText}>{address.address1}{address.address2 ? `, ${address.address2}` : ''}</Text>
             <Text style={styles.addressPreviewText}>{address.city}, {address.state_code} {address.zip}</Text>
+            <Text style={styles.addressChangeNote}>Need to change? Contact support after placing order.</Text>
           </View>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -318,7 +326,7 @@ const MerchCheckoutPage = ({ route }) => {
         <View style={styles.orderSummary}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Product</Text>
-            <Text style={styles.summaryValue}>{product.product_type}</Text>
+            <Text style={styles.summaryValue}>{PRODUCT_TYPE_LABELS[product.product_type] || product.product_type}</Text>
           </View>
 
           {product.size && (

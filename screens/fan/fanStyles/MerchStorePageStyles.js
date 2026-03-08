@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 12,
-    padding: 5,
+    padding: 10,
   },
   headerTitle: {
     fontSize: 20,
@@ -39,13 +39,17 @@ const styles = StyleSheet.create({
     color: '#FF0080',
     fontWeight: '600',
   },
+  scrollContent: {
+    paddingBottom: 40,
+  },
   expiredOverlay: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
-    borderRadius: 0,
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   expiredText: {
     fontSize: 20,
@@ -72,6 +76,15 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
+  },
+  productImagePlaceholder: {
+    width: '100%',
+    aspectRatio: 1,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    backgroundColor: '#2A2A2A',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   productInfo: {
     padding: 10,

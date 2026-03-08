@@ -137,7 +137,12 @@ const MerchStorePage = () => {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {expired && (
+          <View style={styles.expiredOverlay}>
+            <Text style={styles.expiredText}>This merch drop has ended</Text>
+          </View>
+        )}
         <View style={styles.grid}>
           {productGroups.map(({ type, representative, products }) => {
             const imageUri = representative.mockup_url || representative.image_url;
@@ -158,17 +163,21 @@ const MerchStorePage = () => {
                   });
                 }}
               >
-                {imageUri && (
+                {imageUri ? (
                   <Image
                     source={{ uri: imageUri }}
                     style={styles.productImage}
                     resizeMode="cover"
                   />
+                ) : (
+                  <View style={styles.productImagePlaceholder}>
+                    <Ionicons name="shirt-outline" size={48} color="#555" />
+                  </View>
                 )}
                 <View style={styles.productInfo}>
                   <Text style={styles.productName}>{label}</Text>
                   <Text style={styles.productPrice}>
-                    ${parseFloat(price).toFixed(2)}
+                    ${parseFloat(price || 0).toFixed(2)}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -176,12 +185,6 @@ const MerchStorePage = () => {
           })}
         </View>
       </ScrollView>
-
-      {expired && (
-        <View style={styles.expiredOverlay}>
-          <Text style={styles.expiredText}>This merch drop has ended</Text>
-        </View>
-      )}
     </SafeAreaView>
   );
 };

@@ -15,7 +15,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 12,
-    padding: 5,
+    padding: 10,
   },
   headerTitle: {
     fontSize: 18,
@@ -24,8 +24,15 @@ const styles = StyleSheet.create({
   },
   productImage: {
     width: '100%',
-    height: SCREEN_HEIGHT * 0.6,
+    height: SCREEN_HEIGHT * 0.45,
     resizeMode: 'cover',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: SCREEN_HEIGHT * 0.45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
   },
   detailsContainer: {
     padding: 20,
@@ -68,16 +75,24 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
   },
+  colorSwatchTouchable: {
+    padding: 4,
+  },
   colorSwatch: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#333',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   colorSwatchSelected: {
     borderColor: '#FF0080',
     borderWidth: 3,
+  },
+  selectedColorName: {
+    fontSize: 14,
+    color: '#AAAAAA',
+    marginTop: 8,
   },
   priceText: {
     fontSize: 28,

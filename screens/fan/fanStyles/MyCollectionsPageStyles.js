@@ -363,6 +363,24 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 12
     },
+    orderCardContent: {
+        flexDirection: 'row',
+        alignItems: 'center'
+    },
+    orderCardLeft: {
+        flex: 1
+    },
+    orderCardTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8
+    },
+    orderCardBottomRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
     orderNumber: {
         color: '#FFF',
         fontSize: 16,
@@ -370,20 +388,23 @@ const styles = StyleSheet.create({
     },
     orderDate: {
         color: '#999',
-        fontSize: 12,
-        marginTop: 4
+        fontSize: 12
     },
-    orderStatus: {
+    orderStatusBadge: {
+        backgroundColor: 'rgba(255, 0, 128, 0.15)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12
+    },
+    orderStatusText: {
         color: '#FF0080',
         fontSize: 12,
-        fontWeight: '600',
-        marginTop: 4
+        fontWeight: '600'
     },
     orderTotal: {
         color: '#FFF',
         fontSize: 16,
-        fontWeight: 'bold',
-        marginTop: 8
+        fontWeight: 'bold'
     },
     emptyText: {
         color: '#999',

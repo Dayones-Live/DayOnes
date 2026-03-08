@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 12,
-    padding: 5,
+    padding: 10,
   },
   headerTitle: {
     fontSize: 22,
@@ -193,6 +193,12 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 14,
     lineHeight: 22,
+  },
+  addressChangeNote: {
+    color: '#888',
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginTop: 8,
   },
 });
 

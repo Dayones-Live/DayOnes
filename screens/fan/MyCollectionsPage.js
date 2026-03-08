@@ -19,7 +19,19 @@ import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
 import styles from './fanStyles/MyCollectionsPageStyles';
 import ImageViewing from 'react-native-image-viewing';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getFanOrders } from '../../services/merch.service';
+
+const STATUS_LABELS = {
+  PENDING: 'Pending',
+  PAID: 'Paid',
+  PRODUCTION: 'In Production',
+  SHIPPED: 'Shipped',
+  DELIVERED: 'Delivered',
+  REFUNDED: 'Refunded',
+  CANCELLED: 'Cancelled',
+  RETURN_REQUESTED: 'Return Requested',
+};
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8;
@@ -484,10 +496,21 @@ const MyCollectionsPage = ({ navigation }) => {
               style={styles.orderCard}
               onPress={() => navigation.navigate('MerchOrderDetailPage', { orderId: item.id })}
             >
-              <Text style={styles.orderNumber}>{item.order_number}</Text>
-              <Text style={styles.orderDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
-              <Text style={styles.orderStatus}>{item.status}</Text>
-              <Text style={styles.orderTotal}>${Number(item.total).toFixed(2)}</Text>
+              <View style={styles.orderCardContent}>
+                <View style={styles.orderCardLeft}>
+                  <View style={styles.orderCardTopRow}>
+                    <Text style={styles.orderNumber}>{item.order_number}</Text>
+                    <Text style={styles.orderTotal}>${Number(item.total).toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.orderCardBottomRow}>
+                    <Text style={styles.orderDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                    <View style={styles.orderStatusBadge}>
+                      <Text style={styles.orderStatusText}>{STATUS_LABELS[item.status] || item.status}</Text>
+                    </View>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </View>
             </TouchableOpacity>
           )}
           ListEmptyComponent={

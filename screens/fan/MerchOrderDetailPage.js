@@ -51,14 +51,16 @@ const MerchOrderDetailPage = () => {
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchOrder = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getOrder(orderId);
       setOrder(data);
     } catch (err) {
-      Alert.alert('Error', 'Failed to load order details.');
+      setError(err.message || 'Failed to load order details.');
     } finally {
       setLoading(false);
     }
@@ -98,6 +100,17 @@ const MerchOrderDetailPage = () => {
     );
   }
 
+  if (error) {
+    return (
+      <SafeAreaView style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchOrder}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   if (!order) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -129,18 +142,25 @@ const MerchOrderDetailPage = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Items</Text>
+          {order.items?.length === 0 && (
+            <Text style={styles.itemVariant}>No items</Text>
+          )}
           {order.items?.map((item, index) => {
             const imageUri = item.product?.mockup_url || item.product?.image_url;
             const label = PRODUCT_TYPE_LABELS[item.product_type] || item.product_type;
 
             return (
-              <View key={index} style={styles.itemCard}>
-                {imageUri && (
+              <View key={item.id || index} style={styles.itemCard}>
+                {imageUri ? (
                   <Image
                     source={{ uri: imageUri }}
                     style={styles.itemImage}
                     resizeMode="cover"
                   />
+                ) : (
+                  <View style={styles.noImagePlaceholder}>
+                    <Ionicons name="shirt-outline" size={28} color="#666" />
+                  </View>
                 )}
                 <View style={styles.itemDetails}>
                   <Text style={styles.itemName}>{label}</Text>

@@ -4,6 +4,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import styles from './fanStyles/MerchProductPageStyles';
 
+const PRODUCT_TYPE_LABELS = {
+  HOODIE: 'Hoodie',
+  TSHIRT: 'T-Shirt',
+  TANK: 'Tank Top',
+  POSTER: 'Poster',
+};
+
 const MerchProductPage = ({ route }) => {
   const { dropId, productType, products } = route.params;
   const navigation = useNavigation();
@@ -51,12 +58,16 @@ const MerchProductPage = ({ route }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{productType || 'Product'}</Text>
+        <Text style={styles.headerTitle}>{PRODUCT_TYPE_LABELS[productType] || productType || 'Product'}</Text>
       </View>
 
       <ScrollView>
-        {imageUri && (
+        {imageUri ? (
           <Image source={{ uri: imageUri }} style={styles.productImage} />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Ionicons name="image-outline" size={64} color="#555" />
+          </View>
         )}
 
         <View style={styles.detailsContainer}>
@@ -95,15 +106,25 @@ const MerchProductPage = ({ route }) => {
                 {colors.map(c => (
                   <TouchableOpacity
                     key={c.color_code}
-                    style={[
-                      styles.colorSwatch,
-                      { backgroundColor: c.color_code },
-                      selectedColor === c.color_code && styles.colorSwatchSelected,
-                    ]}
+                    style={styles.colorSwatchTouchable}
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                     onPress={() => setSelectedColor(c.color_code)}
-                  />
+                  >
+                    <View
+                      style={[
+                        styles.colorSwatch,
+                        { backgroundColor: c.color_code },
+                        selectedColor === c.color_code && styles.colorSwatchSelected,
+                      ]}
+                    />
+                  </TouchableOpacity>
                 ))}
               </View>
+              {selectedColor && (
+                <Text style={styles.selectedColorName}>
+                  {colors.find(c => c.color_code === selectedColor)?.color || ''}
+                </Text>
+              )}
             </>
           )}
 

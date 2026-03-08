@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 12,
-    padding: 5,
+    padding: 10,
   },
   headerTitle: {
     fontSize: 20,
@@ -169,6 +169,38 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#FF0080',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  noImagePlaceholder: {
+    backgroundColor: '#1A1A1A',
+    width: 60,
+    height: 60,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
