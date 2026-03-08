@@ -151,7 +151,7 @@ const MerchOrderDetailPage = () => {
                   )}
                   <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
                   <Text style={styles.itemPrice}>
-                    ${parseFloat(item.price).toFixed(2)}
+                    ${parseFloat(item.unit_price || 0).toFixed(2)}
                   </Text>
                 </View>
               </View>
@@ -203,6 +203,11 @@ const MerchOrderDetailPage = () => {
           <TouchableOpacity style={styles.returnButton} onPress={handleRequestReturn}>
             <Text style={styles.returnButtonText}>Request Return</Text>
           </TouchableOpacity>
+        )}
+        {order.status === 'RETURN_REQUESTED' && (
+          <View style={[styles.returnButton, { borderColor: '#FF9800' }]}>
+            <Text style={[styles.returnButtonText, { color: '#FF9800' }]}>Return Requested</Text>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>

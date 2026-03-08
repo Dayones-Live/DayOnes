@@ -8,6 +8,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useStripe } from '@stripe/stripe-react-native';
@@ -31,6 +33,7 @@ const MerchCheckoutPage = ({ route }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [orderResult, setOrderResult] = useState(null);
   const [orderCreated, setOrderCreated] = useState(false);
@@ -54,6 +57,7 @@ const MerchCheckoutPage = ({ route }) => {
   };
 
   const handleCreateOrder = async () => {
+    if (submitting) return;
     if (!validateAddress()) {
       setError('Please fill in all required address fields.');
       return;
@@ -61,6 +65,7 @@ const MerchCheckoutPage = ({ route }) => {
 
     setError('');
     setLoading(true);
+    setSubmitting(true);
 
     try {
       const orderData = {
@@ -91,6 +96,7 @@ const MerchCheckoutPage = ({ route }) => {
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
       setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -129,7 +135,7 @@ const MerchCheckoutPage = ({ route }) => {
             Order #{orderResult?.orderNumber}
           </Text>
           <Text style={styles.orderTotalText}>
-            Total: ${parseFloat(orderResult?.total).toFixed(2)}
+            Total: ${parseFloat(orderResult?.total || 0).toFixed(2)}
           </Text>
           <TouchableOpacity
             style={styles.viewOrdersButton}
@@ -150,9 +156,7 @@ const MerchCheckoutPage = ({ route }) => {
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => { setOrderCreated(false); setOrderResult(null); }} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="#ffffff" />
-            </TouchableOpacity>
+            <View style={styles.backButton} />
             <Text style={styles.headerTitle}>Confirm Payment</Text>
           </View>
 
@@ -231,7 +235,11 @@ const MerchCheckoutPage = ({ route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#ffffff" />
@@ -366,6 +374,7 @@ const MerchCheckoutPage = ({ route }) => {
           )}
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
