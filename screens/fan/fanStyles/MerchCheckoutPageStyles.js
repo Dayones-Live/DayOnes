@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#888888',
     fontWeight: '400',
-    marginBottom: 32,
+    marginBottom: 8,
     textAlign: 'center',
   },
   viewOrdersButton: {
@@ -174,6 +174,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  viewOrdersOutlinedButton: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#FF0080',
+  },
+  viewOrdersOutlinedText: {
+    color: '#FF0080',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  successSubtext: {
+    fontSize: 14,
+    color: '#888888',
+    textAlign: 'center',
+    marginBottom: 28,
+    marginTop: 4,
+  },
   errorText: {
     color: '#e74c3c',
     fontSize: 14,
@@ -184,6 +205,7 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 16,
     marginTop: 8,
+    marginBottom: 4,
   },
   shippingAddressPreview: {
     marginTop: 20,

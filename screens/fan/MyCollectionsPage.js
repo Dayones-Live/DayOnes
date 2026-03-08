@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSelector } from 'react-redux';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import axios from 'axios';
 import { BASEURL } from '../../assets/constants';
 import styles from './fanStyles/MyCollectionsPageStyles';
@@ -40,14 +40,15 @@ const SPACING = 0;
 const CENTER_PADDING = (screenWidth - CARD_WIDTH) / 2;
 
 const MyCollectionsPage = ({ navigation }) => {
+  const route = useRoute();
   const [posts, setPosts] = useState([]);
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isArtistModalVisible, setIsArtistModalVisible] = useState(false);
   const [selectedArtist, setSelectedArtist] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [viewMode, setViewMode] = useState('coverFlow'); // 'coverFlow' or 'grid'
-  const [activeTab, setActiveTab] = useState('drops');
+  const [viewMode, setViewMode] = useState('coverFlow');
+  const [activeTab, setActiveTab] = useState(route.params?.initialTab || 'drops');
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -95,6 +96,15 @@ const MyCollectionsPage = ({ navigation }) => {
       fetchArtistPosts();
     }, [accessToken])
   );
+
+  useEffect(() => {
+    if (route.params?.initialTab) {
+      setActiveTab(route.params.initialTab);
+      if (route.params.initialTab === 'orders') {
+        fetchOrders();
+      }
+    }
+  }, [route.params?.initialTab]);
 
   const openImageViewer = (imageUrl) => {
     setSelectedImage(imageUrl);

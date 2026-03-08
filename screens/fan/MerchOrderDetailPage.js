@@ -52,6 +52,7 @@ const MerchOrderDetailPage = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [returningLoading, setReturningLoading] = useState(false);
 
   const fetchOrder = async () => {
     try {
@@ -81,10 +82,13 @@ const MerchOrderDetailPage = () => {
           style: 'destructive',
           onPress: async () => {
             try {
+              setReturningLoading(true);
               await requestReturn(orderId);
               fetchOrder();
             } catch (err) {
               Alert.alert('Error', 'Failed to request return.');
+            } finally {
+              setReturningLoading(false);
             }
           },
         },
@@ -220,8 +224,16 @@ const MerchOrderDetailPage = () => {
         )}
 
         {(order.status === 'SHIPPED' || order.status === 'DELIVERED') && (
-          <TouchableOpacity style={styles.returnButton} onPress={handleRequestReturn}>
-            <Text style={styles.returnButtonText}>Request Return</Text>
+          <TouchableOpacity
+            style={[styles.returnButton, returningLoading && { opacity: 0.6 }]}
+            onPress={handleRequestReturn}
+            disabled={returningLoading}
+          >
+            {returningLoading ? (
+              <ActivityIndicator size="small" color="#FF0080" />
+            ) : (
+              <Text style={styles.returnButtonText}>Request Return</Text>
+            )}
           </TouchableOpacity>
         )}
         {order.status === 'RETURN_REQUESTED' && (

@@ -144,11 +144,20 @@ const MerchCheckoutPage = ({ route }) => {
           <Text style={styles.orderTotalText}>
             Total: ${parseFloat(orderResult?.total || 0).toFixed(2)}
           </Text>
+          <Text style={styles.successSubtext}>
+            You'll receive tracking info when your order ships.
+          </Text>
           <TouchableOpacity
             style={styles.viewOrdersButton}
-            onPress={() => navigation.navigate('My Collections')}
+            onPress={() => navigation.navigate('MerchOrderDetailPage', { orderId: orderResult?.id || orderResult?.orderId })}
           >
-            <Text style={styles.viewOrdersText}>View Orders</Text>
+            <Text style={styles.viewOrdersText}>View Order Details</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.viewOrdersOutlinedButton}
+            onPress={() => navigation.navigate('My Collections', { initialTab: 'orders' })}
+          >
+            <Text style={styles.viewOrdersOutlinedText}>View Orders</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

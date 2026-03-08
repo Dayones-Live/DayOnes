@@ -152,7 +152,7 @@ const MerchStorePage = () => {
             return (
               <TouchableOpacity
                 key={type}
-                style={styles.productCard}
+                style={[styles.productCard, expired && { opacity: 0.5 }]}
                 activeOpacity={expired ? 1 : 0.7}
                 onPress={() => {
                   if (expired) return;
