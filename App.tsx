@@ -515,7 +515,7 @@ const AppContent = () => {
 // Main App component that wraps everything with Provider
 const App = () => {
   return (
-    <StripeProvider publishableKey="pk_test_PLACEHOLDER">
+    <StripeProvider publishableKey="pk_test_51T55w06BkRGoAFOBns8eEZETYmnCAXpZaWk6IAm6UaGXVl1xIQ61kqeUP5h7N1j6ZXq61455IBBK5qhFd4eZ4m0800z6iqaXkT">
       <QueryClientProvider client={queryClient}>
         <Provider store={store}>
           <AppContent />
