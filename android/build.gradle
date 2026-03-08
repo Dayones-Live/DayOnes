@@ -20,4 +20,14 @@ buildscript {
     }
 }
 
+allprojects {
+    repositories.configureEach { repo ->
+        if (repo instanceof MavenArtifactRepository && repo.url.toString().contains("jitpack.io")) {
+            repo.content {
+                excludeGroupByRegex "com\\.stripe.*"
+            }
+        }
+    }
+}
+
 apply plugin: "com.facebook.react.rootproject"
