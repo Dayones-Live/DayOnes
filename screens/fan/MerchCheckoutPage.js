@@ -108,6 +108,7 @@ const MerchCheckoutPage = ({ route }) => {
   };
 
   const handleConfirmPayment = async () => {
+    if (loading) return;
     setLoading(true);
     setError('');
 
@@ -116,6 +117,10 @@ const MerchCheckoutPage = ({ route }) => {
 
       if (paymentError) {
         if (paymentError.code === 'Canceled') {
+          await initPaymentSheet({
+            paymentIntentClientSecret: orderResult.clientSecret,
+            merchantDisplayName: 'DayOnes',
+          });
           setLoading(false);
           return;
         }
@@ -149,7 +154,7 @@ const MerchCheckoutPage = ({ route }) => {
           </Text>
           <TouchableOpacity
             style={styles.viewOrdersButton}
-            onPress={() => navigation.navigate('MerchOrderDetailPage', { orderId: orderResult?.id || orderResult?.orderId })}
+            onPress={() => navigation.navigate('MerchOrderDetailPage', { orderId: orderResult?.orderId })}
           >
             <Text style={styles.viewOrdersText}>View Order Details</Text>
           </TouchableOpacity>
@@ -166,7 +171,7 @@ const MerchCheckoutPage = ({ route }) => {
 
   if (orderCreated && orderResult) {
     const shippingCost = parseFloat(orderResult.shippingCost || 0).toFixed(2);
-    const total = parseFloat(orderResult.total).toFixed(2);
+    const total = parseFloat(orderResult.total || 0).toFixed(2);
 
     return (
       <SafeAreaView style={styles.container}>

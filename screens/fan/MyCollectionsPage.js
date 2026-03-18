@@ -94,7 +94,10 @@ const MyCollectionsPage = ({ navigation }) => {
         return;
       }
       fetchArtistPosts();
-    }, [accessToken])
+      if (activeTab === 'orders') {
+        fetchOrders();
+      }
+    }, [accessToken, activeTab])
   );
 
   useEffect(() => {

@@ -69,7 +69,15 @@ const MerchStorePage = () => {
 
     const updateCountdown = () => {
       const remaining = new Date(drop.expires_at).getTime() - Date.now();
-      setTimeRemaining(remaining > 0 ? remaining : 0);
+      if (remaining <= 0) {
+        setTimeRemaining(0);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        return;
+      }
+      setTimeRemaining(remaining);
     };
 
     updateCountdown();
@@ -129,7 +137,7 @@ const MerchStorePage = () => {
         <Text style={styles.headerTitle}>{drop?.name || 'Merch Drop'}</Text>
       </View>
 
-      {drop?.expires_at && timeRemaining !== null && !expired && (
+      {drop?.expires_at && timeRemaining > 0 && !expired && (
         <View style={styles.countdownBar}>
           <Text style={styles.countdownText}>
             Ends in {formatCountdown(timeRemaining)}

@@ -84,7 +84,7 @@ const MerchOrderDetailPage = () => {
             try {
               setReturningLoading(true);
               await requestReturn(orderId);
-              fetchOrder();
+              await fetchOrder();
             } catch (err) {
               Alert.alert('Error', 'Failed to request return.');
             } finally {
@@ -150,8 +150,10 @@ const MerchOrderDetailPage = () => {
             <Text style={styles.itemVariant}>No items</Text>
           )}
           {order.items?.map((item, index) => {
-            const imageUri = item.product?.mockup_url || item.product?.image_url;
-            const label = PRODUCT_TYPE_LABELS[item.product_type] || item.product_type;
+            const product = item.merchProduct || item.product;
+            const imageUri = product?.mockup_url || product?.image_url;
+            const productType = product?.product_type || item.product_type;
+            const label = PRODUCT_TYPE_LABELS[productType] || productType;
 
             return (
               <View key={item.id || index} style={styles.itemCard}>
@@ -168,9 +170,9 @@ const MerchOrderDetailPage = () => {
                 )}
                 <View style={styles.itemDetails}>
                   <Text style={styles.itemName}>{label}</Text>
-                  {(item.size || item.color) && (
+                  {(item.size || item.color || product?.size || product?.color) && (
                     <Text style={styles.itemVariant}>
-                      {[item.size, item.color].filter(Boolean).join(' / ')}
+                      {[item.size || product?.size, item.color || product?.color].filter(Boolean).join(' / ')}
                     </Text>
                   )}
                   <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
@@ -188,19 +190,19 @@ const MerchOrderDetailPage = () => {
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
             <Text style={styles.summaryValue}>
-              ${parseFloat(order.subtotal).toFixed(2)}
+              ${parseFloat(order.subtotal || 0).toFixed(2)}
             </Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Shipping</Text>
             <Text style={styles.summaryValue}>
-              ${parseFloat(order.shipping_cost).toFixed(2)}
+              ${parseFloat(order.shipping_cost || 0).toFixed(2)}
             </Text>
           </View>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>
-              ${parseFloat(order.total).toFixed(2)}
+              ${parseFloat(order.total || 0).toFixed(2)}
             </Text>
           </View>
         </View>

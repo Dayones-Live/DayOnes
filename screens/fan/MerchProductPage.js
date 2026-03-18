@@ -37,6 +37,24 @@ const MerchProductPage = ({ route }) => {
   const [selectedColor, setSelectedColor] = useState(colors[0]?.color_code || null);
   const [quantity, setQuantity] = useState(1);
 
+  const handleSizeChange = (size) => {
+    setSelectedSize(size);
+    const match = products.find(p => p.size === size && p.color_code === selectedColor);
+    if (!match) {
+      const fallback = products.find(p => p.size === size);
+      if (fallback) setSelectedColor(fallback.color_code);
+    }
+  };
+
+  const handleColorChange = (colorCode) => {
+    setSelectedColor(colorCode);
+    const match = products.find(p => p.size === selectedSize && p.color_code === colorCode);
+    if (!match) {
+      const fallback = products.find(p => p.color_code === colorCode);
+      if (fallback) setSelectedSize(fallback.size);
+    }
+  };
+
   const selectedProduct = isPoster
     ? products[0]
     : products.find(p => p.size === selectedSize && p.color_code === selectedColor) || null;
@@ -82,7 +100,7 @@ const MerchProductPage = ({ route }) => {
                       styles.sizePill,
                       selectedSize === size && styles.sizePillSelected,
                     ]}
-                    onPress={() => setSelectedSize(size)}
+                    onPress={() => handleSizeChange(size)}
                   >
                     <Text
                       style={
@@ -108,7 +126,7 @@ const MerchProductPage = ({ route }) => {
                     key={c.color_code}
                     style={styles.colorSwatchTouchable}
                     hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                    onPress={() => setSelectedColor(c.color_code)}
+                    onPress={() => handleColorChange(c.color_code)}
                   >
                     <View
                       style={[

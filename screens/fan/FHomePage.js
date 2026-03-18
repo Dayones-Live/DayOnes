@@ -483,6 +483,7 @@ const FHomePage = ({ navigation }) => {
             <Text style={styles.patentLabel}>U.S Patent </Text>
             <Text style={styles.patentNumber}>#10749935</Text>
           </View>
+
         </View>
       )}
 
