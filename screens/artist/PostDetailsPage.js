@@ -30,6 +30,7 @@ import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { uploadImageToBucket } from '../../utils';
 import { uploadVideoToBucket } from '../../utils/videoUploadService';
 import Video from 'react-native-video';
+import { getMerchDropByPost } from '../../services/merch.service';
 import ImageViewing from 'react-native-image-viewing';
 import { convertToTemporaryFile } from '../../assets/components/convertToTemporaryFileHelper';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
@@ -104,8 +105,8 @@ const PostDetailPage = () => {
   const [reportDescription, setReportDescription] = useState(""); // Input for report description
   const [isSelectingMedia, setIsSelectingMedia] = useState(false);
   const [isSendingComment, setIsSendingComment] = useState(false);
-
-
+  const [merchDrop, setMerchDrop] = useState(null);
+  const [merchLoading, setMerchLoading] = useState(false);
 
   const route = useRoute();
   const navigation = useNavigation();
@@ -206,7 +207,20 @@ const PostDetailPage = () => {
 
   useEffect(() => {
     fetchPostDetails();
+    fetchMerchDrop();
   }, [postId, accessToken]);
+
+  const fetchMerchDrop = async () => {
+    try {
+      setMerchLoading(true);
+      const data = await getMerchDropByPost(postId);
+      setMerchDrop(data);
+    } catch (err) {
+      setMerchDrop(null);
+    } finally {
+      setMerchLoading(false);
+    }
+  };
 
   const handleOpenModal = () => {
     setModalVisible(true);
@@ -802,6 +816,42 @@ const PostDetailPage = () => {
                   <Text style={styles.iconText}>{item.reactionCount || 0}</Text>
                 </View>
               </View>
+
+              {!merchLoading && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: merchDrop ? '#1A1A1A' : '#FF0080',
+                    borderRadius: 25,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    marginTop: 12,
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => {
+                    if (merchDrop) {
+                      navigation.navigate('ArtistMerchDropDetailPage', { dropId: merchDrop.id });
+                    } else {
+                      navigation.navigate('ArtistCreateMerchDropPage', {
+                        postId: postId,
+                        postImage: item.image_url,
+                      });
+                    }
+                  }}
+                >
+                  <Icon
+                    name={merchDrop ? 'shopping-bag' : 'plus'}
+                    size={16}
+                    color="#FFFFFF"
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 }}>
+                    {merchDrop
+                      ? `View Merch Drop (${merchDrop.status === 'ACTIVE' ? 'Active' : merchDrop.status === 'CREATING' ? 'Creating' : merchDrop.status === 'EXPIRED' ? 'Expired' : 'Cancelled'})`
+                      : 'Create Merch Drop'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </>
         )}
