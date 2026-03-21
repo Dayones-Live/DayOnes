@@ -95,7 +95,7 @@ const ArtistMerchDashboardPage = () => {
     const product = first.merchProduct || first.product;
     const typeName = product?.product_type || 'Item';
     if (items.length === 1) {
-      return `${first.quantity}x ${typeName} (${first.size}, ${first.color})`;
+      return `${first.quantity || 1}x ${typeName} (${first.size || '-'}, ${first.color || '-'})`;
     }
     return `${items.length} items`;
   };
@@ -226,7 +226,7 @@ const ArtistMerchDashboardPage = () => {
               >
                 <View style={styles.orderCardRow}>
                   <Text style={styles.orderNumber}>#{order.order_number}</Text>
-                  <Text style={styles.orderTotal}>${Number(order.total).toFixed(2)}</Text>
+                  <Text style={styles.orderTotal}>${Number(order.total || 0).toFixed(2)}</Text>
                 </View>
                 <Text style={styles.orderDate}>
                   {new Date(order.created_at).toLocaleDateString()}

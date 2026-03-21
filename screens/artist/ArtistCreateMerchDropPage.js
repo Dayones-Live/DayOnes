@@ -79,7 +79,21 @@ const ArtistCreateMerchDropPage = () => {
   };
 
   const pollForCompletion = (dropId) => {
+    if (!dropId) return;
+    let attempts = 0;
+    const maxAttempts = 60;
     pollRef.current = setInterval(async () => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        clearInterval(pollRef.current);
+        setCreating(false);
+        Alert.alert(
+          'Taking Longer Than Expected',
+          'Your merch drop is still being created. Check back in a few minutes.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+        return;
+      }
       try {
         const data = await getMerchDrop(dropId);
         if (data.status === 'ACTIVE') {

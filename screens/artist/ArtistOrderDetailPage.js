@@ -147,10 +147,10 @@ const ArtistOrderDetailPage = () => {
                 <View style={styles.itemDetails}>
                   <Text style={styles.itemName}>{typeName}</Text>
                   <Text style={styles.itemVariant}>
-                    {item.size} / {item.color} x{item.quantity}
+                    {item.size || '-'} / {item.color || '-'} x{item.quantity || 1}
                   </Text>
                   <Text style={styles.itemPrice}>
-                    ${Number(item.unit_price).toFixed(2)}
+                    ${Number(item.unit_price || 0).toFixed(2)}
                   </Text>
                 </View>
               </View>
@@ -163,17 +163,17 @@ const ArtistOrderDetailPage = () => {
           <View style={{ backgroundColor: '#1A1A1A', borderRadius: 12, padding: 16 }}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>${Number(order.subtotal).toFixed(2)}</Text>
+              <Text style={styles.summaryValue}>${Number(order.subtotal || 0).toFixed(2)}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Shipping</Text>
               <Text style={styles.summaryValue}>
-                {Number(order.shipping_cost) === 0 ? 'Free' : `$${Number(order.shipping_cost).toFixed(2)}`}
+                {Number(order.shipping_cost || 0) === 0 ? 'Free' : `$${Number(order.shipping_cost || 0).toFixed(2)}`}
               </Text>
             </View>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Total Charged</Text>
-              <Text style={styles.totalValue}>${Number(order.total).toFixed(2)}</Text>
+              <Text style={styles.totalValue}>${Number(order.total || 0).toFixed(2)}</Text>
             </View>
           </View>
         </View>
@@ -185,32 +185,32 @@ const ArtistOrderDetailPage = () => {
               <View style={styles.financialRow}>
                 <Text style={styles.financialLabel}>Gross Revenue</Text>
                 <Text style={styles.financialValue}>
-                  ${Number(ledger.gross_revenue).toFixed(2)}
+                  ${Number(ledger.gross_revenue || 0).toFixed(2)}
                 </Text>
               </View>
               <View style={styles.financialRow}>
                 <Text style={styles.financialLabel}>Stripe Fee</Text>
                 <Text style={[styles.financialValue, styles.financialDeduction]}>
-                  -${Number(ledger.stripe_fee).toFixed(2)}
+                  -${Number(ledger.stripe_fee || 0).toFixed(2)}
                 </Text>
               </View>
               <View style={styles.financialRow}>
                 <Text style={styles.financialLabel}>Fulfillment Cost</Text>
                 <Text style={[styles.financialValue, styles.financialDeduction]}>
-                  -${Number(ledger.printful_cost).toFixed(2)}
+                  -${Number(ledger.printful_cost || 0).toFixed(2)}
                 </Text>
               </View>
               <View style={styles.divider} />
               <View style={styles.netRow}>
                 <Text style={styles.netLabel}>Net Profit</Text>
                 <Text style={styles.netValue}>
-                  ${Number(ledger.net_profit).toFixed(2)}
+                  ${Number(ledger.net_profit || 0).toFixed(2)}
                 </Text>
               </View>
               <View style={styles.earningsRow}>
                 <Text style={styles.earningsLabel}>Your Share (70%)</Text>
                 <Text style={styles.earningsValue}>
-                  ${Number(ledger.artist_share).toFixed(2)}
+                  ${Number(ledger.artist_share || 0).toFixed(2)}
                 </Text>
               </View>
             </View>
@@ -234,7 +234,7 @@ const ArtistOrderDetailPage = () => {
               {order.tracking_url && (
                 <TouchableOpacity
                   style={styles.trackButton}
-                  onPress={() => Linking.openURL(order.tracking_url)}
+                  onPress={() => Linking.openURL(order.tracking_url).catch(() => Alert.alert('Error', 'Could not open tracking URL'))}
                 >
                   <Text style={styles.trackButtonText}>Track Package</Text>
                 </TouchableOpacity>
@@ -248,11 +248,11 @@ const ArtistOrderDetailPage = () => {
             <Text style={styles.sectionTitle}>Shipping Address</Text>
             <View style={styles.shippingCard}>
               <Text style={styles.shippingText}>
-                {address.name}{'\n'}
-                {address.address1}
+                {address.name || ''}{'\n'}
+                {address.address1 || ''}
                 {address.address2 ? `\n${address.address2}` : ''}{'\n'}
-                {address.city}, {address.state_code} {address.zip}{'\n'}
-                {address.country_code}
+                {address.city || ''}, {address.state_code || ''} {address.zip || ''}{'\n'}
+                {address.country_code || ''}
               </Text>
             </View>
           </View>

@@ -147,7 +147,7 @@ const ArtistPayoutsPage = () => {
                 <View key={payout.id} style={styles.payoutCard}>
                   <View style={styles.payoutCardRow}>
                     <Text style={styles.payoutAmount}>
-                      ${Number(payout.total_amount).toFixed(2)}
+                      ${Number(payout.total_amount || 0).toFixed(2)}
                     </Text>
                     <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
                       <Text style={styles.statusText}>{statusLabel}</Text>

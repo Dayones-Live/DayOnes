@@ -282,7 +282,7 @@ const ArtistMerchDropDetailPage = () => {
               >
                 <View style={styles.orderCardRow}>
                   <Text style={styles.orderNumber}>#{order.order_number}</Text>
-                  <Text style={styles.orderTotal}>${Number(order.total).toFixed(2)}</Text>
+                  <Text style={styles.orderTotal}>${Number(order.total || 0).toFixed(2)}</Text>
                 </View>
                 <Text style={styles.orderDate}>
                   {new Date(order.created_at).toLocaleDateString()}
