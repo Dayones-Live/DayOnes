@@ -7,6 +7,13 @@ import PostDetailPage from '../screens/artist/PostDetailsPage';
 import SignaturePage from '../screens/artist/SignaturePage';
 import ArtistSignatures from '../screens/artist/ArtistSignatures';
 import BlockedUsers from '../screens/BlockedUsers';
+import ArtistMerchDropsPage from '../screens/artist/ArtistMerchDropsPage';
+import ArtistMerchDropDetailPage from '../screens/artist/ArtistMerchDropDetailPage';
+import ArtistCreateMerchDropPage from '../screens/artist/ArtistCreateMerchDropPage';
+import ArtistOrdersPage from '../screens/artist/ArtistOrdersPage';
+import ArtistOrderDetailPage from '../screens/artist/ArtistOrderDetailPage';
+import ArtistPayoutsPage from '../screens/artist/ArtistPayoutsPage';
+import StripeOnboardingPage from '../screens/artist/StripeOnboardingPage';
 
 const Stack = createStackNavigator();
 
@@ -46,6 +53,41 @@ const ArtistStack = () => {
       <Stack.Screen
         name="BlockedUsers"
         component={BlockedUsers}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ArtistMerchDropsPage"
+        component={ArtistMerchDropsPage}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ArtistMerchDropDetailPage"
+        component={ArtistMerchDropDetailPage}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ArtistCreateMerchDropPage"
+        component={ArtistCreateMerchDropPage}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ArtistOrdersPage"
+        component={ArtistOrdersPage}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ArtistOrderDetailPage"
+        component={ArtistOrderDetailPage}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ArtistPayoutsPage"
+        component={ArtistPayoutsPage}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="StripeOnboardingPage"
+        component={StripeOnboardingPage}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

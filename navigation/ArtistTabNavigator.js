@@ -4,7 +4,8 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import ArtistPostsPage from '../screens/artist/ArtistPostsPage';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import DMsScreen from '../screens/DMsScreen';
-import HHomePage from '../screens/artist/HHomePage'; // Import the home page
+import HHomePage from '../screens/artist/HHomePage';
+import ArtistMerchDashboardPage from '../screens/artist/ArtistMerchDashboardPage';
 import { View, Text, Platform } from 'react-native';
 import { useSelector } from 'react-redux';
 import useNotifications from '../assets/hooks/useNotifications';
@@ -30,6 +31,9 @@ const ArtistTabNavigator = () => {
           switch (route.name) {
             case 'Posts':
               iconName = 'file-text-o';
+              break;
+            case 'Merch':
+              iconName = 'dollar';
               break;
             case 'Notifications':
               return (
@@ -95,6 +99,7 @@ const ArtistTabNavigator = () => {
         }}
       />
       <Tab.Screen name="Posts" component={ArtistPostsPage} />
+      <Tab.Screen name="Merch" component={ArtistMerchDashboardPage} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} />
       <Tab.Screen name="DM's" component={DMsScreen} />
     </Tab.Navigator>
