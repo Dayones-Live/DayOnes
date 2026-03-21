@@ -183,16 +183,32 @@ const AppContent = () => {
             }
           }
         } else if (data.type === 'merch_drop' && data.drop_id) {
-          if (navigationRef.current && isFan) {
-            navigationRef.current.navigate('MerchStorePage', {
-              dropId: data.drop_id,
-            });
+          if (navigationRef.current) {
+            if (isFan) {
+              navigationRef.current.navigate('MerchStorePage', {
+                dropId: data.drop_id,
+              });
+            } else {
+              navigationRef.current.navigate('ArtistMerchDropDetailPage', {
+                dropId: data.drop_id,
+              });
+            }
           }
         } else if (data.type === 'merch_order_shipped' && data.order_id) {
           if (navigationRef.current && isFan) {
             navigationRef.current.navigate('MerchOrderDetailPage', {
               orderId: data.order_id,
             });
+          }
+        } else if (data.type === 'order_failed' && data.merch_order_id) {
+          if (navigationRef.current && !isFan) {
+            navigationRef.current.navigate('ArtistOrderDetailPage', {
+              orderId: data.merch_order_id,
+            });
+          }
+        } else if (data.type === 'payout_sent') {
+          if (navigationRef.current && !isFan) {
+            navigationRef.current.navigate('ArtistPayoutsPage');
           }
         }
       } catch (error) {
