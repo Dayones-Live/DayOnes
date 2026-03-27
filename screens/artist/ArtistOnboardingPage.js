@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from './artistStyles/ArtistOnboardingPageStyles';
 
@@ -28,7 +29,7 @@ const PROJECTIONS = {
   '0-500': { fanMin: 25, fanMax: 125 },
   '500-1500': { fanMin: 50, fanMax: 300 },
   '1500-5000': { fanMin: 120, fanMax: 750 },
-  '5000+': { fanMin: 250, fanMax: 500 },
+  '5000+': { fanMin: 500, fanMax: 1500 },
 };
 
 const REVENUE_PER_FAN = {
@@ -39,6 +40,8 @@ const REVENUE_PER_FAN = {
 
 const ArtistOnboardingPage = () => {
   const navigation = useNavigation();
+  const userProfile = useSelector((state) => state.userProfile?.data);
+  const userId = userProfile?.id || 'default';
   const [step, setStep] = useState(1);
   const [attendance, setAttendance] = useState(null);
   const [merchActivity, setMerchActivity] = useState(null);
@@ -66,16 +69,14 @@ const ArtistOnboardingPage = () => {
   const handleBack = () => {
     if (step > 1) {
       setStep(step - 1);
-    } else {
-      navigation.goBack();
     }
   };
 
   const handleGetStarted = async () => {
     try {
-      await AsyncStorage.setItem('artist_onboarding_complete', 'true');
-      await AsyncStorage.setItem('artist_onboarding_attendance', attendance);
-      await AsyncStorage.setItem('artist_onboarding_merch', merchActivity);
+      await AsyncStorage.setItem(`artist_onboarding_complete_${userId}`, 'true');
+      await AsyncStorage.setItem(`artist_onboarding_attendance_${userId}`, attendance);
+      await AsyncStorage.setItem(`artist_onboarding_merch_${userId}`, merchActivity);
     } catch (err) {
       // continue even if storage fails
     }
@@ -91,9 +92,11 @@ const ArtistOnboardingPage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-        <Ionicons name="arrow-back" size={24} color="white" />
-      </TouchableOpacity>
+      {step > 1 && (
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+      )}
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.stepIndicator}>

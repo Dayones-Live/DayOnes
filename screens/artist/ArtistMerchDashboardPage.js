@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LineChart } from 'react-native-chart-kit';
 import { getDashboardStats } from '../../services/merch.service';
@@ -21,6 +22,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const ArtistMerchDashboardPage = () => {
   const navigation = useNavigation();
+  const userProfile = useSelector((state) => state.userProfile?.data);
+  const userId = userProfile?.id || 'default';
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,7 +32,7 @@ const ArtistMerchDashboardPage = () => {
 
   const checkOnboarding = async () => {
     try {
-      const done = await AsyncStorage.getItem('artist_onboarding_complete');
+      const done = await AsyncStorage.getItem(`artist_onboarding_complete_${userId}`);
       if (!done) {
         navigation.navigate('ArtistOnboardingPage');
       }
