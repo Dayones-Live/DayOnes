@@ -72,9 +72,13 @@ const ArtistOnboardingPage = () => {
   };
 
   const handleGetStarted = async () => {
-    await AsyncStorage.setItem('artist_onboarding_complete', 'true');
-    await AsyncStorage.setItem('artist_onboarding_attendance', attendance);
-    await AsyncStorage.setItem('artist_onboarding_merch', merchActivity);
+    try {
+      await AsyncStorage.setItem('artist_onboarding_complete', 'true');
+      await AsyncStorage.setItem('artist_onboarding_attendance', attendance);
+      await AsyncStorage.setItem('artist_onboarding_merch', merchActivity);
+    } catch (err) {
+      // continue even if storage fails
+    }
     navigation.goBack();
   };
 
@@ -87,11 +91,9 @@ const ArtistOnboardingPage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {step > 1 && (
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <Ionicons name="arrow-back" size={24} color="white" />
+      </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.stepIndicator}>

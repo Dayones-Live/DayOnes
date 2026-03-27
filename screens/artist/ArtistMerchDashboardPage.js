@@ -28,9 +28,13 @@ const ArtistMerchDashboardPage = () => {
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   const checkOnboarding = async () => {
-    const done = await AsyncStorage.getItem('artist_onboarding_complete');
-    if (!done) {
-      navigation.navigate('ArtistOnboardingPage');
+    try {
+      const done = await AsyncStorage.getItem('artist_onboarding_complete');
+      if (!done) {
+        navigation.navigate('ArtistOnboardingPage');
+      }
+    } catch (err) {
+      // skip onboarding check on error
     }
     setOnboardingChecked(true);
   };
@@ -81,16 +85,20 @@ const ArtistMerchDashboardPage = () => {
   const events = stats?.events || [];
   const eventsWithFans = events.filter((e) => e.fansCaptured > 0);
 
+  const chartEvents = eventsWithFans.length > 6
+    ? eventsWithFans.slice(-6)
+    : eventsWithFans;
+
   const chartData = {
-    labels: eventsWithFans.length > 0
-      ? eventsWithFans.map((e) => {
-          const d = new Date(e.date);
+    labels: chartEvents.length > 0
+      ? chartEvents.map((e) => {
+          const d = new Date(e.date || Date.now());
           return `${d.getMonth() + 1}/${d.getDate()}`;
         })
       : [''],
     datasets: [{
-      data: eventsWithFans.length > 0
-        ? eventsWithFans.map((e) => e.fansCaptured)
+      data: chartEvents.length > 0
+        ? chartEvents.map((e) => e.fansCaptured || 0)
         : [0],
       strokeWidth: 2,
     }],
@@ -140,7 +148,7 @@ const ArtistMerchDashboardPage = () => {
           </View>
         </View>
 
-        {eventsWithFans.length > 1 && (
+        {chartEvents.length > 1 && (
           <View style={styles.chartContainer}>
             <Text style={styles.chartTitle}>Fans Captured Over Time</Text>
             <LineChart
@@ -156,7 +164,7 @@ const ArtistMerchDashboardPage = () => {
                 backgroundColor: '#1A1A1A',
                 backgroundGradientFrom: '#1A1A1A',
                 backgroundGradientTo: '#1A1A1A',
-                decimalCount: 0,
+                decimalPlaces: 0,
                 color: (opacity = 1) => `rgba(255, 0, 128, ${opacity})`,
                 labelColor: () => '#666',
                 propsForDots: {
@@ -203,11 +211,11 @@ const ArtistMerchDashboardPage = () => {
               <View style={styles.eventInfo}>
                 <View style={styles.eventInfoTop}>
                   <Text style={styles.eventDate}>
-                    {new Date(event.date).toLocaleDateString()}
+                    {new Date(event.date || Date.now()).toLocaleDateString()}
                   </Text>
-                  {event.revenue > 0 && (
+                  {(event.revenue || 0) > 0 && (
                     <Text style={styles.eventRevenue}>
-                      ${event.revenue.toFixed(2)}
+                      ${(event.revenue || 0).toFixed(2)}
                     </Text>
                   )}
                 </View>
