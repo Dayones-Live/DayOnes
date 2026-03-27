@@ -1,4 +1,6 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -17,98 +19,53 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  stripeIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  stripeIndicatorText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 5,
+  headerRight: {
+    padding: 8,
   },
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
   },
-  stripeBanner: {
+  statsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  statCard: {
+    width: (width - 44) / 2,
     backgroundColor: '#1A1A1A',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FF9800',
-  },
-  stripeBannerTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 6,
-  },
-  stripeBannerText: {
-    fontSize: 13,
-    color: '#999',
     marginBottom: 12,
   },
-  stripeBannerButton: {
-    backgroundColor: '#FF0080',
-    borderRadius: 25,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  stripeBannerButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  balanceCard: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-  },
-  balanceLabel: {
-    fontSize: 13,
+  statLabel: {
+    fontSize: 12,
     color: '#999',
     marginBottom: 4,
   },
-  balanceAmount: {
-    fontSize: 36,
+  statValue: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  balanceOrderCount: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 4,
+  statValueGreen: {
+    color: '#10B981',
   },
-  balanceNote: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 8,
+  statValuePink: {
+    color: '#FF0080',
   },
-  quickActions: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 10,
-  },
-  quickActionButton: {
-    flex: 1,
+  chartContainer: {
     backgroundColor: '#1A1A1A',
     borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
+    padding: 16,
+    marginBottom: 20,
   },
-  quickActionIcon: {
-    marginBottom: 6,
-  },
-  quickActionText: {
-    fontSize: 12,
+  chartTitle: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+    marginBottom: 12,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -121,59 +78,79 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  seeAllText: {
-    fontSize: 13,
-    color: '#FF0080',
-    fontWeight: '600',
-  },
-  orderCard: {
+  eventCard: {
     backgroundColor: '#1A1A1A',
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
+    flexDirection: 'row',
   },
-  orderCardRow: {
+  eventImageContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#2A2A2A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eventImage: {
+    width: 56,
+    height: 56,
+  },
+  eventInfo: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  eventInfoTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  orderNumber: {
-    fontSize: 14,
-    fontWeight: '600',
+  eventDate: {
+    fontSize: 13,
     color: '#FFFFFF',
+    fontWeight: '600',
   },
-  orderTotal: {
+  eventRevenue: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#10B981',
   },
-  orderDate: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  orderItems: {
+  eventLocation: {
     fontSize: 12,
     color: '#999',
     marginTop: 2,
   },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    marginTop: 8,
+  eventMetaRow: {
+    flexDirection: 'row',
+    marginTop: 4,
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  eventMeta: {
+    fontSize: 12,
+    color: '#666',
+    marginRight: 16,
+  },
+  eventMetaValue: {
+    color: '#999',
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: '#444',
+    marginTop: 6,
     textAlign: 'center',
-    paddingVertical: 20,
+    paddingHorizontal: 40,
   },
   loadingContainer: {
     flex: 1,

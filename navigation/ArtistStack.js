@@ -14,6 +14,7 @@ import ArtistOrdersPage from '../screens/artist/ArtistOrdersPage';
 import ArtistOrderDetailPage from '../screens/artist/ArtistOrderDetailPage';
 import ArtistPayoutsPage from '../screens/artist/ArtistPayoutsPage';
 import StripeOnboardingPage from '../screens/artist/StripeOnboardingPage';
+import ArtistOnboardingPage from '../screens/artist/ArtistOnboardingPage';
 
 const Stack = createStackNavigator();
 
@@ -88,6 +89,11 @@ const ArtistStack = () => {
       <Stack.Screen
         name="StripeOnboardingPage"
         component={StripeOnboardingPage}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ArtistOnboardingPage"
+        component={ArtistOnboardingPage}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

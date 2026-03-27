@@ -80,3 +80,10 @@ export const startStripeOnboarding = async () => {
   const response = await axiosInstance.post(`${STRIPE_BASE}/connect/onboard`);
   return response.data?.data;
 };
+
+const DASHBOARD_BASE = '/api/v1/artist-dashboard';
+
+export const getDashboardStats = async () => {
+  const response = await axiosInstance.get(`${DASHBOARD_BASE}/stats`);
+  return response.data?.data;
+};

@@ -32,8 +32,8 @@ const ArtistTabNavigator = () => {
             case 'Posts':
               iconName = 'file-text-o';
               break;
-            case 'Merch':
-              iconName = 'dollar';
+            case 'Dashboard':
+              iconName = 'line-chart';
               break;
             case 'Notifications':
               return (
@@ -99,7 +99,7 @@ const ArtistTabNavigator = () => {
         }}
       />
       <Tab.Screen name="Posts" component={ArtistPostsPage} />
-      <Tab.Screen name="Merch" component={ArtistMerchDashboardPage} />
+      <Tab.Screen name="Dashboard" component={ArtistMerchDashboardPage} />
       <Tab.Screen name="Notifications" component={NotificationsScreen} />
       <Tab.Screen name="DM's" component={DMsScreen} />
     </Tab.Navigator>
